@@ -604,7 +604,7 @@ impl RelayClient {
                         "urn:t3:params:oauth:token-type:environment-bootstrap",
                     ),
                     ("requested_token_type", ACCESS),
-                    ("scope", "orchestration:read orchestration:operate filesystem:read settings:write"),
+                    ("scope", "orchestration:read orchestration:operate filesystem:read settings:write terminal:read terminal:operate"),
                     ("client_label", "Omarchy/Omi"),
                 ])
                 .send()

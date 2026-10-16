@@ -139,7 +139,7 @@ fn fixture(mismatch: bool) -> (String, thread::JoinHandle<()>) {
                     assert_eq!(proof(&r, &base, None, &mut seen), expected_thumb);
                     let body = String::from_utf8(r.body).unwrap();
                     assert!(body.contains("one-use-bootstrap-secret"));
-                    assert!(body.contains("orchestration%3Aoperate"));assert!(body.contains("filesystem%3Aread"));assert!(body.contains("settings%3Awrite"));
+                    assert!(body.contains("orchestration%3Aoperate"));assert!(body.contains("filesystem%3Aread"));assert!(body.contains("settings%3Awrite"));assert!(body.contains("terminal%3Aread"));assert!(body.contains("terminal%3Aoperate"));
                     reply(
                         &mut s,
                         json!({"token_type":"DPoP","access_token":"environment-access-token","expires_in":600,"scope":"orchestration:read orchestration:operate"}),
