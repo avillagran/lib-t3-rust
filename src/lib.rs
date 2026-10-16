@@ -17,6 +17,8 @@ use std::{
 use tungstenite::{client::IntoClientRequest, Message};
 use zeroize::Zeroizing;
 pub mod ffi;
+mod ffi_stream;
+mod ffi_attachments;
 pub mod activity;
 pub mod models;
 pub mod sidebar;

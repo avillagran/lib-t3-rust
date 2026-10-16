@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Build native Android JNI libraries; never installs SDKs, targets or dependencies.
+set -euo pipefail
+cd -- "$(dirname -- "$0")/.."
+: "${ANDROID_NDK_HOME:?Set ANDROID_NDK_HOME to the installed Android NDK}"
+api=${ANDROID_API_LEVEL:-24}
+[[ $api =~ ^[0-9]+$ && $api -ge 24 ]] || { echo 'Android API level must be >=24' >&2; exit 1; }
+source_rev=$(git rev-parse HEAD 2>/dev/null || printf uncommitted)
+if [[ $source_rev != uncommitted && -n $(git status --porcelain) ]]; then source_rev=uncommitted; fi
+export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-2}
+ndk_bin="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+[[ -x "$ndk_bin/clang" ]] || { echo 'Use an x86_64 Linux Android build host with the installed NDK.' >&2; exit 1; }
+if (($# == 0)); then set -- arm64-v8a x86_64; fi
+for abi in "$@"; do
+  case "$abi" in
+    arm64-v8a) target=aarch64-linux-android; clang=aarch64-linux-android;;
+    x86_64) target=x86_64-linux-android; clang=x86_64-linux-android;;
+    armeabi-v7a) target=armv7-linux-androideabi; clang=armv7a-linux-androideabi;;
+    x86) target=i686-linux-android; clang=i686-linux-android;;
+    *) echo "Unsupported ABI: $abi" >&2; exit 1;;
+  esac
+  [[ -d $(rustc --print target-libdir --target "$target") ]] || { echo "Install the Rust target explicitly: $target" >&2; exit 1; }
+  key=${target//-/_}
+  env "CARGO_TARGET_${key^^}_LINKER=$ndk_bin/${clang}${api}-clang" \
+      "CC_${key}=$ndk_bin/${clang}${api}-clang" "AR_${key}=$ndk_bin/llvm-ar" \
+      cargo build --release --locked --target "$target"
+  output="${CARGO_TARGET_DIR:-target}"
+  archive=$(realpath "$output/$target/release/libt3_protocol.a")
+  cmake -S bindings/android/cpp -B "$output/android/$abi" \
+    -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+    -DANDROID_ABI="$abi" -DANDROID_PLATFORM="android-$api" -DCMAKE_BUILD_TYPE=MinSizeRel \
+    -DANDROID_STL=c++_static -DT3_RUST_ARCHIVE="$archive"
+  cmake --build "$output/android/$abi" --parallel "$CARGO_BUILD_JOBS"
+  mkdir -p "dist/android/$abi"
+  install -m755 "$output/android/$abi/libt3_jni.so" "dist/android/$abi/libt3_jni.so"
+  "$ndk_bin/llvm-strip" --strip-unneeded "dist/android/$abi/libt3_jni.so"
+  [[ $source_rev == uncommitted || $(git rev-parse HEAD) == "$source_rev" ]] || { echo "Source changed during build" >&2; exit 1; }
+  if [[ $source_rev != uncommitted && -n $(git status --porcelain) ]]; then source_rev=uncommitted; fi
+  printf '%s\n' "$source_rev" > "dist/android/$abi/COMMIT"
+done

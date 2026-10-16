@@ -1,61 +1,146 @@
 # Android / Omi integration
 
-The repository is `lib-t3-rust`; the Cargo package and Rust imports remain
-`t3-protocol` / `t3_protocol`, and the native archive remains `libt3_protocol.a`.
-The API was extracted from Omarchy T3 Code without renaming symbols.
+`lib-t3-rust` keeps the Cargo package/import names `t3-protocol` / `t3_protocol`
+and the static archive `libt3_protocol.a`. ABI v2 is additive: the original four
+C symbols and synchronous JSON operations remain available to existing adapters.
 
-## Build
+## Using the Android package
 
-Install Rust, the Android NDK and `cargo-ndk` on your build host. Use the same NDK
-and Android API level as Omi. For example, after configuring `ANDROID_NDK_HOME`:
+The Android release provides an AAR with the canonical Kotlin adapter and JNI
+libraries for **arm64-v8a, armeabi-v7a, x86 and x86_64**, targeting API 24+.
+It has no UI, account configuration or background service. Add the verified AAR
+to the Android application's dependencies:
 
-```sh
-rustup target add aarch64-linux-android x86_64-linux-android
-cargo install cargo-ndk --locked
-cargo ndk -t arm64-v8a -t x86_64 build --release --locked
+```kotlin
+implementation(files("libs/lib-t3-rust-android-v0.2.0.aar"))
 ```
 
-The archives are `target/aarch64-linux-android/release/libt3_protocol.a` and
-`target/x86_64-linux-android/release/libt3_protocol.a`. Link each into the matching
-ABI of Omi's JNI shared library; add `include/` to its C/C++ include path. Follow
-the Rust linker output for required Android system libraries. Desktop Linux
-ARM64/x86_64 archives cannot be linked into Android, even on the same CPU.
+The application supplies its existing INTERNET permission and Kotlin standard
+library. The adapter is built with Kotlin 2.3.21 / JVM 17; use a compatible Kotlin
+toolchain, or build the provided adapter sources with the application's compiler.
+Its JNI class name is kept by the AAR's consumer ProGuard rules.
 
-The checked-in C header is the ownership contract. A JNI shim needs only these
-functions for synchronous HTTP/RPC operations:
+```kotlin
+// All of this runs on a worker / Dispatchers.IO, never the UI thread.
+val client = dev.avillagran.t3.T3Client()
+client.connectBearer(baseUrl, hostOwnedToken)
+val shell = client.request("/api/orchestration/shell")
+val stream = client.subscribe("orchestration.subscribeThread", JSONObject()
+    .put("threadId", selectedThreadId)
+    .put("requestCompletionMarker", true)
+    .put("acceptBoundedSnapshot", true)
+    .put("acceptCompactTurnItems", true))
+// A resume can also set afterSequence from the last applied native event.
+try {
+    while (isForeground) {
+        val batch = stream.poll() // waits up to 1s; wakes immediately on new data
+        applyNativeItems(batch.items)
+        if (batch.closed) break // inspect batch.error, reconcile/reconnect explicitly
+    }
+} finally {
+    stream.close()
+    client.close()
+}
+```
 
-- `t3_client_new()` returns an opaque handle.
-- `t3_client_call(handle, utf8_bytes, length)` returns owned UTF-8 JSON.
-- `t3_string_free(response)` frees that response exactly once.
-- `t3_client_free(handle)` destroys the handle after all work completes.
+Omi owns endpoint discovery, login, Android secure storage, lifecycle, cursor
+persistence and UI. It connects directly to T3. Omarchy-Link is not a T3 message
+relay. A current T3 cloud JWT can instead be supplied to `connectRelay`; a browser
+access token bound to a different DPoP key cannot be reused. The C-handle proof
+key currently lasts for that handle; Rust hosts can persist keys through secure
+platform storage.
 
-Use Kotlin byte arrays / JNI byte arrays for UTF-8 JSON. JNI's modified-UTF-8
-string helpers must not be mistaken for arbitrary UTF-8 transport. Copy the
-result into a managed byte array before freeing the Rust response. Serialize
-handle ownership; never close it while another call is active. Calls can block
-and must run outside Android's main/UI thread. Do not automatically repeat a
-mutation after `rpc_outcome_unknown`; reconcile using stable native command IDs.
+Stop subscriptions when the foreground view is released. `close()` cancels native
+subscriptions before waiting for in-flight calls and releasing the handle; it is
+idempotent and may block, so close from a worker. A screen/environment generation
+must fence late results from an older request. No foreground service, background
+permission, automatic reconnection or mutation retry is introduced by this adapter.
 
-## Platform responsibilities
+## Events through the existing JSON ABI
 
-Omi owns login, Android Keystore integration, endpoint discovery, permissions,
-lifecycle, background execution and the UI. Supply an existing current T3 cloud
-JWT to the relay flow; a browser token bound to a different DPoP key cannot be
-reused. Keep tokens and private keys out of logs and UI state. For direct LAN
-HTTP, Android's network-security policy must explicitly permit the intended
-endpoint; do not disable certificate validation for HTTPS.
+```json
+{"op":"capabilities"}
+{"op":"subscribe","tag":"orchestration.subscribeThread","payload":{"threadId":"selected","afterSequence":10,"requestCompletionMarker":true,"acceptBoundedSnapshot":true,"acceptCompactTurnItems":true}}
+{"op":"pollSubscription","subscriptionId":"returned-id","timeoutMs":1000}
+{"op":"cancelSubscription","subscriptionId":"returned-id"}
+```
 
-The Rust API also exposes subscriptions, attachment upload/download and portable
-presentation helpers. The current JSON C ABI exposes only `connectBearer`,
-`connectRelay`, `request`, `rpc` and `disconnect`; it does **not** yet expose live
-subscription callbacks, streaming attachments or every presentation helper.
-Those require a Rust JNI wrapper or an extension of the shared ABI, rather than
-reimplementing the protocol in Kotlin. Relay DPoP keys currently live for the C
-handle's lifetime; the Rust API supports secure host-managed key persistence.
+`capabilities` reports ABI/library versions and limits without connecting.
+Subscribe returns `subscriptionId`; poll returns `{items, closed, error}` inside
+the usual `{ok,data}` envelope. Items preserve T3's native snapshot/event/
+synchronized shapes. One consumer polls each stream. Poll waits on a condition
+variable rather than repeatedly calling Java; it does not hold the connection
+lock and cannot stall sends or reads. At most four streams exist per handle;
+each queue holds at most 64 items and 8 MiB of serialized payload. Overflow ends
+the stream with `stream_backpressure`, preserving already queued events. Resume
+from the last applied cursor or obtain a fresh snapshot; never silently drop gaps.
+Close a finished subscription to release its slot. Disconnect or a successful
+connection switch cancels all streams; a failed switch preserves the old session.
 
-## Validation status
+The worker handles Effect Chunk/Ack, Ping/Pong and Interrupt framing in Rust.
+Cancellation wakes a blocked poll immediately; the network worker observes it on
+its next read tick. DNS/connect/TLS negotiation already in progress can take its
+normal timeout before the worker exits. No callbacks into the JVM occur from the
+stream worker. Server cursors, projections and retry/backoff remain host-owned.
 
-Native Linux tests cover the protocol, relay/auth flow, streaming and C ownership
-contract. The C smoke test links the actual static archive. Android NDK linking,
-JNI integration and device/lifecycle validation remain required in Omi. This
-extraction does not claim to build or modify the Android application.
+## Attachments
+
+`T3Client.upload(fd, name, mimeType, sizeBytes)` accepts a borrowed readable file
+descriptor. Open Android content with the resolver on a worker and keep its
+ParcelFileDescriptor valid until JNI has entered the call. JNI owns a CLOEXEC
+duplicate; Rust streams through T3's `attachments.createUploadUrl` grant and
+signed same-origin POST. The duplicate is released on success and every error
+path. There is no full-file byte-array copy. A nonresponsive provider read has a
+bounded native deadline. Limits follow the core: 50 MiB/file, 10 MiB/image; the
+host must also honor any stricter current provider/server policy.
+
+`T3Client.image(id, name, mimeType)` returns validated image bytes through
+`assets.createUrl` and its signed same-origin GET, with a 10 MiB bound. Kotlin
+owns the returned byte array and supplies decoding/cache/UI. Images do not pass
+through Base64 JSON. No bearer credential is sent to signed asset requests.
+
+For other native hosts, `include/t3_protocol.h` exposes reader/release and image
+callbacks. Upload transfers context ownership only when both callbacks exist;
+release runs exactly once when Rust drops the reader, including invalid input.
+Reader callbacks must be thread-safe and bounded. Image bytes are borrowed only
+for the synchronous callback duration. Callbacks must not throw/unwind. Existing
+JNI adapters can keep their four original C symbols and use the new JSON stream
+operations; attachment callbacks require adapting their JNI marshaling.
+
+## Building from source
+
+On an x86_64 Linux build host, explicitly install Rust's four Android targets and
+the application's Android NDK. The build helper does not install or download SDKs
+or targets. Omi's checked build uses NDK 28.2.13676358 and API 24:
+
+```sh
+rustup target add aarch64-linux-android x86_64-linux-android armv7-linux-androideabi i686-linux-android
+ANDROID_NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358" tools/build-android arm64-v8a x86_64 armeabi-v7a x86
+```
+
+Set `CARGO_NET_OFFLINE=true` with an already populated Cargo cache or vendor
+configuration for offline builds. ELF libraries use 16 KiB maximum page alignment.
+Outputs live under `dist/android/<abi>/libt3_jni.so`. Desktop Linux libraries are
+not Android libraries, even when the CPU matches.
+
+`tools/package-android` compiles the Kotlin wrapper and assembles an AAR. It needs
+`JAVA_HOME`, `ANDROID_JAR`, `KOTLIN_STDLIB` and `KOTLIN_COMPILER_CLASSPATH` pointing
+to explicitly installed/cached tools. Run it in the clean, committed release
+checkout after building all four ABIs. It produces the versioned AAR and SHA-256
+checksum in `dist/`; it does not sign or publish an Android application.
+
+## Validation
+
+- `cargo test --locked`: local HTTP/WebSocket fixtures cover exact event delivery,
+  long-poll concurrency, cancellation/Interrupt, queue bounds and attachment grants.
+- `tools/test-c-abi`: a real C caller links the static Rust archive.
+- `JAVA_HOME=... tools/test-jni`: real JNI/JVM calls, Unicode, error paths and ownership.
+- `tools/test-kotlin-jni`: canonical Kotlin adapter, typed errors and concurrent
+  close against a real native request. Supply the cached compiler variables above
+  and `JSON_JAR` for the host's org.json implementation.
+- Android cross-build/link checks cover all four ABIs. These are not Android
+  device/UI/lifecycle E2E checks, which remain consumer work.
+
+The upstream reference and inspected source paths are recorded in
+[UPSTREAM.md](UPSTREAM.md). Provider calls and real conversations are not used by
+these fixture tests.

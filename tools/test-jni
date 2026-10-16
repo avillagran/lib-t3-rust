@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Linux/JDK host test, no Android emulator or user clipboard/state.
+set -euo pipefail
+cd -- "$(dirname -- "$0")/.."
+: "${JAVA_HOME:?Set JAVA_HOME to an installed JDK}"
+cargo build --release --locked
+output=${CARGO_TARGET_DIR:-target}
+archive=$(realpath "$output/release/libt3_protocol.a")
+cmake -S bindings/android/cpp -B "$output/jni-host" -DCMAKE_BUILD_TYPE=MinSizeRel -DT3_RUST_ARCHIVE="$archive"
+cmake --build "$output/jni-host" --parallel "${CARGO_BUILD_JOBS:-2}"
+mkdir -p "$output/jni-host/java"
+"$JAVA_HOME/bin/javac" -encoding UTF-8 --add-modules jdk.httpserver -d "$output/jni-host/java" bindings/android/tests/dev/avillagran/t3/T3Native.java
+"$JAVA_HOME/bin/java" --add-modules jdk.httpserver -Djava.library.path="$output/jni-host" -cp "$output/jni-host/java" dev.avillagran.t3.T3Native

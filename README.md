@@ -6,7 +6,7 @@ and Omi. Extracted with source history from ot3; the Cargo package remains
 
 ```toml
 [dependencies]
-t3-protocol = { git = "https://github.com/avillagran/lib-t3-rust", tag = "v0.1.0" }
+t3-protocol = { git = "https://github.com/avillagran/lib-t3-rust", tag = "v0.2.0" }
 ```
 
 For reproducible application builds, pin a full `rev` and commit Cargo.lock.
@@ -63,8 +63,9 @@ See the [Android integration guide](docs/ANDROID.md) for NDK builds, JNI ownersh
 threading and the current C ABI limitations. Linux packages are not Android binaries.
 
 The crate builds as `rlib` and `staticlib`. `include/t3_protocol.h` exposes an opaque
-handle and UTF-8 JSON C ABI for a thin Kotlin/JNI adapter. The adapter marshals
-strings and ownership; HTTP/RPC/authentication stay in this library.
+handle and UTF-8 JSON C ABI for a thin Kotlin/JNI adapter. The canonical [Kotlin/JNI adapter](bindings/android) marshals UTF-8 byte arrays
+and file descriptors; HTTP/RPC/authentication stay in this library. Android
+releases include a four-ABI AAR so applications do not need to compile Rust.
 
 1. Build `t3-protocol` for each Android ABI with the Android NDK/toolchain.
 2. Link `libt3_protocol.a` into Omi's JNI library and include `t3_protocol.h`.
@@ -81,6 +82,9 @@ C ABI commands:
 {"op":"connectRelay","relayUrl":"https://relay.example","cloudJwt":"host-provided-jwt","clientId":"t3-mobile","environmentId":"00000000-0000-4000-8000-000000000001"}
 {"op":"request","method":"GET","path":"/api/orchestration/shell","protocol":true}
 {"op":"rpc","tag":"server.getConfig","payload":{}}
+{"op":"subscribe","tag":"orchestration.subscribeThread","payload":{"threadId":"selected"}}
+{"op":"pollSubscription","subscriptionId":"returned-id","timeoutMs":1000}
+{"op":"cancelSubscription","subscriptionId":"returned-id"}
 {"op":"disconnect"}
 ```
 
@@ -90,9 +94,9 @@ the caller clears its credential buffers. Never free a handle during a call.
 Connection changes are atomic: a failed connect leaves the prior connection
 intact, so the host must treat the returned error as a failed switch.
 
-This repository supplies the shared library and ABI; it does not modify or build
-the Omi Android app. Android linking and device validation are still required.
-The checked host build is aarch64 Linux, not an Android binary.
+The library supplies native Android JNI binaries and a Kotlin adapter. It does
+not modify or publish the Omi application. Host tests and Android cross-builds
+are separate from Android device/UI validation; see the integration guide.
 
 ## Validation
 
@@ -130,7 +134,7 @@ outside this crate. Fix shared behavior here, tag a version, then update each
 consumer's pinned revision instead of copying source trees between applications.
 
 The initial extraction preserves the source from ot3 commit
-`fbe3dc94ba4d4f84dddea9424eb0913b27f34e64`. Android-specific validation remains
-pending; the extraction preserves existing protocol behavior.
+`fbe3dc94ba4d4f84dddea9424eb0913b27f34e64`. The [upstream contract reference](docs/UPSTREAM.md) records the original T3 code
+used for the Android/event extension. Device/UI validation remains consumer work.
 
 [MIT License](LICENSE). Independent community project; not an official T3 SDK.
