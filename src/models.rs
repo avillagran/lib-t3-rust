@@ -2,6 +2,13 @@
 use serde_json::{json,Value};
 use crate::{Connection,Result};
 fn text<'a>(v:&'a Value,k:&str)->&'a str{v[k].as_str().unwrap_or("")}
+pub const RUNTIME_MODES:&[&str]=&["approval-required","auto-accept-edits","auto","full-access"];
+pub fn valid_runtime_mode(mode:&str)->bool{RUNTIME_MODES.contains(&mode)}
+pub fn runtime_mode_command(thread:&str,command_id:&str,mode:&str)->Result<Value>{
+ if !valid_runtime_mode(mode){return Err("invalid_runtime_mode".into())}
+ if [thread,command_id].iter().any(|s|s.is_empty()||s.len()>2048||s.chars().any(char::is_control)){return Err("invalid_id".into())}
+ Ok(json!({"type":"thread.runtime-mode.set","commandId":command_id,"threadId":thread,"runtimeMode":mode}))
+}
 pub fn preferences(settings:&Value)->Value{
  let favorites=settings["favorites"].as_array().into_iter().flatten().filter_map(|f|{let p=text(f,"provider");let m=text(f,"model");if p.is_empty()||m.is_empty(){None}else{Some(json!({"provider":p,"model":m}))}}).collect::<Vec<_>>();
  json!({"favorites":favorites,"favoritesReady":settings["favorites"].is_array()})
@@ -15,7 +22,8 @@ pub fn catalog(config:&Value)->Value{
  let prefs=preferences(&config["settings"]);let mut models=vec![];let mut providers=vec![];
  for p in config["providers"].as_array().into_iter().flatten().filter(|p|p["enabled"]==true){
   let id=text(p,"instanceId");if id.is_empty(){continue}let ready=(text(p,"status").is_empty()||text(p,"status")=="ready")&&p["availability"]!="unavailable"&&p["installed"]!=false;
-  providers.push(json!({"registryIcon":registry_icon(config,p),"instanceId":id,"name":p["displayName"],"driverKind":p["driver"],"ready":ready,"accentColor":p["accentColor"]}));
+  let modes=p["supportedRuntimeModes"].as_array().into_iter().flatten().filter_map(Value::as_str).filter(|m|valid_runtime_mode(m)).collect::<Vec<_>>();
+  providers.push(json!({"registryIcon":registry_icon(config,p),"instanceId":id,"name":p["displayName"],"driverKind":p["driver"],"ready":ready,"accentColor":p["accentColor"],"supportedRuntimeModes":modes}));
   let mp=&config["settings"]["providerModelPreferences"][id];let hidden=mp["hiddenModels"].as_array().cloned().unwrap_or_default();let order=mp["modelOrder"].as_array().cloned().unwrap_or_default();
   let mut list=vec![];
   for m in p["models"].as_array().into_iter().flatten(){
@@ -36,3 +44,13 @@ impl Connection{
 }
 #[cfg(test)]mod tests{use super::*;#[test]fn registry_icons_follow_official_metadata_only(){let mut config=json!({"settings":{"providerInstances":{"h":{"config":{"agentId":"hermes"}}}}});let mut p=json!({"driver":"acpRegistry","instanceId":"h","iconUrl":"https://user:secret@cdn.agentclientprotocol.com/registry/v1/x.svg"});assert_eq!(registry_icon(&config,&p),"https://cdn.agentclientprotocol.com/registry/v1/latest/hermes.svg");config["settings"]["providerInstances"]["h"]["config"]["agentId"]=json!("../private");assert_eq!(registry_icon(&config,&p),"");p["iconUrl"]=json!("https://cdn.agentclientprotocol.com.evil/registry/v1/x.svg");assert_eq!(registry_icon(&config,&p),"");p["iconUrl"]=json!("https://cdn.agentclientprotocol.com/registry/v1/latest/hermes.svg");assert!(!registry_icon(&config,&p).is_empty());config["settings"]["providerInstances"]["h"]["config"]["source"]=json!("local");assert_eq!(registry_icon(&config,&p),"");}
 #[test]fn native_preferences_keep_identity_hidden_order_and_no_credentials(){let c=json!({"settings":{"favorites":[{"provider":"personal","model":"same"}],"providerModelPreferences":{"personal":{"hiddenModels":["hidden"],"modelOrder":["same","other"]}}},"providers":[{"enabled":true,"instanceId":"personal","displayName":"Personal","status":"ready","auth":{"token":"secret-do-not-export"},"models":[{"slug":"other","name":"Other"},{"slug":"hidden","name":"Hidden"},{"slug":"same","name":"Same"}]},{"enabled":true,"instanceId":"work","status":"warning","models":[{"slug":"same","name":"Work same"}]},{"enabled":false,"instanceId":"disabled","models":[{"slug":"bad"}]}]});let v=catalog(&c);assert_eq!(v["models"].as_array().unwrap().len(),3);assert_eq!(v["models"][0]["model"],"same");assert_eq!(v["models"][2]["available"],false);assert_eq!(v["favorites"][0]["provider"],"personal");assert!(!v.to_string().contains("secret-do-not-export"));assert_eq!(preferences(&json!({"favorites":null}))["favoritesReady"],false);let p=favorite_payload("personal","same",true).unwrap();assert_eq!(p["patch"]["setModelFavorites"][0]["favorite"],true);assert!(p["patch"].get("favorites").is_none());}}
+
+#[cfg(test)]mod runtime_tests{
+ use super::*;
+ #[test]fn native_permissions_keep_all_modes_and_provider_support(){
+  for mode in RUNTIME_MODES{let c=runtime_mode_command("t","request",mode).unwrap();assert_eq!(c["type"],"thread.runtime-mode.set");assert_eq!(c["runtimeMode"],*mode);}
+  assert!(runtime_mode_command("t","request","unknown").is_err());
+  let c=catalog(&json!({"providers":[{"enabled":true,"instanceId":"p","supportedRuntimeModes":["approval-required","auto-accept-edits","future-mode"]}]}));
+  assert_eq!(c["providers"][0]["supportedRuntimeModes"],json!(["approval-required","auto-accept-edits"]));
+ }
+}
