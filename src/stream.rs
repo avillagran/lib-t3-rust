@@ -3,7 +3,9 @@ use super::*;
 impl Connection {
  /// `None` flushes a chunk boundary/idle tick. Cancel is checked at most100ms after a read.
  pub fn subscribe(&self,tag:&str,payload:Value,cancel:impl Fn()->bool,mut receive:impl FnMut(Option<Value>)->Result<()>)->Result<()>{
+  if cancel(){return Ok(())}
   let mut ws=self.websocket()?;
+  if cancel(){let _=ws.close(None);return Ok(())}
   match ws.get_mut(){tungstenite::stream::MaybeTlsStream::Plain(s)=>s.set_read_timeout(Some(Duration::from_millis(100))),tungstenite::stream::MaybeTlsStream::Rustls(s)=>s.sock.set_read_timeout(Some(Duration::from_millis(100))),_=>return Err("unsupported_tls".into())}.map_err(|_|"disconnected")?;
   ws.send(Message::Text(json!({"_tag":"Request","id":"1","tag":tag,"payload":payload,"headers":[]}).to_string().into())).map_err(|_|"disconnected")?;
   let mut ping=Instant::now();let mut seen=Instant::now();

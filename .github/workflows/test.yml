@@ -13,3 +13,4 @@ jobs:
       - run: rustup update stable && rustup default stable
       - run: cargo test --locked
       - run: tools/test-c-abi
+      - run: JAVA_HOME=$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")") tools/test-jni

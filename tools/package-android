@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Assemble an AAR from tested JNI binaries and the canonical Kotlin adapter.
+set -euo pipefail
+cd -- "$(dirname -- "$0")/.."
+: "${JAVA_HOME:?Set JAVA_HOME to an installed JDK}"
+: "${ANDROID_JAR:?Set ANDROID_JAR to the installed SDK android.jar}"
+: "${KOTLIN_STDLIB:?Set KOTLIN_STDLIB to the installed kotlin-stdlib jar}"
+: "${KOTLIN_COMPILER_CLASSPATH:?Set KOTLIN_COMPILER_CLASSPATH to the installed compiler and dependencies}"
+[[ -z $(git status --porcelain) ]] || { echo "Commit source changes before packaging" >&2; exit 1; }
+source_rev=$(git rev-parse HEAD)
+for abi in arm64-v8a x86_64 armeabi-v7a x86; do
+  [[ $(cat "dist/android/$abi/COMMIT") == "$source_rev" ]] || { echo "Stale native ABI: $abi" >&2; exit 1; }
+done
+version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
+output=${CARGO_TARGET_DIR:-target}
+stage="$output/android-aar"
+mkdir -p "$stage/classes" "$stage/aar/jni" "$stage/aar/META-INF"
+"$JAVA_HOME/bin/java" -Xmx384m -cp "$KOTLIN_COMPILER_CLASSPATH" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
+  -no-stdlib -no-reflect -jvm-target 17 -classpath "$ANDROID_JAR:$KOTLIN_STDLIB" \
+  -d "$stage/classes" bindings/android/kotlin/dev/avillagran/t3/T3Client.kt
+"$JAVA_HOME/bin/jar" --create --file "$stage/aar/classes.jar" -C "$stage/classes" .
+for abi in arm64-v8a x86_64 armeabi-v7a x86; do
+  [[ -s "dist/android/$abi/libt3_jni.so" ]] || { echo "Missing ABI: $abi" >&2; exit 1; }
+  mkdir -p "$stage/aar/jni/$abi"
+  cp "dist/android/$abi/libt3_jni.so" "$stage/aar/jni/$abi/"
+done
+printf '%s\n' '<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.avillagran.t3"><uses-sdk android:minSdkVersion="24" /></manifest>' > "$stage/aar/AndroidManifest.xml"
+printf '%s\n' '-keep class dev.avillagran.t3.T3Native { *; }' > "$stage/aar/proguard.txt"
+: > "$stage/aar/R.txt"
+cp LICENSE "$stage/aar/META-INF/LICENSE"
+printf 'version=%s\nsource=%s\n' "$version" "$(git rev-parse HEAD)" > "$stage/aar/META-INF/lib-t3-rust.properties"
+mkdir -p dist
+asset="lib-t3-rust-android-v$version.aar"
+"$JAVA_HOME/bin/jar" --create --file "dist/$asset" -C "$stage/aar" .
+(cd dist && sha256sum "$asset" > "$asset.sha256")
+printf 'Packaged %s\n' "$asset"

@@ -6,3 +6,11 @@ fn stream_receives_chunks_acknowledges_heartbeats_and_cancels(){
  ws.send(tungstenite::Message::Text(json!({"_tag":"Ping"}).to_string().into())).unwrap();let pong:Value=serde_json::from_str(ws.read().unwrap().to_text().unwrap()).unwrap();assert_eq!(pong["_tag"],"Pong");ws.send(tungstenite::Message::Text(json!({"_tag":"Chunk","requestId":"1","values":[{"kind":"event","sequence":8,"event":{"type":"message.updated","payload":{"id":"m","text":"instant"}}}]}).to_string().into())).unwrap();let ack:Value=serde_json::from_str(ws.read().unwrap().to_text().unwrap()).unwrap();assert_eq!(ack["_tag"],"Ack");assert_eq!(ack["requestId"],"1");});
  let c=Connection::new(&base,None,Credential::bearer("synthetic-token").unwrap()).unwrap();let done=Cell::new(false);c.subscribe("orchestration.subscribeThread",json!({"threadId":"thread","afterSequence":7}),||done.get(),|item|{if let Some(i)=item{assert_eq!(i["sequence"],8);done.set(true)}Ok(())}).unwrap();server.join().unwrap();
 }
+#[test]
+fn pre_cancelled_subscription_does_not_open_a_socket() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let c = Connection::new(&format!("http://{}", listener.local_addr().unwrap()), None, Credential::bearer("fixture-token").unwrap()).unwrap();
+    c.subscribe("orchestration.subscribeThread", json!({}), || true, |_| panic!("cancelled stream delivered data")).unwrap();
+    assert_eq!(listener.accept().unwrap_err().kind(), std::io::ErrorKind::WouldBlock);
+}
