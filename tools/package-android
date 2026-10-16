@@ -13,7 +13,9 @@ for abi in arm64-v8a x86_64 armeabi-v7a x86; do
 done
 version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
 output=${CARGO_TARGET_DIR:-target}
-stage="$output/android-aar"
+mkdir -p "$output"
+stage=$(mktemp -d "$output/android-aar.XXXXXXXX")
+trap 'rm -rf -- "$stage"' EXIT
 mkdir -p "$stage/classes" "$stage/aar/jni" "$stage/aar/META-INF"
 "$JAVA_HOME/bin/java" -Xmx384m -cp "$KOTLIN_COMPILER_CLASSPATH" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
   -no-stdlib -no-reflect -jvm-target 17 -classpath "$ANDROID_JAR:$KOTLIN_STDLIB" \
