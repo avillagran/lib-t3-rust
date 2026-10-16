@@ -22,6 +22,7 @@ mod ffi_attachments;
 pub mod activity;
 pub mod models;
 pub mod terminal;
+pub mod code_blocks;
 pub mod sidebar;
 pub mod compaction;
 pub mod changes;

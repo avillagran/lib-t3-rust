@@ -13,6 +13,7 @@ description = "Portable native T3 Code transport and DPoP authorization for Omar
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
+pulldown-cmark = { version = "0.13", default-features = false }
 chrono = "0.4"
 base64 = "0.22"
 p256 = { version = "0.13", features = ["ecdsa"] }
