@@ -3,6 +3,10 @@ name = "t3-protocol"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+repository = "https://github.com/avillagran/lib-t3-rust"
+readme = "README.md"
+keywords = ["t3", "protocol", "android", "ffi"]
+
 description = "Portable native T3 Code transport and DPoP authorization for Omarchy and Omi"
 
 [lib]

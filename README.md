@@ -1,7 +1,19 @@
-# t3-protocol
+# lib-t3-rust
+
+Portable Rust core for [Omarchy T3 Code](https://github.com/avillagran/omarchy-t3-code)
+and Omi. Extracted with source history from ot3; the Cargo package remains
+**`t3-protocol`**, preserving Rust imports and the C ABI.
+
+```toml
+[dependencies]
+t3-protocol = { git = "https://github.com/avillagran/lib-t3-rust", tag = "v0.1.0" }
+```
+
+For reproducible application builds, pin a full `rev` and commit Cargo.lock.
+The project is not published on crates.io.
 
 Shared Rust library for Omarchy T3 Code and Omi. The desktop plugin now uses this
-crate for T3 HTTP reads, Effect RPC writes, signed attachment streaming and
+library for T3 HTTP reads, Effect RPC writes, signed attachment streaming and
 T3 Connect authorization. The library has no Quickshell, Electron, filesystem,
 SSH, keyring, Python or JavaScript runtime dependency.
 
@@ -47,6 +59,9 @@ HTTPS (loopback HTTP is allowed for isolated tests). Redirects are disabled.
 
 ## Omi / Kotlin
 
+See the [Android integration guide](docs/ANDROID.md) for NDK builds, JNI ownership,
+threading and the current C ABI limitations. Linux packages are not Android binaries.
+
 The crate builds as `rlib` and `staticlib`. `include/t3_protocol.h` exposes an opaque
 handle and UTF-8 JSON C ABI for a thin Kotlin/JNI adapter. The adapter marshals
 strings and ownership; HTTP/RPC/authentication stay in this library.
@@ -82,8 +97,8 @@ The checked host build is aarch64 Linux, not an Android binary.
 ## Validation
 
 ```sh
-cargo test --workspace --locked
-cargo build -p t3-protocol --release --locked
+cargo test --locked
+tools/test-c-abi
 ```
 
 Fixtures verify real ES256 signatures and request/token binding, fresh proof IDs,
@@ -92,52 +107,30 @@ HTTP protocol headers, WebSocket tickets, RPC envelopes, C ABI ownership/errors
 and attachment streaming via the desktop integration test. No paid agent runs
 or real conversations are created by these tests.
 
-`activity::describe` clasifica herramientas en resúmenes compactos para el timeline
-y estados de trabajo. Acepta items planos/anidados y no exporta entradas, salidas
-ni razonamiento crudo. No depende de Linux; reutilizable desde Omi.
+## Shared modules
 
-`composer` comparte serialización de links de archivos de T3 y sugerencias de
-skills/comandos por workspace/proveedor. Filtra skills deshabilitadas o reservadas
-al agente. No realiza escaneos de disco ni depende de QML/Linux.
+| Area | Modules |
+| --- | --- |
+| Native state | `projection`, `history`, `lifecycle`, `stream` |
+| Chat operations | `composer`, `queue`, `questions`, `approvals`, `tasks` |
+| Presentation | `activity`, `changes`, `documents`, `sidebar`, `models`, `i18n` |
+| Configuration | `connection_catalog`, `projects`, `settings` |
+| Cache policy | `compaction` |
 
-`queue::derive` comparte orden/estado/capacidades de la cola y IDs ocultos del
-timeline; `queue::command` genera comandos nativos de editar, quitar, reordenar,
-promover a Steer y reanudar. Adaptadores del host gestionan outbox y credenciales.
+Modules derive portable models and validate native commands; hosts own dispatch,
+persistence, deduplication, reconnection, backoff and UI. Preventive compaction
+requires a durable host-owned one-attempt claim before dispatch. Transport tests
+use local fixture servers, never real conversations or paid provider runs.
 
-`tasks::derive` comparte el resumen/lista de tareas del run actual para composer,
-con progreso y duraciones del servidor, sin confundir planes de ejecuciones viejas.
+## Development
 
-`i18n::{normalize,translate}` resuelve catálogos planos por idioma/región y listas
-de preferencia, con fallback inglés y alias noruegos nb/nn. El host proporciona
-el catálogo y el locale; el core no lee preferencias ni depende de Qt/Linux.
+Run `cargo test --locked` and `tools/test-c-abi` before changes are consumed by
+either app. Native CI runs on Linux x86_64 and aarch64. Keep platform integrations
+outside this crate. Fix shared behavior here, tag a version, then update each
+consumer's pinned revision instead of copying source trees between applications.
 
-`composer::attachment_reference` conserva la sintaxis inline canónica de T3 y
-sanitiza etiquetas a200 caracteres. `legacy_attachment_text` proyecta las
-referencias conocidas a etiquetas para transportes anteriores, manteniendo los
-descriptores en attachments. Compartido por send y edición de cola; sin I/O.
-El adaptador Wayland clipboard está fuera del core y no introduce dependencia
-Linux en Omi.
+The initial extraction preserves the source from ot3 commit
+`fbe3dc94ba4d4f84dddea9424eb0913b27f34e64`. Android-specific validation remains
+pending; the extraction preserves existing protocol behavior.
 
-`changes::summaries` deriva archivos/totales y rango de diff por checkpoint del
-run de app; excluye capturas no ready y scopes sin appRunOrdinal. No lee Git ni
-archivos del host. Actividad conserva sólo ejecutable seguro/título publicado y
-metadatos para agrupar/desplegar; no expone argumentos/salidas/razonamiento.
-Omi puede usar summaries y pedir orchestration.getTurnDiff con su Connection.
-
-`Connection::subscribe` comparte el transporte Effect RPC/DPoP de T3 con Omi,
-con Chunk/Ack, Ping/Pong, cancelación e interrupción. El host gestiona cursor de
-snapshot/evento, deduplicación, backoff y UI. El callback recibe None al cerrar un
-chunk o durante un tick de lectura para agrupar la presentación sin perder eventos.
-`projection::apply` actualiza un espejo acotado por ID; descarta outputs/diffs/
-razonamiento de herramientas que no se usan en la presentación compacta.
-`attachment_image` pide assets.createUrl y lee bytes por el grant firmado del
-mismo origen, sin auth en el GET, verifica firma de imagen y límite10MiB. El host
-pone el caché/decodificación; el core no depende del filesystem ni de Qt/Linux.
-
-`compaction::candidate(projection, settings, now_ms)` derives preventive deadlines
-from the current root provider's native token report, with an explicitly estimated
-fallback and provider/environment overrides. Hosts own the durable one-attempt
-claim, native command dispatch, cancellation checks and lifecycle. A native
-`/compact` never creates another human activity episode. See the desktop README
-for idle/queue/request guards and limits; Omi must implement the same durable
-claim before dispatch, rather than merely running the pure policy periodically.
+[MIT License](LICENSE). Independent community project; not an official T3 SDK.
