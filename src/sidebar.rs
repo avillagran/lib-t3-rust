@@ -1,6 +1,19 @@
 //! Portable sidebar metadata and native thread lifecycle commands.
 use super::*;
 fn stamp(v:&Value)->i64 { v.as_str().and_then(|s|chrono::DateTime::parse_from_rfc3339(s).ok()).map(|d|d.timestamp_millis()).or_else(||v.as_i64()).unwrap_or(0) }
+/// Native inbox/working/history anchors, matching client-runtime/state/threadInbox.ts
+/// and threadSort.ts. Shells use flat run stamps; bounded projections use latestRun.
+pub fn sort_timestamps(t:&Value)->Value {
+ let run=&t["latestRun"];
+ let requested=stamp(&t["latestRunRequestedAt"]).max(stamp(&run["requestedAt"]));
+ let completed=stamp(&t["latestRunCompletedAt"]).max(stamp(&run["completedAt"]));
+ let created=stamp(&t["createdAt"]);
+ let anchor=created.max(stamp(&t["unsettledAt"]));
+ let authored=if t.get("latestUserAuthoredMessageAt").is_some(){stamp(&t["latestUserAuthoredMessageAt"])}else{requested};
+ let settled=stamp(&t["settledAt"]);
+ let history=stamp(&t["latestUserMessageAt"]).max(requested).max(completed).max(stamp(&t["latestRunStartedAt"])).max(stamp(&run["startedAt"]));
+ json!({"inboxAt":anchor.max(requested).max(completed),"activeAnchorAt":anchor,"lastSentAt":created.max(authored),"settledSortAt":if settled>0{settled}else if history>0{history}else{stamp(&t["updatedAt"])}})
+}
 pub fn metadata(t:&Value,now:i64)->Value {
  let session=&t["session"];let runtime=if t["runtime"].is_object(){&t["runtime"]}else{session};
  let message=stamp(&t["latestUserMessageAt"]);
@@ -34,4 +47,21 @@ pub fn thread_action(input:&Value)->Result<Value>{
  if action=="auto-settle"{c["enabled"]=json!(input["enabled"].as_bool().ok_or("invalid_command")?)}
  if action=="archive" && input["working"]==true{return Err("thread_is_working".into())}
  Ok(c)
+}
+
+#[cfg(test)]mod ordering_tests{
+ use super::*;
+ #[test]fn sidebar_returns_use_completion_not_metadata_updates(){
+  let old=json!({"createdAt":100,"updatedAt":9999,"latestRunRequestedAt":200,"latestRunCompletedAt":300});
+  let finished=json!({"createdAt":10,"updatedAt":20,"latestRunRequestedAt":50,"latestRunCompletedAt":1000});
+  assert!(sort_timestamps(&finished)["inboxAt"].as_i64()>sort_timestamps(&old)["inboxAt"].as_i64());
+  assert_eq!(sort_timestamps(&finished)["activeAnchorAt"],10);
+  let nested=json!({"createdAt":10,"latestRun":{"requestedAt":50,"completedAt":1000}});
+  assert_eq!(sort_timestamps(&nested)["inboxAt"],1000);
+  let awakened=json!({"createdAt":10,"unsettledAt":1200,"latestRunCompletedAt":1000});
+  assert_eq!(sort_timestamps(&awakened)["inboxAt"],1200);
+  assert_eq!(sort_timestamps(&json!({"createdAt":10,"latestUserAuthoredMessageAt":100,"latestRunRequestedAt":2000,"latestRunCompletedAt":3000}))["lastSentAt"],100);
+  assert_eq!(sort_timestamps(&json!({"settledAt":400,"latestRunCompletedAt":5000}))["settledSortAt"],400);
+  assert_eq!(sort_timestamps(&json!({"createdAt":"invalid","latestRunCompletedAt":null}))["inboxAt"],0);
+ }
 }
