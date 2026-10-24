@@ -12,11 +12,17 @@ import org.json.JSONObject
 class T3Client : Closeable {
     private val lifetime = ReentrantReadWriteLock()
     private val closing = AtomicBoolean(false)
-    private var handle: Long = T3Native.create().also { check(it != 0L) { "native_error" } }
+    private var handle: Long = jni { T3Native.create().also { check(it != 0L) { "native_error" } } }
 
     private fun <T> useHandle(block: (Long) -> T): T = lifetime.read {
         check(!closing.get() && handle != 0L) { "client_closed" }
         block(handle)
+    }
+    /** The JNI layer reports its own failures (bad input, a file descriptor it cannot duplicate,
+     *  allocation) as IllegalStateException with a stable code; surface them as [T3Exception]. */
+    private inline fun <T> jni(block: () -> T): T = try { block() } catch (error: IllegalStateException) {
+        val code = error.message
+        if (code != null && code in JNI_ERRORS) throw T3Exception(code) else throw error
     }
     private fun decode(bytes: ByteArray): Any? {
         val result = JSONObject(bytes.toString(Charsets.UTF_8))
@@ -27,7 +33,7 @@ class T3Client : Closeable {
     }
     fun execute(request: JSONObject): Any? = useHandle { native ->
         val input = request.toString().toByteArray(Charsets.UTF_8)
-        try { decode(T3Native.call(native, input)) } finally { input.fill(0) }
+        try { decode(jni { T3Native.call(native, input) }) } finally { input.fill(0) }
     }
     /** [options] (ABI 3): `requestTimeoutMs`, `connectTimeoutMs`, `poolIdleTimeoutMs`, `maxBytes`;
      *  absent keys keep the defaults, anything else fails with `invalid_connection_options`. */
@@ -78,14 +84,15 @@ class T3Client : Closeable {
      */
     fun wakeSubscriptions(): Int =
         (execute(JSONObject().put("op", "wakeSubscriptions")) as JSONObject).getInt("probed")
-    /** fd is borrowed for this call; JNI duplicates it and Rust streams without a full copy. */
+    /** fd is borrowed for this call; JNI duplicates it and Rust streams without a full copy.
+     *  A descriptor JNI cannot duplicate fails with `T3Exception("host_file_unavailable")`. */
     fun upload(fd: Int, name: String, mimeType: String, sizeBytes: Long): JSONObject = useHandle { native ->
         val metadata = JSONObject().put("name", name).put("mimeType", mimeType).put("sizeBytes", sizeBytes)
-        decode(T3Native.upload(native, metadata.toString().toByteArray(Charsets.UTF_8), fd)) as JSONObject
+        decode(jni { T3Native.upload(native, metadata.toString().toByteArray(Charsets.UTF_8), fd) }) as JSONObject
     }
     /** Bytes through the binary native path (never Base64 JSON); null bytes when none came back. */
     private fun binary(metadata: JSONObject): T3Asset = useHandle { native ->
-        val result = T3Native.image(native, metadata.toString().toByteArray(Charsets.UTF_8))
+        val result = jni { T3Native.image(native, metadata.toString().toByteArray(Charsets.UTF_8)) }
         T3Asset(decode(requireNotNull(result[0])) as JSONObject, result[1])
     }
     fun image(id: String, name: String, mimeType: String): ByteArray {
@@ -117,6 +124,7 @@ class T3Client : Closeable {
     companion object {
         /** The largest [assetBytes] limit the library accepts (64 MiB). */
         const val MAX_ASSET_BYTES: Long = 64L * 1024 * 1024
+        private val JNI_ERRORS = setOf("invalid_input", "native_error", "host_file_unavailable", "native_allocation_failed")
     }
 }
 /** A binary result: [status] is the operation's JSON data, [bytes] the payload (owned by the caller)
@@ -126,7 +134,9 @@ class T3Asset(val status: JSONObject, val bytes: ByteArray?) {
     val mimeType: String? get() = status.text("mimeType")
 }
 /** `code` is stable; `reason` is the server's one-line message; `requiredScope`
- *  names the scope a `write_not_authorized` token lacked (the host picks tokens). */
+ *  names the scope a `write_not_authorized` token lacked (the host picks tokens).
+ *  JNI marshaling failures use the same type: `invalid_input`, `native_error`,
+ *  `host_file_unavailable` and `native_allocation_failed`. */
 class T3Exception(val code: String, val reason: String? = null, val requiredScope: String? = null) :
     Exception(if (reason == null) code else "$code: $reason")
 private fun JSONObject.text(key: String): String? = optString(key).takeIf { !isNull(key) && it.isNotEmpty() }
