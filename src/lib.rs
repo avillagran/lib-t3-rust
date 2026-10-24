@@ -57,6 +57,8 @@ pub mod branch_picker;
 pub mod thread_details;
 pub mod failure_context;
 pub mod usage_summary;
+pub mod server_updates;
+pub mod reconnect;
 
 pub type Result<T> = std::result::Result<T, String>;
 const MAX_BYTES: u64 = 8 * 1024 * 1024;
