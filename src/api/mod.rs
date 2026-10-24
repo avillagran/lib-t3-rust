@@ -24,6 +24,7 @@ pub mod filesystem;
 pub mod project_clone;
 pub mod provider;
 pub mod pull_requests;
+pub mod scheduled_tasks;
 
 pub mod streams;
 
@@ -338,6 +339,7 @@ const MODULES: &[&[Function]] = &[
     filesystem::FUNCTIONS,
     pull_requests::FUNCTIONS,
     device::FUNCTIONS,
+    scheduled_tasks::FUNCTIONS,
 
     streams::FUNCTIONS,
 ];
