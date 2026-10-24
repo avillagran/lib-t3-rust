@@ -9,6 +9,15 @@ use serde_json::{json, Map, Value};
 use std::time::Duration;
 
 pub mod ids;
+pub mod assets;
+pub mod orchestration;
+pub mod preview;
+pub mod projects;
+pub mod review;
+pub mod server;
+pub mod vcs;
+
+pub use orchestration::{Command, ThreadLaunch};
 
 /// T3 checkout the registry was verified against (`tests/fixtures/t3-contract.json`).
 pub const CONTRACT: &str = "t3code@680152e27";
@@ -274,7 +283,15 @@ impl<'a> Args<'a> {
     }
 }
 
-const MODULES: &[&[Function]] = &[];
+const MODULES: &[&[Function]] = &[
+    server::FUNCTIONS,
+    orchestration::FUNCTIONS,
+    preview::FUNCTIONS,
+    assets::FUNCTIONS,
+    vcs::FUNCTIONS,
+    review::FUNCTIONS,
+    projects::FUNCTIONS,
+];
 /// Every registered function, in a stable order.
 pub fn functions() -> impl Iterator<Item = &'static Function> {
     MODULES.iter().flat_map(|m| m.iter())
@@ -332,5 +349,18 @@ mod tests {
             assert_eq!(args.len(), f.args.len(), "{}", f.name);
             assert!(f.timeout_ms >= 1 && f.timeout_ms <= MAX_TIMEOUT_MS);
         }
+    }
+    #[test]
+    fn args_reject_unknown_members_and_name_missing_ones() {
+        let f = function("vcs.refreshStatus").unwrap();
+        assert_eq!(f.payload(&json!({"cwd":"/r"})).unwrap(), json!({"cwd":"/r"}));
+        assert_eq!(f.payload(&json!({"cwd":"/r","cdw":"/r"})).unwrap_err(), "invalid_input");
+        assert_eq!(f.payload(&json!([])).unwrap_err(), "invalid_input");
+        assert_eq!(f.payload(&json!({})).unwrap_err(), "invalid_cwd");
+        assert_eq!(f.payload(&json!({"cwd":null})).unwrap_err(), "invalid_cwd");
+        assert_eq!(f.payload(&json!({"cwd":7})).unwrap_err(), "invalid_cwd");
+        assert_eq!(timeout(Some(&json!(0))).unwrap_err(), "invalid_rpc_timeout");
+        assert_eq!(timeout(Some(&json!(300_001))).unwrap_err(), "invalid_rpc_timeout");
+        assert_eq!(timeout(None).unwrap(), None);
     }
 }
