@@ -442,6 +442,28 @@ mod tests {
         assert_eq!((end["error"].clone(), end["errorMessage"].clone()), (json!("stream_timeout"), Value::Null));
     }
     #[test]
+    fn poll_advances_the_cursor_from_after_sequence_and_keeps_the_start() {
+        let payload = json!({"threadId":"t","afterSequence":41});
+        let s = subscription(Shared::of("orchestration.subscribeThread", &payload));
+        let q = &s.shared;
+        let first = s.poll(0).unwrap();
+        assert_eq!((first["cursor"].clone(), first["start"].clone()), (json!(41), Value::Null));
+        q.push(json!({"kind":"event","sequence":42})).unwrap();
+        q.push(json!({"kind":"synchronized"})).unwrap();
+        let resumed = s.poll(0).unwrap();
+        assert_eq!((resumed["cursor"].clone(), resumed["start"].clone()), (json!(42), json!("resume")));
+        // A later snapshot sets the cursor but the start stays what the first item meant.
+        q.push(json!({"kind":"snapshot","snapshotSequence":60})).unwrap();
+        q.push(json!({"kind":"event","sequence":61})).unwrap();
+        let replaced = s.poll(0).unwrap();
+        assert_eq!((replaced["cursor"].clone(), replaced["start"].clone()), (json!(61), json!("resume")));
+        // A tag the typed API does not know never invents a cursor.
+        let s = subscription(Shared::of("somethingNew", &json!({})));
+        s.shared.push(json!({"sequence":5})).unwrap();
+        let raw = s.poll(0).unwrap();
+        assert_eq!((raw["cursor"].clone(), raw["start"].clone()), (Value::Null, Value::Null));
+    }
+    #[test]
     fn cancel_wakes_a_waiter_without_a_network_tick() {
         let s = Arc::new(subscription(Shared::default()));
         let waiting = s.clone();
