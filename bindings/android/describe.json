@@ -54,6 +54,221 @@
       "timeoutMs": 20000
     },
     {
+      "args": [],
+      "fn": "server.discoverSourceControl",
+      "kind": "read",
+      "module": "server",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "server.discoverSourceControl",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "clientId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "clientKind",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "web",
+            "desktop-renderer",
+            "mobile",
+            "unknown"
+          ]
+        },
+        {
+          "name": "visible",
+          "required": true,
+          "type": "bool"
+        },
+        {
+          "name": "focused",
+          "required": true,
+          "type": "bool"
+        },
+        {
+          "name": "recentlyInteracted",
+          "required": true,
+          "type": "bool"
+        },
+        {
+          "name": "scopes",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "observedAt",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "environmentId",
+          "required": false,
+          "type": "id"
+        },
+        {
+          "name": "appState",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "active",
+            "inactive",
+            "background",
+            "unknown"
+          ]
+        },
+        {
+          "name": "lowPowerMode",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "true",
+            "false",
+            "unknown"
+          ]
+        },
+        {
+          "name": "batteryState",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "unknown",
+            "unplugged",
+            "charging",
+            "full"
+          ]
+        },
+        {
+          "name": "networkType",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "ttlMs",
+          "required": false,
+          "type": "integer"
+        }
+      ],
+      "fn": "server.reportClientActivity",
+      "kind": "mutation",
+      "module": "server",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "server.reportClientActivity",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "key",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "command",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "when",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "replace",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "server.upsertKeybinding",
+      "kind": "mutation",
+      "module": "server",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "settings:write",
+      "stream": false,
+      "tag": "server.upsertKeybinding",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "key",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "command",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "when",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "server.removeKeybinding",
+      "kind": "mutation",
+      "module": "server",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "settings:write",
+      "stream": false,
+      "tag": "server.removeKeybinding",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "query",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "limit",
+          "required": false,
+          "type": "integer"
+        }
+      ],
+      "fn": "server.searchAcpRegistry",
+      "kind": "read",
+      "module": "server",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "server.searchAcpRegistry",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "agentId",
+          "required": true,
+          "type": "token"
+        }
+      ],
+      "fn": "server.prepareAcpRegistryAgent",
+      "kind": "mutation",
+      "module": "server",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": "server.prepareAcpRegistryAgent",
+      "timeoutMs": 20000
+    },
+    {
       "args": [
         {
           "name": "type",
@@ -210,6 +425,194 @@
           "type": "id"
         }
       ],
+      "fn": "orchestration.getThreadProjection",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "orchestration.getThreadProjection",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "itemId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "revision",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "orchestration.getTurnItem",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "orchestration.getTurnItem",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "fromTurnCount",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "toTurnCount",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "ignoreWhitespace",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "orchestration.getTurnDiff",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "orchestration.getTurnDiff",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "toTurnCount",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "ignoreWhitespace",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "orchestration.getFullThreadDiff",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "orchestration.getFullThreadDiff",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "scriptPath",
+          "required": true,
+          "type": "path"
+        }
+      ],
+      "fn": "orchestration.getWorkflowScript",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "orchestration.getWorkflowScript",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "subagentId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "orchestration.stopWorkflow",
+      "kind": "mutation",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "orchestration.stopWorkflow",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "query",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "limit",
+          "required": false,
+          "type": "integer"
+        }
+      ],
+      "fn": "orchestration.searchThreads",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "orchestration.searchThreads",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [],
+      "fn": "orchestration.getArchivedShellSnapshot",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "orchestration.getArchivedShellSnapshot",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
       "fn": "preview.list",
       "kind": "read",
       "module": "preview",
@@ -218,6 +621,268 @@
       "scope": "orchestration:read",
       "stream": false,
       "tag": "preview.list",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "url",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "viewport",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "profileId",
+          "required": false,
+          "type": "token"
+        },
+        {
+          "name": "runtime",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "desktop",
+            "server"
+          ]
+        },
+        {
+          "name": "reveal",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "preview.open",
+      "kind": "mutation",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "preview:operate",
+      "stream": false,
+      "tag": "preview.open",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "tabId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "url",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "resolvedTitle",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "preview.navigate",
+      "kind": "mutation",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "preview:operate",
+      "stream": false,
+      "tag": "preview.navigate",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "tabId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "viewport",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "preview.resize",
+      "kind": "mutation",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "preview:operate",
+      "stream": false,
+      "tag": "preview.resize",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "tabId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "colorScheme",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "system",
+            "light",
+            "dark"
+          ]
+        },
+        {
+          "name": "zoomFactor",
+          "required": false,
+          "type": "number"
+        },
+        {
+          "name": "hardReload",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "clear",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "cookies",
+            "cache"
+          ]
+        }
+      ],
+      "fn": "preview.adjust",
+      "kind": "mutation",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "preview:operate",
+      "stream": false,
+      "tag": "preview.adjust",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "tabId",
+          "required": true,
+          "type": "token"
+        }
+      ],
+      "fn": "preview.refresh",
+      "kind": "mutation",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "preview:operate",
+      "stream": false,
+      "tag": "preview.refresh",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "tabId",
+          "required": false,
+          "type": "token"
+        }
+      ],
+      "fn": "preview.close",
+      "kind": "mutation",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "preview:operate",
+      "stream": false,
+      "tag": "preview.close",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "profileId",
+          "required": true,
+          "type": "token"
+        }
+      ],
+      "fn": "preview.clearProfile",
+      "kind": "mutation",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "preview:operate",
+      "stream": false,
+      "tag": "preview.clearProfile",
+      "timeoutMs": 60000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "tabId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "navStatus",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "canGoBack",
+          "required": true,
+          "type": "bool"
+        },
+        {
+          "name": "canGoForward",
+          "required": true,
+          "type": "bool"
+        }
+      ],
+      "fn": "preview.reportStatus",
+      "kind": "mutation",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "preview:operate",
+      "stream": false,
+      "tag": "preview.reportStatus",
       "timeoutMs": 20000
     },
     {
@@ -245,6 +910,24 @@
     {
       "args": [
         {
+          "name": "attachmentId",
+          "required": true,
+          "type": "token"
+        }
+      ],
+      "fn": "attachments.delete",
+      "kind": "mutation",
+      "module": "assets",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "attachments.delete",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
           "name": "cwd",
           "required": true,
           "type": "path"
@@ -258,6 +941,197 @@
       "scope": "orchestration:read",
       "stream": false,
       "tag": "vcs.refreshStatus",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "query",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "cursor",
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "name": "includeMatchingRemoteRefs",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "refKind",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "all",
+            "local",
+            "remote"
+          ]
+        },
+        {
+          "name": "refresh",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "limit",
+          "required": false,
+          "type": "integer"
+        }
+      ],
+      "fn": "vcs.listRefs",
+      "kind": "read",
+      "module": "vcs",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "vcs.listRefs",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "refName",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "switchRef",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "vcs.createRef",
+      "kind": "mutation",
+      "module": "vcs",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "source-control:write",
+      "stream": false,
+      "tag": "vcs.createRef",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "refName",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "vcs.switchRef",
+      "kind": "mutation",
+      "module": "vcs",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "source-control:write",
+      "stream": false,
+      "tag": "vcs.switchRef",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        }
+      ],
+      "fn": "vcs.pull",
+      "kind": "mutation",
+      "module": "vcs",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "source-control:write",
+      "stream": false,
+      "tag": "vcs.pull",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "kind",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "git",
+            "jj",
+            "unknown"
+          ]
+        }
+      ],
+      "fn": "vcs.init",
+      "kind": "mutation",
+      "module": "vcs",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "source-control:write",
+      "stream": false,
+      "tag": "vcs.init",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "reference",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "mode",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "local",
+            "worktree"
+          ]
+        },
+        {
+          "name": "threadId",
+          "required": false,
+          "type": "id"
+        }
+      ],
+      "fn": "git.preparePullRequestThread",
+      "kind": "mutation",
+      "module": "vcs",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "dynamic",
+      "scopes": [
+        "source-control:write",
+        "orchestration:operate"
+      ],
+      "stream": false,
+      "tag": "git.preparePullRequestThread",
       "timeoutMs": 20000
     },
     {
@@ -301,6 +1175,65 @@
           "type": "path"
         },
         {
+          "name": "sourceKind",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "working-tree",
+            "branch-range"
+          ]
+        },
+        {
+          "name": "changeType",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "change",
+            "rename-pure",
+            "rename-changed",
+            "new",
+            "deleted"
+          ]
+        },
+        {
+          "name": "oldPath",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "newPath",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "baseRef",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "headRef",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "review.getDiffFileContents",
+      "kind": "read",
+      "module": "review",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "filesystem:read",
+      "stream": false,
+      "tag": "review.getDiffFileContents",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
           "name": "relativePath",
           "required": true,
           "type": "path"
@@ -319,6 +1252,2067 @@
       "scope": "filesystem:read",
       "stream": false,
       "tag": "projects.readFile",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "query",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "limit",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "kind",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "file",
+            "directory"
+          ]
+        },
+        {
+          "name": "imageOnly",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "projects.searchEntries",
+      "kind": "read",
+      "module": "projects",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "filesystem:read",
+      "stream": false,
+      "tag": "projects.searchEntries",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "type",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "project.create",
+            "project.update",
+            "project.delete"
+          ]
+        },
+        {
+          "name": "commandId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "projects.mutate",
+      "kind": "mutation",
+      "module": "projects",
+      "openArgs": true,
+      "replay": "id",
+      "scope": "dynamic",
+      "scopes": [
+        "orchestration:operate",
+        "settings:write"
+      ],
+      "stream": false,
+      "tag": "projects.mutate",
+      "timeoutMs": 20000,
+      "variants": [
+        "project.create",
+        "project.update",
+        "project.delete"
+      ]
+    },
+    {
+      "args": [
+        {
+          "name": "name",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "projects.createNew",
+      "kind": "mutation",
+      "module": "projects",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "projects.createNew",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [],
+      "fn": "server.getHostResources",
+      "kind": "read",
+      "module": "diagnostics",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "server.getHostResources",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [],
+      "fn": "server.getProcessDiagnostics",
+      "kind": "read",
+      "module": "diagnostics",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "diagnostics:read",
+      "stream": false,
+      "tag": "server.getProcessDiagnostics",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "windowMs",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "bucketMs",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "server.getResourceTelemetryHistory",
+      "kind": "read",
+      "module": "diagnostics",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "diagnostics:read",
+      "stream": false,
+      "tag": "server.getResourceTelemetryHistory",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "pid",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "startTimeMs",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "signal",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "SIGINT",
+            "SIGKILL"
+          ]
+        }
+      ],
+      "fn": "server.signalProcess",
+      "kind": "mutation",
+      "module": "diagnostics",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "environment:maintain",
+      "stream": false,
+      "tag": "server.signalProcess",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "signal",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "traces",
+            "metrics",
+            "logs"
+          ]
+        },
+        {
+          "name": "url",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "server.checkOtlpEndpoint",
+      "kind": "read",
+      "module": "diagnostics",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "settings:write",
+      "stream": false,
+      "tag": "server.checkOtlpEndpoint",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "sinceDay",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "untilDay",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "timeZone",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "resolution",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "day",
+            "hour"
+          ]
+        },
+        {
+          "name": "sinceTime",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "untilTime",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "awaitRefresh",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "server.getUsageSummary",
+      "kind": "read",
+      "module": "diagnostics",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "diagnostics:read",
+      "stream": false,
+      "tag": "server.getUsageSummary",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [],
+      "fn": "server.refreshUsageRates",
+      "kind": "read",
+      "module": "diagnostics",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "diagnostics:read",
+      "stream": false,
+      "tag": "server.refreshUsageRates",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [],
+      "fn": "server.runStorageCleanup",
+      "kind": "mutation",
+      "module": "diagnostics",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "settings:write",
+      "stream": false,
+      "tag": "server.runStorageCleanup",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": false,
+          "type": "slug"
+        },
+        {
+          "name": "cwd",
+          "required": false,
+          "type": "path"
+        },
+        {
+          "name": "fresh",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "refreshModels",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "server.refreshProviders",
+      "kind": "read",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "server.refreshProviders",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "provider",
+          "required": true,
+          "type": "slug"
+        },
+        {
+          "name": "targetVersion",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "instanceId",
+          "required": false,
+          "type": "slug"
+        }
+      ],
+      "fn": "server.updateProvider",
+      "kind": "mutation",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": "server.updateProvider",
+      "timeoutMs": 300000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
+        },
+        {
+          "name": "methodId",
+          "required": false,
+          "type": "token"
+        },
+        {
+          "name": "returnUrl",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "callbackMode",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "server",
+            "client"
+          ]
+        }
+      ],
+      "fn": "provider.authStart",
+      "kind": "mutation",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": "provider.auth.start",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
+        },
+        {
+          "name": "flowId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "interactionId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "response",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "provider.authRespond",
+      "kind": "mutation",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": "provider.auth.respond",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
+        },
+        {
+          "name": "flowId",
+          "required": true,
+          "type": "token"
+        }
+      ],
+      "fn": "provider.authCancel",
+      "kind": "mutation",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": "provider.auth.cancel",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
+        }
+      ],
+      "fn": "provider.authLogout",
+      "kind": "mutation",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": "provider.auth.logout",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
+        }
+      ],
+      "fn": "provider.installStart",
+      "kind": "mutation",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": "provider.install.start",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
+        },
+        {
+          "name": "operationId",
+          "required": true,
+          "type": "token"
+        }
+      ],
+      "fn": "provider.installCancel",
+      "kind": "mutation",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": "provider.install.cancel",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
+        }
+      ],
+      "fn": "provider.installRemove",
+      "kind": "mutation",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": "provider.install.remove",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "createdAt",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "destinationPath",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "provider",
+          "required": false,
+          "type": "slug"
+        },
+        {
+          "name": "repository",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "remoteUrl",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "protocol",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "auto",
+            "ssh",
+            "https"
+          ]
+        }
+      ],
+      "fn": "projectClone.start",
+      "kind": "mutation",
+      "module": "projectClone",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "source-control:write",
+      "stream": false,
+      "tag": "projectClone.start",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "partialPath",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "cwd",
+          "required": false,
+          "type": "path"
+        }
+      ],
+      "fn": "filesystem.browse",
+      "kind": "read",
+      "module": "filesystem",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "filesystem:read",
+      "stream": false,
+      "tag": "filesystem.browse",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "paths",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "filesystem.getMetadata",
+      "kind": "read",
+      "module": "filesystem",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "filesystem:read",
+      "stream": false,
+      "tag": "filesystem.getMetadata",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "state",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "all",
+            "open",
+            "closed",
+            "merged"
+          ]
+        },
+        {
+          "name": "involvement",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "all",
+            "reviewing",
+            "authored"
+          ]
+        },
+        {
+          "name": "filters",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "projectId",
+          "required": false,
+          "type": "id"
+        },
+        {
+          "name": "projectIds",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "limit",
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "name": "cursors",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "query",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "pullRequests.list",
+      "kind": "read",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "pullRequests.list",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.detail",
+      "kind": "read",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "pullRequests.detail",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.checks",
+      "kind": "read",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "pullRequests.checks",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.activity",
+      "kind": "read",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "pullRequests.activity",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.routing",
+      "kind": "read",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "pullRequests.routing",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "host",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "pullRequests.routingIdentity",
+      "kind": "read",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "pullRequests.routingIdentity",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.reviewerCandidates",
+      "kind": "read",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "pullRequests.reviewerCandidates",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.labelCandidates",
+      "kind": "read",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "pullRequests.labelCandidates",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "body",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.comment",
+      "kind": "mutation",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "source-control:write",
+      "stream": false,
+      "tag": "pullRequests.comment",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "verdict",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "comment",
+            "approve",
+            "request-changes"
+          ]
+        },
+        {
+          "name": "body",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "comments",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.submitReview",
+      "kind": "mutation",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "source-control:write",
+      "stream": false,
+      "tag": "pullRequests.submitReview",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "action",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "merge",
+            "ready",
+            "draft",
+            "close",
+            "reopen",
+            "delete-branch",
+            "update-branch",
+            "enable-auto-merge",
+            "disable-auto-merge",
+            "revert",
+            "approve-workflows"
+          ]
+        },
+        {
+          "name": "mergeMethod",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "merge",
+            "squash",
+            "rebase"
+          ]
+        },
+        {
+          "name": "updateMethod",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "merge",
+            "rebase"
+          ]
+        },
+        {
+          "name": "stackNumber",
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "name": "expectedStackHeads",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.runAction",
+      "kind": "mutation",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "source-control:write",
+      "stream": false,
+      "tag": "pullRequests.runAction",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "reviewers",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "requested",
+          "required": true,
+          "type": "bool"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.requestReviewers",
+      "kind": "mutation",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "source-control:write",
+      "stream": false,
+      "tag": "pullRequests.requestReviewers",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "labels",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "applied",
+          "required": true,
+          "type": "bool"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.setLabels",
+      "kind": "mutation",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "source-control:write",
+      "stream": false,
+      "tag": "pullRequests.setLabels",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "updateTool",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "hub",
+            "agent"
+          ]
+        },
+        {
+          "name": "inspectOnly",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "retryHostId",
+          "required": false,
+          "type": "token"
+        }
+      ],
+      "fn": "device.list",
+      "kind": "read",
+      "module": "device",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "dynamic",
+      "scopes": [
+        "orchestration:read",
+        "orchestration:operate"
+      ],
+      "stream": false,
+      "tag": "device.list",
+      "timeoutMs": 300000
+    },
+    {
+      "args": [
+        {
+          "name": "enabled",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "agentAccessEnabled",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "onboardingCompleted",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "device.configure",
+      "kind": "mutation",
+      "module": "device",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "settings:write",
+      "stream": false,
+      "tag": "device.configure",
+      "timeoutMs": 300000
+    },
+    {
+      "args": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "label",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "target",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "kind",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "ssh"
+          ]
+        },
+        {
+          "name": "identityFile",
+          "required": false,
+          "type": "path"
+        },
+        {
+          "name": "port",
+          "required": false,
+          "type": "integer"
+        }
+      ],
+      "fn": "device.testHost",
+      "kind": "read",
+      "module": "device",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "settings:write",
+      "stream": false,
+      "tag": "device.testHost",
+      "timeoutMs": 300000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "deviceId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "platform",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "ios",
+            "android"
+          ]
+        },
+        {
+          "name": "hostId",
+          "required": false,
+          "type": "token"
+        },
+        {
+          "name": "boot",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "device.open",
+      "kind": "mutation",
+      "module": "device",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "device.open",
+      "timeoutMs": 180000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "hostId",
+          "required": false,
+          "type": "token"
+        },
+        {
+          "name": "deviceId",
+          "required": false,
+          "type": "token"
+        },
+        {
+          "name": "shutdown",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "device.close",
+      "kind": "mutation",
+      "module": "device",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "device.close",
+      "timeoutMs": 60000
+    },
+    {
+      "args": [
+        {
+          "name": "deviceId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "hostId",
+          "required": false,
+          "type": "token"
+        }
+      ],
+      "fn": "device.detail",
+      "kind": "read",
+      "module": "device",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "device.detail",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "type",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "setAppearance",
+            "setTextSize",
+            "setToggle",
+            "setLiquidGlass",
+            "setColorFilter",
+            "setOrientation",
+            "setLocation",
+            "clearLocation",
+            "setPermission",
+            "openUrl",
+            "launchApp",
+            "terminateApp",
+            "shake",
+            "sendPush"
+          ]
+        },
+        {
+          "name": "deviceId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "hostId",
+          "required": false,
+          "type": "token"
+        }
+      ],
+      "fn": "device.action",
+      "kind": "mutation",
+      "module": "device",
+      "openArgs": true,
+      "replay": "never",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "device.action",
+      "timeoutMs": 30000,
+      "variants": [
+        "setAppearance",
+        "setTextSize",
+        "setToggle",
+        "setLiquidGlass",
+        "setColorFilter",
+        "setOrientation",
+        "setLocation",
+        "clearLocation",
+        "setPermission",
+        "openUrl",
+        "launchApp",
+        "terminateApp",
+        "shake",
+        "sendPush"
+      ]
+    },
+    {
+      "args": [],
+      "fn": "scheduledTasks.list",
+      "kind": "read",
+      "module": "scheduledTasks",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "scheduledTasks.list",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "title",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "prompt",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "enabled",
+          "required": true,
+          "type": "bool"
+        },
+        {
+          "name": "schedule",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "workspaceStrategy",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "modelSelection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "runtimeMode",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "approval-required",
+            "auto-accept-edits",
+            "auto",
+            "full-access"
+          ]
+        },
+        {
+          "name": "interactionMode",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "default",
+            "plan"
+          ]
+        },
+        {
+          "name": "commandId",
+          "required": false,
+          "type": "id"
+        },
+        {
+          "name": "id",
+          "required": false,
+          "type": "id"
+        },
+        {
+          "name": "requireExisting",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "threadId",
+          "required": false,
+          "type": "id"
+        },
+        {
+          "name": "createdBy",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "user",
+            "agent",
+            "system"
+          ]
+        },
+        {
+          "name": "creationSource",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "web",
+            "mobile",
+            "mcp",
+            "provider",
+            "server"
+          ]
+        }
+      ],
+      "fn": "scheduledTasks.upsert",
+      "kind": "mutation",
+      "module": "scheduledTasks",
+      "openArgs": false,
+      "replay": "id",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "scheduledTasks.upsert",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "enabled",
+          "required": true,
+          "type": "bool"
+        }
+      ],
+      "fn": "scheduledTasks.setEnabled",
+      "kind": "mutation",
+      "module": "scheduledTasks",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "scheduledTasks.setEnabled",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "scheduledTasks.delete",
+      "kind": "mutation",
+      "module": "scheduledTasks",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "scheduledTasks.delete",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "scheduledTasks.runNow",
+      "kind": "mutation",
+      "module": "scheduledTasks",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "scheduledTasks.runNow",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [],
+      "fn": "agentSessions.scan",
+      "kind": "read",
+      "module": "agentSessions",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "agentSessions.scan",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "expectedWorkspaceRoot",
+          "required": false,
+          "type": "path"
+        }
+      ],
+      "fn": "agentSessions.import",
+      "kind": "mutation",
+      "module": "agentSessions",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "agentSessions.import",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "itemId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "name",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "arguments",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "mcpApps.callTool",
+      "kind": "mutation",
+      "module": "mcpApps",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "mcpApps.callTool",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "itemId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "uri",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "mcpApps.readResource",
+      "kind": "read",
+      "module": "mcpApps",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "mcpApps.readResource",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "itemId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "conversationThreadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "content",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "structuredContent",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "mcpApps.updateModelContext",
+      "kind": "mutation",
+      "module": "mcpApps",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "mcpApps.updateModelContext",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "editor",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "cursor",
+            "trae",
+            "kiro",
+            "vscode",
+            "vscode-insiders",
+            "vscodium",
+            "zed",
+            "antigravity",
+            "idea",
+            "aqua",
+            "clion",
+            "datagrip",
+            "dataspell",
+            "goland",
+            "phpstorm",
+            "pycharm",
+            "rider",
+            "rubymine",
+            "rustrover",
+            "webstorm",
+            "file-manager"
+          ]
+        },
+        {
+          "name": "reveal",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "shell.openInEditor",
+      "kind": "mutation",
+      "module": "shell",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "shell.openInEditor",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "turnItemId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "answer",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "secrets.answerRequest",
+      "kind": "mutation",
+      "module": "secrets",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "secrets.answerRequest",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "worktreeSetup.cancel",
+      "kind": "mutation",
+      "module": "worktreeSetup",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "worktreeSetup.cancel",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "terminalId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "worktreePath",
+          "required": false,
+          "type": "path"
+        },
+        {
+          "name": "cols",
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "name": "rows",
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "name": "env",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "providerInstanceId",
+          "required": false,
+          "type": "slug"
+        }
+      ],
+      "fn": "terminal.open",
+      "kind": "mutation",
+      "module": "terminal",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "terminal:operate",
+      "stream": false,
+      "tag": "terminal.open",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "terminalId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "data",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "terminal.write",
+      "kind": "mutation",
+      "module": "terminal",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "terminal:operate",
+      "stream": false,
+      "tag": "terminal.write",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "terminalId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "cols",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "rows",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "terminal.resize",
+      "kind": "mutation",
+      "module": "terminal",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "terminal:operate",
+      "stream": false,
+      "tag": "terminal.resize",
       "timeoutMs": 20000
     },
     {
