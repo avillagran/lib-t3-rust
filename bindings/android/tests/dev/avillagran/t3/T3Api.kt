@@ -2,23 +2,35 @@
 // Do not edit: run `T3_UPDATE_FIXTURES=1 cargo test --test api_describe`.
 package dev.avillagran.t3
 
+import org.json.JSONArray
 import org.json.JSONObject
 
 /** Typed wrappers over [T3Client.call], one class per `describe` module. */
 @Suppress("unused")
 class T3Api(client: T3Client) {
     val assets = Assets(client)
+    val device = Device(client)
+    val diagnostics = Diagnostics(client)
     val orchestration = Orchestration(client)
     val preview = Preview(client)
     val projects = Projects(client)
+    val provider = Provider(client)
     val review = Review(client)
     val server = Server(client)
+    val terminal = Terminal(client)
     val vcs = Vcs(client)
+    val worktreeSetup = WorktreeSetup(client)
 
     class Assets internal constructor(private val client: T3Client) {
         /** `assets.createUrl` · read · replay free · scope one of filesystem:read, orchestration:read · 20000 ms */
         fun createUrl(resource: JSONObject): Any? =
             client.call("assets.createUrl", JSONObject().put("resource", resource))
+    }
+
+    class Device internal constructor(private val client: T3Client) {
+    }
+
+    class Diagnostics internal constructor(private val client: T3Client) {
     }
 
     class Orchestration internal constructor(private val client: T3Client) {
@@ -41,6 +53,9 @@ class T3Api(client: T3Client) {
             client.call("projects.readFile", JSONObject().put("cwd", cwd).put("relativePath", relativePath).put("allowMissing", allowMissing))
     }
 
+    class Provider internal constructor(private val client: T3Client) {
+    }
+
     class Review internal constructor(private val client: T3Client) {
         /** `review.getDiffPreview` · read · replay free · scope filesystem:read · 20000 ms */
         fun getDiffPreview(cwd: String, baseRef: String? = null, ignoreWhitespace: Boolean? = null, file: JSONObject? = null): Any? =
@@ -59,9 +74,15 @@ class T3Api(client: T3Client) {
             client.call("server.updateSettings", JSONObject().put("patch", patch).put("providerInstanceMutation", providerInstanceMutation))
     }
 
+    class Terminal internal constructor(private val client: T3Client) {
+    }
+
     class Vcs internal constructor(private val client: T3Client) {
         /** `vcs.refreshStatus` · read · replay free · scope orchestration:read · 20000 ms */
         fun refreshStatus(cwd: String): Any? =
             client.call("vcs.refreshStatus", JSONObject().put("cwd", cwd))
+    }
+
+    class WorktreeSetup internal constructor(private val client: T3Client) {
     }
 }

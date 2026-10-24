@@ -320,6 +320,353 @@
       "stream": false,
       "tag": "projects.readFile",
       "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "afterSequence",
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "name": "requestCompletionMarker",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "orchestration.subscribeShell",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "orchestration.subscribeShell",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "afterSequence",
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "name": "requestCompletionMarker",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "acceptBoundedSnapshot",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "acceptCompactTurnItems",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "orchestration.subscribeThread",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "orchestration.subscribeThread",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "itemId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "orchestration.subscribeCommandOutput",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "orchestration.subscribeCommandOutput",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "terminalId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "cwd",
+          "required": false,
+          "type": "path"
+        },
+        {
+          "name": "worktreePath",
+          "required": false,
+          "type": "path"
+        },
+        {
+          "name": "cols",
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "name": "rows",
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "name": "env",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "providerInstanceId",
+          "required": false,
+          "type": "slug"
+        },
+        {
+          "name": "restartIfNotRunning",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "resume",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "terminal.attach",
+      "kind": "mutation",
+      "module": "terminal",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "terminal:operate",
+      "stream": true,
+      "tag": "terminal.attach",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [],
+      "fn": "device.subscribeDeviceState",
+      "kind": "read",
+      "module": "device",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "subscribeDeviceState",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "configuredUrls",
+          "required": false,
+          "type": "array"
+        }
+      ],
+      "fn": "preview.subscribeDiscoveredLocalServers",
+      "kind": "read",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "subscribeDiscoveredLocalServers",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [],
+      "fn": "preview.subscribePreviewEvents",
+      "kind": "read",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "subscribePreviewEvents",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "environmentThemes",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "usageLimitSources",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "usageLimitsCommand",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "server.subscribeServerConfig",
+      "kind": "read",
+      "module": "server",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "subscribeServerConfig",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "worktreeSetup.subscribeWorktreeSetup",
+      "kind": "read",
+      "module": "worktreeSetup",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "subscribeWorktreeSetup",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [],
+      "fn": "server.getStorageCleanupReport",
+      "kind": "read",
+      "module": "diagnostics",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "server.getStorageCleanupReport",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
+        }
+      ],
+      "fn": "provider.install.subscribe",
+      "kind": "read",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "provider.install.subscribe",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
+        }
+      ],
+      "fn": "provider.auth.subscribe",
+      "kind": "read",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "providers:manage",
+      "stream": true,
+      "tag": "provider.auth.subscribe",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "actionId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "action",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "commit",
+            "push",
+            "create_pr",
+            "commit_push",
+            "commit_push_pr"
+          ]
+        },
+        {
+          "name": "commitMessage",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "featureBranch",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "filePaths",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "threadId",
+          "required": false,
+          "type": "id"
+        },
+        {
+          "name": "projectId",
+          "required": false,
+          "type": "id"
+        }
+      ],
+      "fn": "git.runStackedAction",
+      "kind": "mutation",
+      "module": "vcs",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "dynamic",
+      "scopes": [
+        "source-control:write",
+        "orchestration:read"
+      ],
+      "stream": true,
+      "tag": "git.runStackedAction",
+      "timeoutMs": 20000
     }
   ]
 }

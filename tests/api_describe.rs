@@ -50,7 +50,7 @@ fn kotlin(describe: &Value) -> String {
     }
     for m in &modules {
         writeln!(out, "\n    class {} internal constructor(private val client: T3Client) {{", capitalized(m)).unwrap();
-        for f in functions.iter().filter(|f| f["module"] == *m) {
+        for f in functions.iter().filter(|f| f["module"] == *m && f["stream"] != true) {
             let name = f["fn"].as_str().unwrap();
             let method = name.split_once('.').unwrap().1;
             let scope = match f["scope"].as_str().unwrap() {
