@@ -124,10 +124,29 @@ Functions in this release:
 ```
 
 `capabilities` reports ABI/library versions and limits without connecting.
-Subscribe returns `subscriptionId`; poll returns `{items, closed, error,
-errorMessage}` inside the usual `{ok,data}` envelope. `error` is a stable code;
-`errorMessage` carries a reason when the failure had one. Items preserve T3's native snapshot/event/
-synchronized shapes. One consumer polls each stream. Poll waits on a condition
+Subscribe returns `subscriptionId`; poll returns `{items, boundaries, idle,
+completionMarker, closed, error, errorMessage}` inside the usual `{ok,data}`
+envelope. `error` is a stable code; `errorMessage` carries a reason when the
+failure had one. Items preserve T3's native snapshot/event/synchronized shapes.
+
+Poll returns as soon as something is new (items, a chunk end, `idle` turning
+true, or the end of the stream), otherwise after `timeoutMs`:
+
+| Field | Meaning |
+|---|---|
+| `items` | Native items in server order, never dropped or reordered. |
+| `boundaries` | Strictly ascending end offsets into this batch's `items`: `n` means a server chunk ended after `items[0..n)`. Apply items and repaint at boundaries, so a replay burst never shows half-applied state. Items after the last boundary belong to a chunk that continues in the next poll; `0` means the chunk that ended the previous batch ended right there. |
+| `idle` | The last chunk is complete and no new frame completed during one 100 ms read tick: caught up for now. A large frame may still be in transit, and it can be `true` before the first item. Stays `true` until the next item; turning `true` wakes one waiting poll. Without `requestCompletionMarker` it is the only catch-up signal (the same rule ot3 uses); with it, wait for `completionMarker`. |
+| `completionMarker` | Only with `"requestCompletionMarker":true` in the payload: `true` from the batch that carries the server's `{"kind":"synchronized"}` item (left in `items` at its position) onward. The initial snapshot or replay is complete; paint it. |
+| `closed`, `error`, `errorMessage` | Once `closed` nothing more arrives. `error` is a stable code (`null` after cancel); `errorMessage` an optional one-line reason. |
+
+```json
+{"items":[{"kind":"snapshot","snapshotSequence":41,"projection":{}},{"kind":"synchronized"},{"kind":"event","sequence":42,"event":{}}],
+ "boundaries":[2],"idle":false,"completionMarker":true,"closed":false,"error":null,"errorMessage":null}
+```
+
+Here the first chunk (snapshot and marker) is complete and can be painted; the
+event belongs to a chunk whose end arrives in a later poll. One consumer polls each stream. Poll waits on a condition
 variable rather than repeatedly calling Java; it does not hold the connection
 lock and cannot stall sends or reads. At most four streams exist per handle;
 each queue holds at most 64 items and 8 MiB of serialized payload. The one
