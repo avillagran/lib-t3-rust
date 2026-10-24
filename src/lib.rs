@@ -40,6 +40,10 @@ pub mod i18n;
 pub mod stream;
 pub mod projection;
 pub mod util;
+pub mod checkpoint_revert;
+pub mod plan_workflow;
+pub mod prompt_recall;
+pub mod message_text;
 
 pub type Result<T> = std::result::Result<T, String>;
 const MAX_BYTES: u64 = 8 * 1024 * 1024;
