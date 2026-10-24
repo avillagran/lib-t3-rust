@@ -19,9 +19,23 @@ fn kotlin_type(arg: &Value) -> &'static str {
     match arg["type"].as_str().unwrap() {
         "bool" => "Boolean",
         "integer" => "Long",
+        "number" => "Double",
         "object" | "command" => "JSONObject",
         "array" => "JSONArray",
         _ => "String",
+    }
+}
+/// Kotlin hard keywords need backticks as identifiers (`when` in keybindings).
+fn ident(name: &str) -> String {
+    const HARD: &[&str] = &[
+        "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in", "interface", "is", "null",
+        "object", "package", "return", "super", "this", "throw", "true", "try", "typealias", "typeof", "val", "var",
+        "when", "while",
+    ];
+    if HARD.contains(&name) {
+        format!("`{name}`")
+    } else {
+        name.to_string()
     }
 }
 fn capitalized(s: &str) -> String {
@@ -78,7 +92,7 @@ fn kotlin(describe: &Value) -> String {
             let ordered = args.iter().filter(|a| a["required"] == true).chain(args.iter().filter(|a| a["required"] != true));
             let params = ordered
                 .map(|a| {
-                    let arg = a["name"].as_str().unwrap();
+                    let arg = ident(a["name"].as_str().unwrap());
                     if a["required"] == true {
                         format!("{arg}: {}", kotlin_type(a))
                     } else {
@@ -87,8 +101,10 @@ fn kotlin(describe: &Value) -> String {
                 })
                 .collect::<Vec<_>>()
                 .join(", ");
-            let puts = args.iter().map(|a| format!(".put(\"{0}\", {0})", a["name"].as_str().unwrap())).collect::<String>();
-            writeln!(out, "        fun {method}({params}): {returns} =\n            client.{open}(\"{name}\", JSONObject(){puts})").unwrap();
+            let puts = args.iter().map(|a| format!(".put(\"{}\", {})", a["name"].as_str().unwrap(), ident(a["name"].as_str().unwrap()))).collect::<String>();
+            let method = ident(&method);
+            writeln!(out, "        fun {method}({params}): {returns} =
+            client.{open}(\"{name}\", JSONObject(){puts})").unwrap();
         }
         writeln!(out, "    }}").unwrap();
     }

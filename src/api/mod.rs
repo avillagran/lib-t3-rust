@@ -9,6 +9,7 @@ use serde_json::{json, Map, Value};
 use std::time::Duration;
 
 pub mod ids;
+pub(crate) mod reader;
 pub mod assets;
 pub mod orchestration;
 pub mod preview;
@@ -103,6 +104,8 @@ pub enum ArgType {
     Text,
     Bool,
     Integer,
+    /// A JSON number that may have a fraction.
+    Number,
     Object,
     Array,
     Enum(&'static [&'static str]),
@@ -120,6 +123,7 @@ impl ArgType {
             ArgType::Text => "text",
             ArgType::Bool => "bool",
             ArgType::Integer => "integer",
+            ArgType::Number => "number",
             ArgType::Object => "object",
             ArgType::Array => "array",
             ArgType::Enum(_) => "enum",
@@ -282,6 +286,33 @@ impl<'a> Args<'a> {
         self.get(name)
             .map(|v| Some(v).filter(|v| v.is_object()).ok_or_else(|| ids::invalid(name)))
             .transpose()
+    }
+    /// A required object.
+    pub fn req_object(&self, name: &str) -> Result<&'a Value> {
+        self.object(name)?.ok_or_else(|| ids::invalid(name))
+    }
+    /// An optional non-negative integer.
+    pub fn u64(&self, name: &str) -> Result<Option<u64>> {
+        self.get(name)
+            .map(|v| v.as_u64().ok_or_else(|| ids::invalid(name)))
+            .transpose()
+    }
+    pub fn req_u64(&self, name: &str) -> Result<u64> {
+        self.u64(name)?.ok_or_else(|| ids::invalid(name))
+    }
+    /// An optional number (fractions allowed).
+    pub fn f64(&self, name: &str) -> Result<Option<f64>> {
+        self.get(name)
+            .map(|v| v.as_f64().ok_or_else(|| ids::invalid(name)))
+            .transpose()
+    }
+    pub fn array(&self, name: &str) -> Result<Option<&'a Vec<Value>>> {
+        self.get(name)
+            .map(|v| v.as_array().ok_or_else(|| ids::invalid(name)))
+            .transpose()
+    }
+    pub fn req_array(&self, name: &str) -> Result<&'a Vec<Value>> {
+        self.array(name)?.ok_or_else(|| ids::invalid(name))
     }
 }
 

@@ -2,6 +2,7 @@
 //! `dispatchCommand` variants ot3 emits; the payload builders that already
 //! live in `queue`, `questions`, `approvals`, `models` and `sidebar` stay the
 //! source of truth for theirs, and `Command` calls them.
+use super::reader::{object, one_of, put, timestamp, Reader};
 use super::{api_fn, ids, send, ArgType, Function};
 use crate::{approvals, models, questions, queue, sidebar, Connection, Result};
 use serde_json::{json, Map, Value};
@@ -1007,30 +1008,12 @@ fn dispatch_mode(v: &Value) -> Result<DispatchMode> {
     Ok(mode)
 }
 
-fn put(v: &mut Value, key: &str, value: Option<bool>) {
-    if let Some(b) = value {
-        v[key] = json!(b);
-    }
-}
-fn object(field: &str, v: &Value) -> Result<Value> {
-    Some(v).filter(|v| v.is_object()).cloned().ok_or_else(|| ids::invalid(field))
-}
-fn one_of<'a>(field: &str, value: &'a str, allowed: &[&str]) -> Result<&'a str> {
-    if allowed.contains(&value) {
-        Ok(value)
-    } else {
-        Err(ids::invalid(field))
-    }
-}
 fn runtime_mode(mode: &str) -> Result<&str> {
     if models::valid_runtime_mode(mode) {
         Ok(mode)
     } else {
         Err(ids::invalid("runtimeMode"))
     }
-}
-fn timestamp<'a>(field: &str, value: &'a str) -> Result<&'a str> {
-    chrono::DateTime::parse_from_rfc3339(value).map(|_| value).map_err(|_| ids::invalid(field))
 }
 fn free_text<'a>(field: &str, value: &'a str) -> Result<&'a str> {
     if value.chars().count() > 4096 || value.contains('\0') {
@@ -1051,77 +1034,4 @@ fn message_text(field: &str, text: &str, files: &[Value]) -> Result<String> {
         return Err(ids::invalid(field));
     }
     Ok(crate::composer::legacy_attachment_text(text, files))
-}
-
-/// Strict member reader: each read marks the member used; `done` rejects the rest.
-struct Reader<'a> {
-    map: &'a Map<String, Value>,
-    used: Vec<&'static str>,
-}
-impl<'a> Reader<'a> {
-    fn new(v: &'a Value) -> Result<Self> {
-        Ok(Self { map: v.as_object().ok_or("invalid_input")?, used: vec![] })
-    }
-    fn raw(&mut self, k: &'static str) -> Option<&'a Value> {
-        self.used.push(k);
-        self.map.get(k)
-    }
-    fn req_str(&mut self, k: &'static str) -> Result<String> {
-        self.opt_str(k)?.ok_or_else(|| ids::invalid(k))
-    }
-    fn opt_str(&mut self, k: &'static str) -> Result<Option<String>> {
-        match self.raw(k) {
-            None | Some(Value::Null) => Ok(None),
-            Some(Value::String(s)) => Ok(Some(s.clone())),
-            Some(_) => Err(ids::invalid(k)),
-        }
-    }
-    /// Present-and-null → `Some(None)`; absent → `None`.
-    fn nullable_str(&mut self, k: &'static str) -> Result<Option<Option<String>>> {
-        match self.raw(k) {
-            None => Ok(None),
-            Some(Value::Null) => Ok(Some(None)),
-            Some(Value::String(s)) => Ok(Some(Some(s.clone()))),
-            Some(_) => Err(ids::invalid(k)),
-        }
-    }
-    fn nullable_value(&mut self, k: &'static str) -> Option<Value> {
-        self.raw(k).cloned()
-    }
-    fn opt_bool(&mut self, k: &'static str) -> Result<Option<bool>> {
-        match self.raw(k) {
-            None | Some(Value::Null) => Ok(None),
-            Some(Value::Bool(b)) => Ok(Some(*b)),
-            Some(_) => Err(ids::invalid(k)),
-        }
-    }
-    fn req_bool(&mut self, k: &'static str) -> Result<bool> {
-        self.opt_bool(k)?.ok_or_else(|| ids::invalid(k))
-    }
-    fn req_u64(&mut self, k: &'static str) -> Result<u64> {
-        self.raw(k).and_then(Value::as_u64).ok_or_else(|| ids::invalid(k))
-    }
-    fn opt_value(&mut self, k: &'static str) -> Option<Value> {
-        self.raw(k).filter(|v| !v.is_null()).cloned()
-    }
-    fn req_value(&mut self, k: &'static str) -> Result<Value> {
-        self.opt_value(k).ok_or_else(|| ids::invalid(k))
-    }
-    fn req_array(&mut self, k: &'static str) -> Result<Vec<Value>> {
-        self.raw(k).and_then(Value::as_array).cloned().ok_or_else(|| ids::invalid(k))
-    }
-    fn literal(&mut self, k: &'static str, expected: &str) -> Result<()> {
-        if self.raw(k).and_then(Value::as_str) == Some(expected) {
-            Ok(())
-        } else {
-            Err(ids::invalid(k))
-        }
-    }
-    fn done(self) -> Result<()> {
-        if self.map.keys().all(|k| self.used.contains(&k.as_str())) {
-            Ok(())
-        } else {
-            Err("invalid_input".into())
-        }
-    }
 }
