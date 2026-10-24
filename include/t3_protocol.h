@@ -9,8 +9,9 @@ extern "C" {
 /* Run blocking calls on a worker thread. Host owns login and secure storage.
  * Calls may be concurrent. Never free a handle concurrently with a call.
  * JSON: connectBearer, connectRelay, request, requestOk, rpc, rpcWithTimeout,
- * disconnect, subscribe, pollSubscription, cancelSubscription, fetchDescriptor,
- * pairBearer, boundedThread. ABI v2 additions are optional fields and new ops:
+ * disconnect, subscribe, pollSubscription, cancelSubscription, wakeSubscriptions,
+ * fetchDescriptor, pairBearer, boundedThread. ABI v2 additions are optional
+ * fields and new ops (capabilities lists them with every limit; see Streams):
  * connectBearer/connectRelay take "options" {requestTimeoutMs, connectTimeoutMs,
  * poolIdleTimeoutMs, maxBytes}; request takes "maxBytes". fetchDescriptor and
  * pairBearer need no connection; pairBearer returns the Bearer token for the
@@ -28,7 +29,8 @@ extern "C" {
  *     "invalid_<field>", "invalid_rpc_timeout"), then sends exactly once.
  *   "write_not_authorized" failures add "requiredScope" (e.g. "settings:write").
  */
-/* Streams. {"op":"subscribe","tag":T,"payload":{...}} -> {subscriptionId}.
+/* Streams (wake, boundaries, idle and completionMarker are additive to ABI 3).
+ * {"op":"subscribe","tag":T,"payload":{...}} -> {subscriptionId}.
  * Up to 8 per handle, each on its own WebSocket; at most 2 may be
  * orchestration.subscribeThread with "acceptBoundedSnapshot":true. A ninth (or
  * a third bounded) fails with "subscription_limit"; an ended stream keeps its

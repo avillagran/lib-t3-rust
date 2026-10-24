@@ -230,6 +230,26 @@ impl Subscription {
         }
     }
 }
+/// Stream limits and poll fields for `capabilities`; all additive to ABI v2.
+pub(crate) fn with_capabilities(mut capabilities: Value) -> Value {
+    let large = Limits::of("orchestration.subscribeThread", &json!({"acceptBoundedSnapshot":true}));
+    for (key, value) in [
+        ("maxSubscriptions", json!(MAX_SUBSCRIPTIONS)),
+        ("maxLargeSubscriptions", json!(MAX_LARGE_SUBSCRIPTIONS)),
+        ("queueMaxItems", json!(MAX_ITEMS)),
+        ("queueMaxBytes", json!(Limits::NORMAL.queue)),
+        ("itemMaxBytes", json!(Limits::NORMAL.item)),
+        ("largeItemMaxBytes", json!(large.item)),
+        ("largeQueueMaxBytes", json!(large.queue)),
+        ("maxPollMs", json!(1000)),
+        ("probeTimeoutMs", json!(stream::STREAM_PROBE_TIMEOUT.as_millis() as u64)),
+        ("idleTimeoutMs", json!(stream::STREAM_IDLE_TIMEOUT.as_millis() as u64)),
+        ("pollFields", json!(["items", "boundaries", "idle", "completionMarker", "closed", "error", "errorMessage"])),
+    ] {
+        capabilities[key] = value;
+    }
+    capabilities
+}
 /// A slot for one more stream, or `subscription_limit`. Ended streams keep their slot
 /// until the host cancels them.
 pub(crate) fn admit(
