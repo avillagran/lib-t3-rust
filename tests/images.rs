@@ -62,3 +62,17 @@ fn attachment_image_requires_the_served_type_to_match_the_attachment() {
     assert_eq!(c.attachment_image("a", "a.png", "image/png").unwrap_err(), "invalid_image");
     server.join().unwrap();
 }
+#[test]
+fn attachment_image_reads_heic_heif_and_avif_by_their_ftyp_box() {
+    const AVIF: &[u8] = b"\0\0\0\x1cftypavif\0\0\0\0avifmif1";
+    let (c, server) = asset_server(json!({"_tag":"attachment","attachmentId":"a","fileName":"a.avif","mimeType":"image/avif","disposition":"inline"}), "image/avif", AVIF);
+    assert_eq!(c.attachment_image("a", "a.avif", "image/avif").unwrap(), AVIF);
+    server.join().unwrap();
+    let (c, server) = asset_server(json!({"_tag":"attachment","attachmentId":"h","fileName":"h.heic","mimeType":"image/heic","disposition":"inline"}), "image/heic", b"\0\0\0\x18fytpheic");
+    assert_eq!(c.attachment_image("h", "h.heic", "image/heic").unwrap_err(), "invalid_image");
+    server.join().unwrap();
+    let (c, server) = asset_server(json!({"_tag":"media-file","threadId":"t","path":"/a.heif"}), "image/heif", b"\0\0\0\x18ftypmif1");
+    assert_eq!(c.media_image("t", "/a.heif").unwrap().1, "image/heif");
+    server.join().unwrap();
+    assert_eq!(c.attachment_image("a", "a.tiff", "image/tiff").unwrap_err(), "invalid_image");
+}
