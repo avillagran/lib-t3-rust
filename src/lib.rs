@@ -59,6 +59,9 @@ pub mod failure_context;
 pub mod usage_summary;
 pub mod server_updates;
 pub mod reconnect;
+mod options;
+pub use options::ConnectionOptions;
+use options::valid_limit;
 
 pub type Result<T> = std::result::Result<T, String>;
 const MAX_BYTES: u64 = 8 * 1024 * 1024;
@@ -110,17 +113,13 @@ fn endpoint(base: &Url, path: &str) -> Result<Url> {
     Ok(u)
 }
 fn http() -> Result<Http> {
-    Http::builder()
-        .no_proxy()
-        .redirect(reqwest::redirect::Policy::none())
-        .timeout(Duration::from_secs(12))
-        .build()
-        .map_err(|_| "local_error".into())
+    ConnectionOptions::default().build_http_client()
 }
 fn decode(response: Response) -> Result<Value> {
     decode_with_limit(response, MAX_BYTES)
 }
-fn decode_with_limit(response: Response, max_bytes: u64) -> Result<Value> {
+/// 401/403 are `unauthorized`; any other non-2xx is `http_<code>`.
+fn check_status(response: &Response) -> Result<()> {
     let code = response.status().as_u16();
     if code == 401 || code == 403 {
         return Err("unauthorized".into());
@@ -128,7 +127,12 @@ fn decode_with_limit(response: Response, max_bytes: u64) -> Result<Value> {
     if !(200..300).contains(&code) {
         return Err(format!("http_{code}"));
     }
-    if response
+    Ok(())
+}
+/// Media type without parameters, lowercased: `Application/JSON; charset=utf-8`
+/// reads as `application/json`.
+fn media_type(response: &Response) -> String {
+    response
         .headers()
         .get("content-type")
         .and_then(|s| s.to_str().ok())
@@ -137,17 +141,19 @@ fn decode_with_limit(response: Response, max_bytes: u64) -> Result<Value> {
         .next()
         .unwrap_or("")
         .trim()
-        != "application/json"
-    {
+        .to_ascii_lowercase()
+}
+fn decode_with_limit(response: Response, max_bytes: u64) -> Result<Value> {
+    check_status(&response)?;
+    if media_type(&response) != "application/json" {
         return Err("not_json".into());
     }
-    if !matches!(
-        response
-            .headers()
-            .get("content-encoding")
-            .and_then(|s| s.to_str().ok()),
-        None | Some("identity") | Some("")
-    ) {
+    if !response
+        .headers()
+        .get("content-encoding")
+        .and_then(|s| s.to_str().ok())
+        .is_none_or(|e| e.is_empty() || e.eq_ignore_ascii_case("identity"))
+    {
         return Err("unsupported_encoding".into());
     }
     let mut bytes = Zeroizing::new(Vec::new());
@@ -268,12 +274,28 @@ pub struct Connection {
     base: Url,
     ws: Url,
     credential: Credential,
+    max_bytes: u64,
 }
 impl Connection {
+    /// Default HTTP policy (`ConnectionOptions::default()`).
     pub fn new(http_base: &str, ws_base: Option<&str>, credential: Credential) -> Result<Self> {
         Self::with_http_client(http()?, http_base, ws_base, credential)
     }
-    /// Allows a host to reuse its HTTP pool. The host must disable redirects.
+    /// Same as `new`, with the host's timeouts, pool and response limit.
+    pub fn with_options(
+        http_base: &str,
+        ws_base: Option<&str>,
+        credential: Credential,
+        options: &ConnectionOptions,
+    ) -> Result<Self> {
+        let mut connection =
+            Self::with_http_client(options.build_http_client()?, http_base, ws_base, credential)?;
+        connection.max_bytes = options.max_bytes();
+        Ok(connection)
+    }
+    /// Allows a host to reuse its HTTP pool. The host must disable redirects and
+    /// proxies (`ConnectionOptions::build_http_client` does). Responses keep the
+    /// default 8 MiB limit.
     pub fn with_http_client(
         http: Http,
         http_base: &str,
@@ -314,10 +336,23 @@ impl Connection {
             base,
             ws,
             credential,
+            max_bytes: MAX_BYTES,
         })
+    }
+    /// The same endpoints, pool and limits with another credential, e.g. one
+    /// read and one write token per environment over a single pool.
+    pub fn with_credential(&self, credential: Credential) -> Self {
+        Self {
+            credential,
+            ..self.clone()
+        }
     }
     pub fn base_url(&self) -> &str {
         self.base.as_str()
+    }
+    /// Default response limit of `request_json` for this connection.
+    pub fn max_bytes(&self) -> u64 {
+        self.max_bytes
     }
     pub fn expires_at(&self) -> Option<i64> {
         self.credential.expires_at()
@@ -378,6 +413,9 @@ impl Connection {
             json!({"type":typ,"id":grant["attachmentId"],"name":name,"mimeType":mime,"sizeBytes":size}),
         )
     }
+    /// Same-origin JSON request. Accepts `application/json` in any case and with
+    /// parameters. The limit is the connection's (8 MiB unless configured), or
+    /// 64 MiB for a protocol GET of `/api/orchestration/threads/<id>/bounded`.
     pub fn request_json(
         &self,
         method: &str,
@@ -385,6 +423,48 @@ impl Connection {
         body: Option<&Value>,
         protocol: bool,
     ) -> Result<Value> {
+        let (response, bounded) = self.send(method, path, body, protocol)?;
+        let limit = if bounded {
+            THREAD_SNAPSHOT_MAX_BYTES.max(self.max_bytes)
+        } else {
+            self.max_bytes
+        };
+        decode_with_limit(response, limit)
+    }
+    /// `request_json` with an explicit response limit (1 byte to 64 MiB) for this call.
+    pub fn request_json_with_limit(
+        &self,
+        method: &str,
+        path: &str,
+        body: Option<&Value>,
+        protocol: bool,
+        max_bytes: u64,
+    ) -> Result<Value> {
+        if !valid_limit(max_bytes) {
+            return Err("invalid_max_bytes".into());
+        }
+        decode_with_limit(self.send(method, path, body, protocol)?.0, max_bytes)
+    }
+    /// A request whose only result is its status: any 2xx is `Ok`, whatever the
+    /// body (empty, 204, not JSON). The body is not read.
+    pub fn request_ok(
+        &self,
+        method: &str,
+        path: &str,
+        body: Option<&Value>,
+        protocol: bool,
+    ) -> Result<()> {
+        check_status(&self.send(method, path, body, protocol)?.0)
+    }
+    /// Sends a credentialed same-origin request. Also reports whether it reads a
+    /// bounded thread snapshot, which has its own response limit.
+    fn send(
+        &self,
+        method: &str,
+        path: &str,
+        body: Option<&Value>,
+        protocol: bool,
+    ) -> Result<(Response, bool)> {
         let url = endpoint(&self.base, path)?;
         let method =
             reqwest::Method::from_bytes(method.as_bytes()).map_err(|_| "invalid_method")?;
@@ -403,13 +483,9 @@ impl Connection {
             req = req.json(b);
         }
         let segments = url.path().split('/').collect::<Vec<_>>();
-        let limit = if method == reqwest::Method::GET && protocol
-            && matches!(segments.as_slice(), ["", "api", "orchestration", "threads", id, "bounded"] if !id.is_empty()) {
-            THREAD_SNAPSHOT_MAX_BYTES
-        } else {
-            MAX_BYTES
-        };
-        decode_with_limit(req.send().map_err(|_| "unreachable")?, limit)
+        let bounded = method == reqwest::Method::GET && protocol
+            && matches!(segments.as_slice(), ["", "api", "orchestration", "threads", id, "bounded"] if !id.is_empty());
+        Ok((req.send().map_err(|_| "unreachable")?, bounded))
     }
     fn websocket(&self)->Result<tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<TcpStream>>>{
         self.websocket_with_limit(MAX_BYTES)
@@ -572,14 +648,34 @@ pub fn connect_relay(
     environment_id: &str,
     key: Arc<DpopKey>,
 ) -> Result<Connection> {
+    connect_relay_with_options(
+        relay_url,
+        cloud_jwt,
+        client_id,
+        environment_id,
+        key,
+        &ConnectionOptions::default(),
+    )
+}
+/// `connect_relay` with the host's HTTP policy for the relay and the environment.
+pub fn connect_relay_with_options(
+    relay_url: &str,
+    cloud_jwt: &str,
+    client_id: &str,
+    environment_id: &str,
+    key: Arc<DpopKey>,
+    options: &ConnectionOptions,
+) -> Result<Connection> {
     uuid::Uuid::parse_str(environment_id).map_err(|_| "invalid_environment_id")?;
-    RelayClient::new(relay_url, cloud_jwt, client_id, key)?.connect_environment(environment_id)
+    RelayClient::with_options(relay_url, cloud_jwt, client_id, key, options)?
+        .connect_environment(environment_id)
 }
 
 /// Authenticated relay client. Reuse for multiple environments while the session is valid.
 pub struct RelayClient {
     connection: Connection,
     key: Arc<DpopKey>,
+    options: ConnectionOptions,
 }
 impl RelayClient {
     pub fn new(
@@ -588,12 +684,22 @@ impl RelayClient {
         client_id: &str,
         key: Arc<DpopKey>,
     ) -> Result<Self> {
+        Self::with_options(relay_url, cloud_jwt, client_id, key, &ConnectionOptions::default())
+    }
+    /// `new` with the host's HTTP policy; environments it connects inherit it.
+    pub fn with_options(
+        relay_url: &str,
+        cloud_jwt: &str,
+        client_id: &str,
+        key: Arc<DpopKey>,
+        options: &ConnectionOptions,
+    ) -> Result<Self> {
         token(cloud_jwt)?;
         if !matches!(client_id, "t3-mobile" | "t3-web") {
             return Err("invalid_client_id".into());
         }
         let relay = http_url(relay_url)?;
-        let http = http()?;
+        let http = options.build_http_client()?;
         if relay.path() != "/"
             || (relay.scheme() != "https"
                 && !matches!(
@@ -634,10 +740,11 @@ impl RelayClient {
             key.clone(),
             now() + response["expires_in"].as_i64().unwrap(),
         )?;
-        let relay_conn = Connection::new(relay_url, None, relay_token)?;
+        let relay_conn = Connection::with_options(relay_url, None, relay_token, options)?;
         Ok(Self {
             connection: relay_conn,
             key,
+            options: options.clone(),
         })
     }
     pub fn connect_environment(&self, environment_id: &str) -> Result<Connection> {
@@ -718,7 +825,7 @@ impl RelayClient {
         if !scopes.contains(&"orchestration:read") || !scopes.contains(&"orchestration:operate") {
             return Err("write_not_authorized".into());
         }
-        Connection::new(
+        Connection::with_options(
             base.as_str(),
             Some(ws),
             Credential::dpop(
@@ -726,6 +833,7 @@ impl RelayClient {
                 key,
                 now() + access["expires_in"].as_i64().unwrap(),
             )?,
+            &self.options,
         )
     }
 }
