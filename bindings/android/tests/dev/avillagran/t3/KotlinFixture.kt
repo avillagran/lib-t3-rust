@@ -46,10 +46,17 @@ fun main() {
             val error = runCatching { call() }.exceptionOrNull()
             check(error is T3Exception && error.code == "not_connected") { error.toString() }
         }
+        // Signed assets and favicons go through the binary native path, not call().
+        for (call in listOf<() -> T3Asset>({ client.assetBytes(attachment) }, { client.projectFavicon("/repo") })) {
+            val error = runCatching { call() }.exceptionOrNull()
+            check(error is T3Exception && error.code == "not_connected") { error.toString() }
+        }
         client.connectBearer("http://127.0.0.1:${server.address.port}", "fixture-token")
         check((client.request("/fixture") as JSONObject).getString("text") == "á 🦀")
         val image = runCatching { client.image("fixture", "x.svg", "image/svg+xml") }.exceptionOrNull()
         check(image is T3Exception && image.code == "invalid_image")
+        val timeout = runCatching { client.assetBytes(attachment, maxBytes = 10, timeoutMs = 0) }.exceptionOrNull()
+        check(timeout is T3Exception && timeout.code == "invalid_asset_timeout") { timeout.toString() }
         val failure = AtomicReference<Throwable?>(null)
         val worker = Thread {
             try { check((client.request("/fixture/slow") as JSONObject).getString("text") == "á 🦀") }
@@ -66,6 +73,6 @@ fun main() {
         check(!worker.isAlive && !closing.isAlive && failure.get() == null) { failure.get().toString() }
         client.close() // idempotent
         check(runCatching { client.request("/fixture") }.exceptionOrNull() is IllegalStateException)
-        println("KOTLIN_JNI_PASS: canonical wrapper, capabilities, typed API call/describe, Unicode, stable errors and concurrent close ownership")
+        println("KOTLIN_JNI_PASS: canonical wrapper, capabilities, typed API call/describe, asset wrappers, Unicode, stable errors and concurrent close ownership")
     } finally { finish.countDown(); client.close(); server.stop(0) }
 }
