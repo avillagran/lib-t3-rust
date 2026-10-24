@@ -147,7 +147,7 @@ private fun chunksAndMarker() {
             last = stream.poll()
             check(!last.closed) { "${last.error}: ${last.errorMessage}" }
             received += last.items.length()
-            complete += chunks.accept(last)
+            complete.addAll(chunks.accept(last))
         } while (received < 4 || !last.idle)
         check(complete.map { it.size } == listOf(2, 2)) { complete.toString() }
         check(chunks.pending.isEmpty())
@@ -228,7 +228,7 @@ private fun threadStreamResumesFromTheLibraryCursor() {
             do {
                 val update = stream.poll()
                 check(!update.closed) { "${update.error}: ${update.errorMessage}" }
-                updates += update
+                updates.add(update)
                 check(System.nanoTime() < deadline) { updates.toString() }
             } while (stream.cursor != 21L || !update.idle)
             check(stream.start == "resume") { stream.start.toString() }
