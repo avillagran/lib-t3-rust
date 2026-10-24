@@ -853,7 +853,9 @@ impl Connection {
   self.image_resource(json!({"_tag":"media-file","threadId":thread,"path":path}),None)
  }
  fn image_resource(&self,resource:Value,expected:Option<&str>)->Result<(Vec<u8>,String)>{
-  let url=self.asset_url(resource)?;
+  // Own grant checks: image callers keep their historical error codes.
+  let grant=self.rpc("assets.createUrl",json!({"resource":resource}))?;
+  let url=endpoint(&self.base,field(&grant,"relativeUrl")?)?;if !url.path().starts_with("/api/assets/"){return Err("invalid_asset_url".into())}
   let assets::AssetBytes{bytes,mime}=self.signed_get(url,&assets::AssetOptions::new(10*1024*1024),&assets::IMAGE)?;
   if expected.is_some_and(|m|m!=mime){return Err("invalid_image".into())}
   let valid=match mime.as_str(){"image/png"=>bytes.starts_with(b"\x89PNG\r\n\x1a\n"),"image/jpeg"=>bytes.starts_with(b"\xff\xd8\xff"),"image/gif"=>bytes.starts_with(b"GIF87a")||bytes.starts_with(b"GIF89a"),"image/webp"=>bytes.starts_with(b"RIFF")&&bytes.get(8..12)==Some(b"WEBP"),"image/heic"|"image/heif"|"image/avif"=>bytes.get(4..8)==Some(b"ftyp"),_=>false};
