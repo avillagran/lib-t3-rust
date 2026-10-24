@@ -9,3 +9,4 @@ trap 'rm -rf -- "$build_dir"' EXIT
   "${CARGO_TARGET_DIR:-target}/release/libt3_protocol.a" -lpthread -ldl -lm -o "$build_dir/c-client"
 "$build_dir/c-client"
 printf '%s\n' 'C_ABI_PASS: native static linking, JSON errors, transport options, binary assets and response/handle ownership'
+printf '%s\n' 'C_ABI_PASS: ABI 3 describe and call (unknown_function, invalid_input, invalid_cwd offline)'
