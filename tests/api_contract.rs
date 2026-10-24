@@ -16,6 +16,13 @@ fn registry_matches_the_pinned_contract_tag_by_tag() {
         let Some(tag) = f.tag else { continue };
         let method = &contract["methods"][tag];
         assert!(method.is_object(), "{tag} is not a T3 RPC");
+        let scopes = match f.scope {
+            Scope::Fixed(scope) => vec![scope],
+            Scope::Dynamic(scopes) => scopes.to_vec(),
+        };
+        for scope in scopes {
+            assert!(contract["scopes"].as_array().unwrap().iter().any(|s| s == scope), "{tag}: {scope} is not a T3 scope");
+        }
         assert_eq!(method["stream"], f.stream, "{tag}: stream");
         match f.scope {
             Scope::Fixed(scope) => {
@@ -47,5 +54,10 @@ fn live_checkout_still_declares_every_tag() {
     let text = ["rpc.ts", "orchestrationV2.ts"].iter().map(|f| std::fs::read_to_string(src.join(f)).unwrap()).collect::<String>();
     for tag in api::functions().filter_map(|f| f.tag) {
         assert!(text.contains(&format!("\"{tag}\"")), "{tag} is gone from {dir}");
+    }
+    // The handler-level scope the fixture records as an exception (tools/extract-t3-contract).
+    let ws = src.join("../../../apps/server/src/ws.ts");
+    if let Ok(ws) = std::fs::read_to_string(ws) {
+        assert!(ws.contains("requiredScopeForDeviceList("), "device.list no longer has a handler-level scope");
     }
 }
