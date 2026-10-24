@@ -52,7 +52,7 @@ fn describe_needs_no_connection_and_lists_every_function() {
     let d = c.call(json!({"op":"describe"}));
     assert_eq!(d["ok"], true);
     let functions = d["data"]["functions"].as_array().unwrap();
-    assert_eq!(functions.len(), 10);
+    assert_eq!(functions.len(), t3_protocol::api::functions().count());
     let vcs = functions.iter().find(|f| f["fn"] == "vcs.refreshStatus").unwrap();
     assert_eq!(
         vcs,

@@ -17,6 +17,8 @@ pub mod review;
 pub mod server;
 pub mod vcs;
 
+pub mod streams;
+
 pub use orchestration::{Command, ThreadLaunch};
 
 /// T3 checkout the registry was verified against (`tests/fixtures/t3-contract.json`).
@@ -291,6 +293,8 @@ const MODULES: &[&[Function]] = &[
     vcs::FUNCTIONS,
     review::FUNCTIONS,
     projects::FUNCTIONS,
+
+    streams::FUNCTIONS,
 ];
 /// Every registered function, in a stable order.
 pub fn functions() -> impl Iterator<Item = &'static Function> {
