@@ -1627,7 +1627,7 @@
           ]
         }
       ],
-      "fn": "provider.authStart",
+      "fn": "provider.auth.start",
       "kind": "mutation",
       "module": "provider",
       "openArgs": false,
@@ -1660,7 +1660,7 @@
           "type": "object"
         }
       ],
-      "fn": "provider.authRespond",
+      "fn": "provider.auth.respond",
       "kind": "mutation",
       "module": "provider",
       "openArgs": false,
@@ -1683,7 +1683,7 @@
           "type": "token"
         }
       ],
-      "fn": "provider.authCancel",
+      "fn": "provider.auth.cancel",
       "kind": "mutation",
       "module": "provider",
       "openArgs": false,
@@ -1701,7 +1701,7 @@
           "type": "slug"
         }
       ],
-      "fn": "provider.authLogout",
+      "fn": "provider.auth.logout",
       "kind": "mutation",
       "module": "provider",
       "openArgs": false,
@@ -1719,7 +1719,7 @@
           "type": "slug"
         }
       ],
-      "fn": "provider.installStart",
+      "fn": "provider.install.start",
       "kind": "mutation",
       "module": "provider",
       "openArgs": false,
@@ -1742,7 +1742,7 @@
           "type": "token"
         }
       ],
-      "fn": "provider.installCancel",
+      "fn": "provider.install.cancel",
       "kind": "mutation",
       "module": "provider",
       "openArgs": false,
@@ -1760,7 +1760,7 @@
           "type": "slug"
         }
       ],
-      "fn": "provider.installRemove",
+      "fn": "provider.install.remove",
       "kind": "mutation",
       "module": "provider",
       "openArgs": false,
