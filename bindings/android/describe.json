@@ -667,6 +667,72 @@
       "stream": true,
       "tag": "git.runStackedAction",
       "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
+        }
+      ],
+      "fn": "provider.installState",
+      "kind": "read",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": null,
+      "timeoutMs": 10000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
+        }
+      ],
+      "fn": "provider.authState",
+      "kind": "read",
+      "module": "provider",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": null,
+      "timeoutMs": 10000
+    },
+    {
+      "args": [],
+      "fn": "diagnostics.storageCleanupReport",
+      "kind": "read",
+      "module": "diagnostics",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": null,
+      "timeoutMs": 10000
+    },
+    {
+      "args": [
+        {
+          "name": "configuredUrls",
+          "required": false,
+          "type": "array"
+        }
+      ],
+      "fn": "preview.discoveredServers",
+      "kind": "read",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": null,
+      "timeoutMs": 4000
     }
   ]
 }
