@@ -121,9 +121,16 @@ Functions in this release:
 {"op":"subscribe","tag":"orchestration.subscribeThread","payload":{"threadId":"selected","afterSequence":10,"requestCompletionMarker":true,"acceptBoundedSnapshot":true,"acceptCompactTurnItems":true}}
 {"op":"pollSubscription","subscriptionId":"returned-id","timeoutMs":1000}
 {"op":"cancelSubscription","subscriptionId":"returned-id"}
+{"op":"wakeSubscriptions"}
 ```
 
-`capabilities` reports ABI/library versions and limits without connecting.
+`capabilities` reports ABI/library versions and limits without connecting:
+`maxSubscriptions` (8), `maxLargeSubscriptions` (2), `queueMaxItems` (64),
+`queueMaxBytes`/`itemMaxBytes` (8 MiB), `largeItemMaxBytes` (64 MiB),
+`largeQueueMaxBytes` (72 MiB), `maxPollMs` (1000), `probeTimeoutMs` (3000),
+`idleTimeoutMs` (20000) and `pollFields`. Boundaries, idle, the completion marker
+and `wakeSubscriptions` are additive, so `abiVersion` stays 3; a host can test
+for `"wakeSubscriptions"` in `operations` or `"boundaries"` in `pollFields`.
 Subscribe returns `subscriptionId`; poll returns `{items, boundaries, idle,
 completionMarker, closed, error, errorMessage}` inside the usual `{ok,data}`
 envelope. `error` is a stable code; `errorMessage` carries a reason when the

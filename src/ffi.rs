@@ -28,15 +28,14 @@ pub extern "C" fn t3_client_new() -> *mut std::ffi::c_void {
 }
 fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
     match field(&request, "op")? {
-        "capabilities" => Ok(crate::ffi_call::capabilities(
+        "capabilities" => Ok(crate::ffi_stream::with_capabilities(crate::ffi_call::capabilities(
             json!({"abiVersion":3,"libraryVersion":env!("CARGO_PKG_VERSION"),
-            "operations":["connectBearer","connectRelay","request","requestOk","rpc","rpcWithTimeout","disconnect","subscribe","pollSubscription","cancelSubscription","fetchDescriptor","pairBearer","boundedThread","assetBytes","projectFavicon"],
+            "operations":["connectBearer","connectRelay","request","requestOk","rpc","rpcWithTimeout","disconnect","subscribe","pollSubscription","cancelSubscription","wakeSubscriptions","fetchDescriptor","pairBearer","boundedThread","assetBytes","projectFavicon"],
             "binaryOperations":["image","assetBytes","projectFavicon"],
             "connectionOptions":["requestTimeoutMs","connectTimeoutMs","poolIdleTimeoutMs","maxBytes"],
-            "nativeAttachmentUpload":true,"nativeImageDownload":true,"maxSubscriptions":crate::ffi_stream::MAX_SUBSCRIPTIONS,
-            "queueMaxItems":64,"queueMaxBytes":MAX_BYTES,"maxPollMs":1000,
+            "nativeAttachmentUpload":true,"nativeImageDownload":true,
             "maxAssetBytes":assets::MAX_ASSET_BYTES}),
-        )),
+        ))),
         "call" => crate::ffi_call::call(&request, || connection(handle)),
         "describe" => Ok(crate::ffi_call::describe()),
         "connectBearer" => {

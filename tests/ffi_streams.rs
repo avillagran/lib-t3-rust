@@ -348,3 +348,21 @@ fn a_refused_stream_reports_a_stable_code_and_the_reason_apart() {
     assert_eq!((end["error"].clone(), end["errorMessage"].clone()), (json!("stream_closed"), Value::Null));
     server.join().unwrap();
 }
+
+#[test]
+fn capabilities_list_the_stream_ops_and_limits_without_a_new_abi_version() {
+    let client = Client(t3_client_new() as usize);
+    let c = client.call(json!({"op":"capabilities"}))["data"].clone();
+    assert_eq!(c["abiVersion"], 3);
+    for op in ["subscribe", "pollSubscription", "cancelSubscription", "wakeSubscriptions"] {
+        assert!(c["operations"].as_array().unwrap().contains(&json!(op)), "{op}");
+    }
+    assert_eq!(c["maxSubscriptions"], 8);
+    assert_eq!(c["maxLargeSubscriptions"], 2);
+    assert_eq!((c["queueMaxItems"].clone(), c["queueMaxBytes"].clone(), c["itemMaxBytes"].clone()), (json!(64), json!(8 << 20), json!(8 << 20)));
+    assert_eq!((c["largeItemMaxBytes"].clone(), c["largeQueueMaxBytes"].clone()), (json!(64 << 20), json!(72 << 20)));
+    assert_eq!((c["maxPollMs"].clone(), c["probeTimeoutMs"].clone(), c["idleTimeoutMs"].clone()), (json!(1000), json!(3000), json!(20000)));
+    assert_eq!(c["pollFields"], json!(["items", "boundaries", "idle", "completionMarker", "closed", "error", "errorMessage"]));
+    // Wake needs no connection and probes nothing on an empty handle.
+    assert_eq!(client.call(json!({"op":"wakeSubscriptions"})), json!({"ok":true,"data":{"probed":0}}));
+}
