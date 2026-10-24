@@ -30,7 +30,7 @@ fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
     match field(&request, "op")? {
         "capabilities" => Ok(
             json!({"abiVersion":2,"libraryVersion":env!("CARGO_PKG_VERSION"),
-            "operations":["connectBearer","connectRelay","request","rpc","disconnect","subscribe","pollSubscription","cancelSubscription"],
+            "operations":["connectBearer","connectRelay","request","rpc","rpcWithTimeout","disconnect","subscribe","pollSubscription","cancelSubscription"],
             "nativeAttachmentUpload":true,"nativeImageDownload":true,"maxSubscriptions":4,
             "queueMaxItems":64,"queueMaxBytes":MAX_BYTES,"maxPollMs":1000}),
         ),
@@ -71,6 +71,15 @@ fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
             request["protocol"].as_bool().unwrap_or(true),
         ),
         "rpc" => connection(handle)?.rpc(field(&request, "tag")?, request["payload"].clone()),
+        "rpcWithTimeout" => {
+            // Validated before connecting: 1 ms to 300 s, as `rpc_with_timeout` requires.
+            let timeout = request["timeoutMs"]
+                .as_u64()
+                .filter(|ms| (1..=300_000).contains(ms))
+                .map(Duration::from_millis)
+                .ok_or("invalid_rpc_timeout")?;
+            connection(handle)?.rpc_with_timeout(field(&request, "tag")?, request["payload"].clone(), timeout)
+        }
         "subscribe" => {
             let mut h = handle.lock().map_err(|_| "internal_error")?;
             if h.subscriptions.len() >= 4 {

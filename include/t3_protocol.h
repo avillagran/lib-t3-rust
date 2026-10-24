@@ -8,9 +8,10 @@ extern "C" {
 #endif
 /* Run blocking calls on a worker thread. Host owns login and secure storage.
  * Calls may be concurrent. Never free a handle concurrently with a call.
- * JSON: connectBearer, connectRelay, request, rpc, disconnect,
+ * JSON: connectBearer, connectRelay, request, rpc, rpcWithTimeout, disconnect,
  * subscribe, pollSubscription, cancelSubscription.
- * Result: {"ok":true,"data":...} or {"ok":false,"error":"code"}.
+ * Result: {"ok":true,"data":...} or {"ok":false,"error":"code"}; a failure
+ * may add "message" with the server's one-line reason. "error" stays a code.
  * Input must be valid for len bytes; the caller owns and clears its credentials.
  */
 void *t3_client_new(void);
