@@ -243,7 +243,8 @@ use local fixture servers, never real conversations or paid provider runs.
   socket that sends nothing within 3 s fails with `stream_timeout`.
 - **Bounded snapshots.** Protocol GETs of `/api/orchestration/threads/<id>/bounded`
   and `orchestration.subscribeThread` with `acceptBoundedSnapshot` accept up to
-  64 MiB; everything else stays at 8 MiB.
+  64 MiB; everything else stays at 8 MiB. Through the C ABI that stream's queue
+  takes one 64 MiB item (72 MiB in total), so the snapshot reaches the host whole.
 - **Images.** `media_image(thread, path)` reads host-local media through a signed
   grant scoped to that thread and path. Attachments also accept HEIC, HEIF and
   AVIF, and the served type must match the attachment.

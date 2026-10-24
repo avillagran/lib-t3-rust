@@ -1,5 +1,5 @@
 //! Bounded foreign-host event inbox. No host callbacks or unbounded worker queues.
-use crate::{error_code, Connection, Result, MAX_BYTES};
+use crate::{error_code, stream, Connection, Result, MAX_BYTES};
 use serde_json::{json, Value};
 use std::{
     collections::VecDeque,
@@ -9,7 +9,45 @@ use std::{
     },
     time::Duration,
 };
-const MAX_ITEMS: usize = 64;
+pub(crate) const MAX_ITEMS: usize = 64;
+/// Per-subscription bounds, fixed by its mode when it starts. Sizes are serialized JSON.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct Limits {
+    /// Largest single item: the same limit the WebSocket frame was read with.
+    pub(crate) item: usize,
+    /// Every queued, not yet polled item together.
+    pub(crate) queue: usize,
+}
+impl Limits {
+    pub(crate) const NORMAL: Self = Self { item: MAX_BYTES as usize, queue: MAX_BYTES as usize };
+    /// 8 MiB everywhere except `orchestration.subscribeThread` with `acceptBoundedSnapshot`:
+    /// that one item may be a 64 MiB snapshot, and the queue keeps a normal stream's
+    /// 8 MiB of events behind it (72 MiB).
+    pub(crate) fn of(tag: &str, payload: &Value) -> Self {
+        let item = stream::item_limit(tag, payload) as usize;
+        if item > Self::NORMAL.item {
+            Self { item, queue: item + Self::NORMAL.queue }
+        } else {
+            Self::NORMAL
+        }
+    }
+}
+impl Default for Limits {
+    fn default() -> Self {
+        Self::NORMAL
+    }
+}
+/// Counts serialized bytes without building a copy of a (possibly 64 MiB) item.
+struct Counter(usize);
+impl std::io::Write for Counter {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.0 += bytes.len();
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 #[derive(Default)]
 struct Inbox {
     items: VecDeque<(Value, usize)>,
@@ -21,17 +59,24 @@ struct Inbox {
 struct Shared {
     inbox: Mutex<Inbox>,
     ready: Condvar,
+    limits: Limits,
 }
 impl Shared {
+    fn new(limits: Limits) -> Self {
+        Self { limits, ..Self::default() }
+    }
     fn push(&self, item: Value) -> Result<()> {
-        let size = serde_json::to_vec(&item)
-            .map_err(|_| "malformed_stream")?
-            .len();
+        let mut size = Counter(0);
+        serde_json::to_writer(&mut size, &item).map_err(|_| "malformed_stream")?;
+        let size = size.0;
         let mut inbox = self.inbox.lock().map_err(|_| "internal_error")?;
         if inbox.closed {
             return Err("stream_cancelled".into());
         }
-        if inbox.items.len() >= MAX_ITEMS || size > MAX_BYTES as usize - inbox.bytes {
+        if inbox.items.len() >= MAX_ITEMS
+            || size > self.limits.item
+            || size > self.limits.queue - inbox.bytes
+        {
             return Err("stream_backpressure".into());
         }
         inbox.bytes += size;
@@ -53,7 +98,7 @@ pub(crate) struct Subscription {
 }
 impl Subscription {
     pub(crate) fn start(connection: Connection, tag: String, payload: Value) -> Result<Self> {
-        let shared = Arc::new(Shared::default());
+        let shared = Arc::new(Shared::new(Limits::of(&tag, &payload)));
         let cancel = Arc::new(AtomicBool::new(false));
         let (queue, stop) = (shared.clone(), cancel.clone());
         std::thread::Builder::new()
@@ -82,6 +127,7 @@ impl Subscription {
             .map_err(|_| "local_error")?;
         Ok(Self { shared, cancel })
     }
+
     pub(crate) fn poll(&self, timeout_ms: u64) -> Result<Value> {
         let inbox = self.shared.inbox.lock().map_err(|_| "internal_error")?;
         let (mut inbox, _) = self
@@ -136,6 +182,27 @@ mod tests {
             "stream_backpressure"
         );
         assert!(shared.inbox.lock().unwrap().items.is_empty());
+    }
+    #[test]
+    fn only_a_bounded_thread_subscription_gets_the_large_item_limit() {
+        let bounded = json!({"threadId":"t","acceptBoundedSnapshot":true});
+        let large = Limits::of("orchestration.subscribeThread", &bounded);
+        assert_eq!(large, Limits { item: 64 << 20, queue: 72 << 20 });
+        for (tag, payload) in [
+            ("orchestration.subscribeThread", json!({"threadId":"t"})),
+            ("orchestration.subscribeThread", json!({"acceptBoundedSnapshot":"true"})),
+            ("orchestration.subscribeShell", json!({"acceptBoundedSnapshot":true})),
+        ] {
+            assert_eq!(Limits::of(tag, &payload), Limits::NORMAL, "{tag} {payload}");
+        }
+        // A large item fits once; the queue then still holds 8 MiB of events behind it.
+        let shared = Shared::new(large);
+        shared.push(json!("a".repeat(63 << 20))).unwrap();
+        shared.push(json!("b".repeat(7 << 20))).unwrap();
+        assert_eq!(shared.push(json!("c".repeat(3 << 20))).unwrap_err(), "stream_backpressure");
+        assert_eq!(shared.inbox.lock().unwrap().items.len(), 2);
+        let shared = Shared::new(large);
+        assert_eq!(shared.push(json!("a".repeat(64 << 20))).unwrap_err(), "stream_backpressure");
     }
     #[test]
     fn cancel_wakes_a_waiter_without_a_network_tick() {
