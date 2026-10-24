@@ -17,9 +17,7 @@ mkdir -p "$output"
 stage=$(mktemp -d "$output/android-aar.XXXXXXXX")
 trap 'rm -rf -- "$stage"' EXIT
 mkdir -p "$stage/classes" "$stage/aar/jni" "$stage/aar/META-INF"
-"$JAVA_HOME/bin/java" -Xmx384m -cp "$KOTLIN_COMPILER_CLASSPATH" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
-  -no-stdlib -no-reflect -jvm-target 17 -classpath "$ANDROID_JAR:$KOTLIN_STDLIB" \
-  -d "$stage/classes" bindings/android/kotlin/dev/avillagran/t3/T3Client.kt
+tools/compile-android-kotlin "$stage/classes"
 "$JAVA_HOME/bin/jar" --create --file "$stage/aar/classes.jar" -C "$stage/classes" .
 for abi in arm64-v8a x86_64 armeabi-v7a x86; do
   [[ -s "dist/android/$abi/libt3_jni.so" ]] || { echo "Missing ABI: $abi" >&2; exit 1; }
