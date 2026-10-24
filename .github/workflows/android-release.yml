@@ -1,10 +1,18 @@
 name: Android release
 # A v* tag builds the four ABIs, packages the AAR and publishes it with its
-# SHA-256. A manual run builds and packages the same way and only uploads the
-# AAR as a workflow artifact.
+# SHA-256. A manual run, or a pull request that touches the release path,
+# builds and packages the same way and only uploads the AAR as an artifact.
 on:
   push:
     tags: ["v*"]
+  pull_request:
+    paths:
+      - .github/workflows/android-release.yml
+      - .github/actions/android-toolchain/**
+      - bindings/android/**
+      - tools/build-android
+      - tools/compile-android-kotlin
+      - tools/package-android
   workflow_dispatch:
 permissions:
   contents: read

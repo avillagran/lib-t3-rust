@@ -440,8 +440,9 @@ compiler and org.json downloads are pinned by SHA-256 in
 runs `tools/build-android arm64-v8a x86_64 armeabi-v7a x86` and
 `tools/package-android`, verifies the checksum and publishes
 `lib-t3-rust-android-v<version>.aar` and its `.sha256` as a GitHub release. A manual
-run (`workflow_dispatch`) builds and packages the same way and only uploads both
-files as a workflow artifact, which is how the workflow is checked before a tag.
+run (`workflow_dispatch`), or a pull request that touches the Android bindings or
+the release tools, builds and packages the same way and only uploads both files as a
+workflow artifact, which is how the workflow is checked before a tag.
 
 Every push and pull request also runs the `kotlin` job of
 [`test.yml`](../.github/workflows/test.yml): `tools/compile-android-kotlin` against
