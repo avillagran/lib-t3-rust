@@ -855,7 +855,7 @@ impl Connection {
  }
  fn image_resource(&self,resource:Value,expected:Option<&str>)->Result<(Vec<u8>,String)>{
   // Own grant checks: image callers keep their historical error codes.
-  let grant=self.rpc("assets.createUrl",json!({"resource":resource}))?;
+  let grant=api::assets::grant(self,resource)?;
   let url=endpoint(&self.base,field(&grant,"relativeUrl")?)?;if !url.path().starts_with("/api/assets/"){return Err("invalid_asset_url".into())}
   let assets::AssetBytes{bytes,mime}=self.signed_get(url,&assets::AssetOptions::new(10*1024*1024),&assets::IMAGE)?;
   if expected.is_some_and(|m|m!=mime){return Err("invalid_image".into())}
