@@ -32,17 +32,25 @@ val stream = client.subscribe("orchestration.subscribeThread", JSONObject()
     .put("acceptBoundedSnapshot", true)
     .put("acceptCompactTurnItems", true))
 // A resume can also set afterSequence from the last applied native event.
+val chunks = dev.avillagran.t3.T3Chunks()
 try {
     while (isForeground) {
-        val batch = stream.poll() // waits up to 1s; wakes immediately on new data
-        applyNativeItems(batch.items)
-        if (batch.closed) break // inspect batch.error, reconcile/reconnect explicitly
+        val batch = stream.poll() // waits up to 1s; wakes at once on items, chunk ends, idle
+        for (chunk in chunks.accept(batch)) applyNativeChunk(chunk) // whole server chunks
+        if (batch.completionMarker || batch.idle) paintIfChanged() // initial state complete
+        if (batch.closed) break // inspect batch.error/errorMessage, reconnect explicitly
     }
 } finally {
     stream.close()
     client.close()
 }
 ```
+
+On resume or a `ConnectivityManager` network change, call
+`client.wakeSubscriptions()` (or `stream.wake()`): a dead socket then closes the
+batch with `stream_timeout` in about 3 s instead of 20 s, and the host subscribes
+again from its cursor. Besides `errorMessage`, `T3Batch` carries `boundaries`,
+`idle` and `completionMarker`; `T3Chunks` regroups items into whole server chunks.
 
 Omi owns endpoint discovery, login, Android secure storage, lifecycle, cursor
 persistence and UI. It connects directly to T3. Omarchy-Link is not a T3 message
@@ -304,7 +312,9 @@ checksum in `dist/`; it does not sign or publish an Android application.
 - `tools/test-c-abi`: a real C caller links the static Rust archive.
 - `JAVA_HOME=... tools/test-jni`: real JNI/JVM calls, Unicode, error paths and ownership.
 - `tools/test-kotlin-jni`: canonical Kotlin adapter, typed errors, `call`/`describe`
-  through the generated wrappers, and concurrent close against a real native request. Supply the cached compiler variables above
+  through the generated wrappers, and concurrent close against a real native
+  request; `StreamFixture` drives streams through a JDK-only fake WebSocket (chunk
+  boundaries, completion marker, idle, wake probe and error reasons). Supply the cached compiler variables above
   and `JSON_JAR` for the host's org.json implementation.
 - Android cross-build/link checks cover all four ABIs. These are not Android
   device/UI/lifecycle E2E checks, which remain consumer work.
