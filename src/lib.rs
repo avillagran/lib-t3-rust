@@ -42,6 +42,9 @@ pub mod projection;
 
 pub type Result<T> = std::result::Result<T, String>;
 const MAX_BYTES: u64 = 8 * 1024 * 1024;
+// Bounded native snapshots can exceed the generic response limit even when
+// compactTurnItems is enabled. Keep this allowance specific to thread reads.
+const THREAD_SNAPSHOT_MAX_BYTES: u64 = 64 * 1024 * 1024;
 const GRANT: &str = "urn:ietf:params:oauth:grant-type:token-exchange";
 const ACCESS: &str = "urn:ietf:params:oauth:token-type:access_token";
 fn now() -> i64 {
@@ -95,6 +98,9 @@ fn http() -> Result<Http> {
         .map_err(|_| "local_error".into())
 }
 fn decode(response: Response) -> Result<Value> {
+    decode_with_limit(response, MAX_BYTES)
+}
+fn decode_with_limit(response: Response, max_bytes: u64) -> Result<Value> {
     let code = response.status().as_u16();
     if code == 401 || code == 403 {
         return Err("unauthorized".into());
@@ -126,10 +132,10 @@ fn decode(response: Response) -> Result<Value> {
     }
     let mut bytes = Zeroizing::new(Vec::new());
     response
-        .take(MAX_BYTES + 1)
+        .take(max_bytes + 1)
         .read_to_end(&mut bytes)
         .map_err(|_| "unreachable")?;
-    if bytes.len() as u64 > MAX_BYTES {
+    if bytes.len() as u64 > max_bytes {
         return Err("too_large".into());
     }
     serde_json::from_slice(&bytes).map_err(|_| "malformed".into())
@@ -376,9 +382,19 @@ impl Connection {
         if let Some(b) = body {
             req = req.json(b);
         }
-        decode(req.send().map_err(|_| "unreachable")?)
+        let segments = url.path().split('/').collect::<Vec<_>>();
+        let limit = if method == reqwest::Method::GET && protocol
+            && matches!(segments.as_slice(), ["", "api", "orchestration", "threads", id, "bounded"] if !id.is_empty()) {
+            THREAD_SNAPSHOT_MAX_BYTES
+        } else {
+            MAX_BYTES
+        };
+        decode_with_limit(req.send().map_err(|_| "unreachable")?, limit)
     }
     fn websocket(&self)->Result<tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<TcpStream>>>{
+        self.websocket_with_limit(MAX_BYTES)
+    }
+    fn websocket_with_limit(&self, max_bytes: u64)->Result<tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<TcpStream>>>{
         let mut url = self.ws.clone();
         url.set_path("/ws");
         url.set_query(Some("orchestrationProtocol=2"));
@@ -426,10 +442,10 @@ impl Connection {
             .set_write_timeout(Some(Duration::from_secs(12)))
             .map_err(|_| "disconnected")?;
         let config = tungstenite::protocol::WebSocketConfig::default()
-            .max_message_size(Some(MAX_BYTES as usize))
-            .max_frame_size(Some(MAX_BYTES as usize));
+            .max_message_size(Some(max_bytes as usize))
+            .max_frame_size(Some(max_bytes as usize));
         let (ws, _) = tungstenite::client_tls_with_config(req, stream, Some(config), None)
-            .map_err(|_| "rpc_connection_failed")?;
+            .map_err(|e| with_reason("rpc_connection_failed", &e.to_string()))?;
         Ok(ws)
     }
     pub fn rpc(&self, tag: &str, payload: Value) -> Result<Value> {
@@ -453,16 +469,7 @@ impl Connection {
                         if v["exit"]["_tag"] != "Failure" {
                             return Err("rpc_outcome_unknown".into());
                         }
-                        let summary = v["exit"]["cause"].to_string();
-                        return Err(if summary.contains("Auth")
-                            || summary.contains("Forbidden")
-                            || summary.contains("scope")
-                        {
-                            "write_not_authorized"
-                        } else {
-                            "rpc_rejected"
-                        }
-                        .into());
+                        return Err(rejection(&v["exit"]["cause"]));
                     }
                 }
                 Message::Ping(p) => ws
@@ -474,6 +481,66 @@ impl Connection {
         }
         Err("rpc_outcome_unknown".into())
     }
+}
+
+/// Error code of a failure, without the reason `rejection` may append ("code: reason").
+pub fn error_code(error: &str) -> &str {
+    match error.split_once(": ") {
+        Some((code, _)) if !code.is_empty() && code.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_') => code,
+        _ => error,
+    }
+}
+fn with_reason(code: &str, reason: &str) -> String {
+    let reason = reason.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or("");
+    if reason.is_empty() {
+        return code.into();
+    }
+    let mut reason = reason.chars().take(300).collect::<String>();
+    if reason.chars().count() == 300 {
+        reason.push('…');
+    }
+    format!("{code}: {reason}")
+}
+/// The reason a failed Effect exit gives: its first error message, else the error's tag.
+/// Only those two fields are read; the rest of a cause may carry request data.
+fn failure_reason(cause: &Value, depth: usize) -> Option<String> {
+    if depth > 8 {
+        return None;
+    }
+    match cause {
+        Value::String(s) if depth > 0 => Some(s.clone()).filter(|s| !s.trim().is_empty()),
+        Value::Array(items) => items.iter().find_map(|i| failure_reason(i, depth + 1)),
+        Value::Object(o) => {
+            if let Some(m) = o.get("message").and_then(Value::as_str).filter(|m| !m.trim().is_empty()) {
+                return Some(m.into());
+            }
+            let nested = ["error", "defect", "cause", "failures", "reasons", "left", "right"]
+                .iter()
+                .filter_map(|k| o.get(*k))
+                .find_map(|v| failure_reason(v, depth + 1));
+            nested.or_else(|| {
+                o.get("_tag")
+                    .and_then(Value::as_str)
+                    .filter(|t| !matches!(*t, "Fail" | "Die" | "Interrupt" | "Empty" | "Sequential" | "Parallel" | "Cause" | "Failure"))
+                    .map(str::to_string)
+            })
+        }
+        _ => None,
+    }
+}
+#[doc(hidden)]
+pub fn rejection_for_test(cause: &Value) -> String {
+    rejection(cause)
+}
+/// Error for a failed RPC exit: an authorization or rejection code, with the server's reason.
+pub(crate) fn rejection(cause: &Value) -> String {
+    let summary = cause.to_string();
+    let code = if summary.contains("Auth") || summary.contains("Forbidden") || summary.contains("scope") {
+        "write_not_authorized"
+    } else {
+        "rpc_rejected"
+    };
+    with_reason(code, &failure_reason(cause, 0).unwrap_or_default())
 }
 
 /// Complete native T3 Connect flow. The host supplies its existing cloud JWT.
@@ -646,17 +713,30 @@ impl RelayClient {
 impl Connection {
  /// Read an image through a signed same-origin asset grant. No auth on the signed GET.
  pub fn attachment_image(&self,id:&str,name:&str,mime:&str)->Result<Vec<u8>>{
-  if id.is_empty()||id.len()>256||!matches!(mime,"image/png"|"image/jpeg"|"image/gif"|"image/webp"){return Err("invalid_image".into())}
-  let grant=self.rpc("assets.createUrl",json!({"resource":{"_tag":"attachment","attachmentId":id,"fileName":name,"mimeType":mime,"disposition":"inline"}}))?;
+  if id.is_empty()||id.len()>256||!matches!(mime,"image/png"|"image/jpeg"|"image/gif"|"image/webp"|"image/heic"|"image/heif"|"image/avif"){return Err("invalid_image".into())}
+  self.image_resource(json!({"_tag":"attachment","attachmentId":id,"fileName":name,"mimeType":mime,"disposition":"inline"}),Some(mime)).map(|(bytes,_)|bytes)
+ }
+ /// Host-local media is authorized by the server for this exact thread/path.
+ pub fn media_image(&self,thread:&str,path:&str)->Result<(Vec<u8>,String)>{
+  if thread.is_empty()||path.is_empty()||path.len()>4096||path.chars().any(char::is_control){return Err("invalid_image".into())}
+  self.image_resource(json!({"_tag":"media-file","threadId":thread,"path":path}),None)
+ }
+ fn image_resource(&self,resource:Value,expected:Option<&str>)->Result<(Vec<u8>,String)>{
+  let grant=self.rpc("assets.createUrl",json!({"resource":resource}))?;
   let url=endpoint(&self.base,field(&grant,"relativeUrl")?)?;if !url.path().starts_with("/api/assets/"){return Err("invalid_asset_url".into())}
   let response=self.http.get(url).timeout(Duration::from_secs(30)).send().map_err(|_|"image_unreachable")?;if !response.status().is_success(){return Err("image_unavailable".into())}
+  let mime=response.headers().get("content-type").and_then(|v|v.to_str().ok()).unwrap_or("").split(';').next().unwrap_or("").trim().to_string();
+  if expected.is_some_and(|m|m!=mime){return Err("invalid_image".into())}
   let mut bytes=vec![];response.take(10*1024*1024+1).read_to_end(&mut bytes).map_err(|_|"image_unavailable")?;
   if bytes.len()>10*1024*1024{return Err("image_limit_10MiB".into())}
-  let valid=match mime{"image/png"=>bytes.starts_with(b"\x89PNG\r\n\x1a\n"),"image/jpeg"=>bytes.starts_with(b"\xff\xd8\xff"),"image/gif"=>bytes.starts_with(b"GIF87a")||bytes.starts_with(b"GIF89a"),"image/webp"=>bytes.starts_with(b"RIFF")&&bytes.get(8..12)==Some(b"WEBP"),_=>false};
-  if !valid{return Err("invalid_image".into())}Ok(bytes)
+  let valid=match mime.as_str(){"image/png"=>bytes.starts_with(b"\x89PNG\r\n\x1a\n"),"image/jpeg"=>bytes.starts_with(b"\xff\xd8\xff"),"image/gif"=>bytes.starts_with(b"GIF87a")||bytes.starts_with(b"GIF89a"),"image/webp"=>bytes.starts_with(b"RIFF")&&bytes.get(8..12)==Some(b"WEBP"),"image/heic"|"image/heif"|"image/avif"=>bytes.get(4..8)==Some(b"ftyp"),_=>false};
+  if !valid{return Err("invalid_image".into())}Ok((bytes,mime))
  }
 }
 
 pub mod lifecycle;
 
 pub mod settings;
+pub mod device_hub;
+
+mod long_rpc;
