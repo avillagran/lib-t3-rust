@@ -162,6 +162,21 @@ connection switch cancels all streams; a failed switch preserves the old session
 The worker handles Effect Chunk/Ack, Ping/Pong and Interrupt framing in Rust.
 It pings every 5 s and closes a stream with `stream_timeout` after 20 s without
 any frame, so a suspended device or a changed network surfaces quickly.
+
+To check sooner, call wake when the app returns to the foreground or
+`ConnectivityManager` reports a network change:
+
+```json
+{"op":"wakeSubscriptions"}
+{"op":"wakeSubscriptions","subscriptionId":"returned-id"}
+```
+
+It returns `{"probed":n}` (open streams probed; an unknown id fails with
+`unknown_subscription`). Each probed stream pings at once, on its worker's next
+100 ms read tick, and ends with `stream_timeout` unless a frame arrives within 3 s
+of the call: a dead socket surfaces in about 3 s (3.0 to 3.1 s measured), a live
+one keeps streaming. The library never reconnects; on `stream_timeout` the host
+cancels the subscription and subscribes again from its cursor, with its own backoff.
 Cancellation wakes a blocked poll immediately; the network worker observes it on
 its next read tick. DNS/connect/TLS negotiation already in progress can take its
 normal timeout before the worker exits. No callbacks into the JVM occur from the

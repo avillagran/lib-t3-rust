@@ -49,7 +49,13 @@ extern "C" {
  *   true from the batch carrying the server's {"kind":"synchronized"} item (kept
  *   in items, at its position) onward: the initial snapshot/replay is complete.
  * closed/error: once closed the stream delivers nothing more; error is a stable
- *   code (null after cancel), errorMessage an optional one-line reason. */
+ *   code (null after cancel), errorMessage an optional one-line reason.
+ * {"op":"wakeSubscriptions"} (optionally "subscriptionId":S) -> {"probed":n}:
+ * after a resume from suspend or a network change, each open stream pings at
+ * once (on its next 100 ms read tick) and ends with "stream_timeout" unless a
+ * frame arrives within 3 s of this call. n counts open streams probed; an
+ * unknown id fails with "unknown_subscription". It never reconnects: on
+ * stream_timeout the host cancels, then subscribes again from its cursor. */
 void *t3_client_new(void);
 char *t3_client_call(void *handle, const uint8_t *input, size_t len);
 /* Upload read/release callbacks may run on an HTTP worker. With both callbacks

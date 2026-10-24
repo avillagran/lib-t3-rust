@@ -175,6 +175,10 @@ fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
             }
             Ok(json!({"cancelled":subscription.is_some()}))
         }
+        "wakeSubscriptions" => crate::ffi_stream::wake_subscriptions(
+            &handle.lock().map_err(|_| "internal_error")?.subscriptions,
+            &request,
+        ),
         _ => Err("unknown_operation".into()),
     }
 }
