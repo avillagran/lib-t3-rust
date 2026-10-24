@@ -10,3 +10,4 @@ trap 'rm -rf -- "$build_dir"' EXIT
 "$build_dir/c-client"
 printf '%s\n' 'C_ABI_PASS: native static linking, JSON errors, transport options, binary assets, stream capabilities/wake and response/handle ownership'
 printf '%s\n' 'C_ABI_PASS: ABI 3 describe and call (unknown_function, invalid_input, invalid_cwd offline)'
+printf '%s\n' 'C_ABI_PASS: ABI 3 streams by fn (describe streams, invalid_thread_id, not_a_stream, stream_function offline)'

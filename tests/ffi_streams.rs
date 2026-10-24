@@ -362,7 +362,8 @@ fn capabilities_list_the_stream_ops_and_limits_without_a_new_abi_version() {
     assert_eq!((c["queueMaxItems"].clone(), c["queueMaxBytes"].clone(), c["itemMaxBytes"].clone()), (json!(64), json!(8 << 20), json!(8 << 20)));
     assert_eq!((c["largeItemMaxBytes"].clone(), c["largeQueueMaxBytes"].clone()), (json!(64 << 20), json!(72 << 20)));
     assert_eq!((c["maxPollMs"].clone(), c["probeTimeoutMs"].clone(), c["idleTimeoutMs"].clone()), (json!(1000), json!(3000), json!(20000)));
-    assert_eq!(c["pollFields"], json!(["items", "boundaries", "idle", "completionMarker", "closed", "error", "errorMessage"]));
+    assert_eq!(c["pollFields"], json!(["items", "boundaries", "idle", "completionMarker", "closed", "error", "errorMessage", "cursor", "start"]));
+    assert_eq!(c["subscribeBy"], json!(["tag", "fn"]));
     // Wake needs no connection and probes nothing on an empty handle.
     assert_eq!(client.call(json!({"op":"wakeSubscriptions"})), json!({"ok":true,"data":{"probed":0}}));
 }
@@ -421,4 +422,113 @@ fn cancel_sends_interrupt_and_the_payload_reaches_the_server_intact() {
     assert_eq!(frames.last().unwrap(), &json!({"_tag":"Interrupt","requestId":"1"}));
     // A cancelled id is gone.
     assert_eq!(client.call(json!({"op":"pollSubscription","subscriptionId":id}))["error"], "unknown_subscription");
+}
+
+impl Client {
+    fn subscribe_fn(&self, name: &str, args: Value) -> String {
+        let started = self.call(json!({"op":"subscribe","fn":name,"args":args}));
+        started["data"]["subscriptionId"].as_str().unwrap_or_else(|| panic!("{started}")).to_owned()
+    }
+}
+
+#[test]
+fn subscribe_by_fn_validates_before_needing_a_connection() {
+    let client = Client(t3_client_new() as usize);
+    let error = |request: Value| client.call(request)["error"].clone();
+    let thread = "orchestration.subscribeThread";
+    assert_eq!(error(json!({"op":"subscribe","fn":thread,"args":{"threadId":""}})), "invalid_thread_id");
+    assert_eq!(error(json!({"op":"subscribe","fn":thread,"args":{"threadId":"t","afterSequence":-1}})), "invalid_after_sequence");
+    assert_eq!(error(json!({"op":"subscribe","fn":thread,"args":{"threadId":"t","x":1}})), "invalid_input");
+    assert_eq!(error(json!({"op":"subscribe","fn":thread})), "invalid_thread_id");
+    assert_eq!(error(json!({"op":"subscribe","fn":"vcs.refreshStatus","args":{"cwd":"/r"}})), "not_a_stream");
+    assert_eq!(error(json!({"op":"subscribe","fn":"orchestration.nope","args":{}})), "unknown_function");
+    assert_eq!(error(json!({"op":"subscribe","fn":"","args":{}})), "invalid_input");
+    assert_eq!(error(json!({"op":"subscribe","fn":7})), "invalid_input");
+    // One form or the other, never a mix.
+    assert_eq!(error(json!({"op":"subscribe","fn":thread,"tag":thread,"args":{"threadId":"t"}})), "invalid_input");
+    assert_eq!(error(json!({"op":"subscribe","fn":thread,"payload":{"threadId":"t"}})), "invalid_input");
+    // Valid input reaches the connection check; the raw form keeps its old answers.
+    assert_eq!(error(json!({"op":"subscribe","fn":thread,"args":{"threadId":"t"}})), "not_connected");
+    assert_eq!(error(json!({"op":"subscribe","tag":thread,"payload":{"threadId":""}})), "not_connected");
+    assert_eq!(error(json!({"op":"subscribe"})), "malformed");
+    // A stream function is not a call.
+    assert_eq!(error(json!({"op":"call","fn":"orchestration.subscribeShell","args":{}})), "stream_function");
+}
+
+#[test]
+fn a_thread_stream_by_fn_resumes_and_reports_the_cursor() {
+    let (base, server) = serve(|request, ws| {
+        assert_eq!(request["tag"], "orchestration.subscribeThread");
+        // Only what the host passed, and afterSequence as the same integer.
+        assert_eq!(request["payload"], json!({"threadId":"t-1","afterSequence":41,"requestCompletionMarker":true}));
+        assert!(chunk(ws, json!([
+            {"kind":"event","sequence":42,"event":{"type":"message.updated","payload":{}}},
+            {"kind":"event","sequence":43,"event":{"type":"a.future.event"}},
+            {"kind":"synchronized"},
+        ])));
+        assert_eq!(read(ws).unwrap()["_tag"], "Ack");
+        drain_until_interrupt(ws)
+    });
+    let client = Client::connected(&base);
+    let id = client.subscribe_fn("orchestration.subscribeThread", json!({"threadId":"t-1","afterSequence":41,"requestCompletionMarker":true}));
+    let batches = client.poll_until(&id, |b| b["completionMarker"] == true && b["idle"] == true);
+    let last = batches.last().unwrap();
+    assert_eq!(last["closed"], false, "{last}");
+    assert_eq!(items(&batches).len(), 3);
+    // The unknown event moved the cursor too; the marker did not.
+    assert_eq!((last["cursor"].clone(), last["start"].clone()), (json!(43), json!("resume")));
+    // Before any item the cursor is the one the host subscribed with.
+    let first = &batches[0];
+    if first["items"].as_array().unwrap().is_empty() {
+        assert_eq!((first["cursor"].clone(), first["start"].clone()), (json!(41), Value::Null));
+    }
+    client.call(json!({"op":"cancelSubscription","subscriptionId":id}));
+    assert_eq!(server.join().unwrap().last().map(String::as_str), Some("Interrupt"));
+}
+
+#[test]
+fn a_shell_snapshot_sets_the_cursor_and_a_raw_tag_gets_it_too() {
+    for by_fn in [true, false] {
+        let (base, server) = serve(|request, ws| {
+            assert_eq!(request["payload"], json!({"afterSequence":10}));
+            assert!(chunk(ws, json!([
+                {"kind":"snapshot","snapshot":{"snapshotSequence":50,"threads":[],"projects":[]}},
+                {"kind":"thread.updated","sequence":51,"location":"active","thread":{"id":"a"}},
+            ])));
+            assert_eq!(read(ws).unwrap()["_tag"], "Ack");
+            drain_until_interrupt(ws)
+        });
+        let client = Client::connected(&base);
+        let id = if by_fn {
+            client.subscribe_fn("orchestration.subscribeShell", json!({"afterSequence":10}))
+        } else {
+            client.subscribe("orchestration.subscribeShell", json!({"afterSequence":10}))
+        };
+        let batches = client.poll_until(&id, |b| b["idle"] == true && b["cursor"] == 51);
+        let last = batches.last().unwrap();
+        assert_eq!((last["cursor"].clone(), last["start"].clone(), last["closed"].clone()), (json!(51), json!("snapshot"), json!(false)));
+        client.call(json!({"op":"cancelSubscription","subscriptionId":id}));
+        server.join().unwrap();
+    }
+}
+
+#[test]
+fn bounded_thread_streams_by_fn_count_against_the_large_limit() {
+    let (base, server) = many_server(3);
+    let client = Client::connected(&base);
+    let bounded = json!({"threadId":"t","acceptBoundedSnapshot":true});
+    let mut ids = vec![
+        client.subscribe_fn("orchestration.subscribeThread", bounded.clone()),
+        client.subscribe("orchestration.subscribeThread", bounded.clone()),
+    ];
+    let third = client.call(json!({"op":"subscribe","fn":"orchestration.subscribeThread","args":bounded}));
+    assert_eq!(third, json!({"ok":false,"error":"subscription_limit"}));
+    // A normal thread stream still fits.
+    ids.push(client.subscribe_fn("orchestration.subscribeThread", json!({"threadId":"t"})));
+    for id in &ids {
+        client.poll_until(id, |b| b["idle"] == true);
+        client.call(json!({"op":"cancelSubscription","subscriptionId":id}));
+    }
+    let requests = server.join().unwrap();
+    assert_eq!(requests.iter().filter(|r| r["payload"]["acceptBoundedSnapshot"] == true).count(), 2);
 }

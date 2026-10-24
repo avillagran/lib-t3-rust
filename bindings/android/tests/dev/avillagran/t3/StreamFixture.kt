@@ -201,6 +201,48 @@ private fun refusedStreamCarriesAReason() {
     thread.join(5000)
 }
 
+private fun threadStreamResumesFromTheLibraryCursor() {
+    val (base, server) = serve { request, ws ->
+        check(request.getString("tag") == "orchestration.subscribeThread") { request.toString() }
+        val payload = request.getJSONObject("payload")
+        check(payload.getString("threadId") == "t-1" && payload.getLong("afterSequence") == 7L) { payload.toString() }
+        check(payload.getBoolean("requestCompletionMarker") && payload.getBoolean("acceptBoundedSnapshot")) { payload.toString() }
+        ws.chunk(item("kind" to "event", "sequence" to 8, "event" to item("type" to "message.updated")),
+            item("kind" to "event", "sequence" to 9, "event" to item("type" to "future.event")))
+        check(ws.read()?.getString("_tag") == "Ack")
+        ws.chunk(item("kind" to "snapshot", "snapshotSequence" to 20, "projection" to item("id" to "t-1")),
+            item("kind" to "synchronized"),
+            item("kind" to "event", "sequence" to 21, "event" to item("type" to "turn.started")))
+        check(ws.read()?.getString("_tag") == "Ack")
+        ws.drain()
+    }
+    T3Client().use { client ->
+        client.connectBearer(base, "fixture-token")
+        // Typed args are checked before any socket opens.
+        val rejected = runCatching { client.subscribeFn("orchestration.subscribeThread", JSONObject().put("threadId", "")) }
+        check((rejected.exceptionOrNull() as? T3Exception)?.code == "invalid_thread_id") { rejected.toString() }
+        ThreadStream.thread(client, "t-1", afterSequence = 7, completionMarker = true).use { stream ->
+            check(stream.cursor == 7L)
+            val updates = mutableListOf<ThreadUpdate>()
+            val deadline = System.nanoTime() + 10_000_000_000L
+            do {
+                val update = stream.poll()
+                check(!update.closed) { "${update.error}: ${update.errorMessage}" }
+                updates += update
+                check(System.nanoTime() < deadline) { updates.toString() }
+            } while (stream.cursor != 21L || !update.idle)
+            check(stream.start == "resume") { stream.start.toString() }
+            // Whatever the batching, the snapshot replaces what came before it.
+            val ordered = updates.flatMap { u ->
+                listOfNotNull(u.snapshot?.let { "S" + it.getLong("snapshotSequence") }) + u.events.map { it.getLong("sequence").toString() }
+            }
+            check(ordered.takeLast(2) == listOf("S20", "21") && ordered.dropLast(2) in listOf(emptyList(), listOf("8", "9"))) { ordered.toString() }
+            check(updates.any { it.synchronized } && updates.last().completionMarker && updates.last().repaint)
+        }
+    }
+    server.join(5000)
+}
+
 /** Streams through the canonical Kotlin wrapper and the real JNI library. */
 object StreamFixture {
     @JvmStatic
@@ -211,11 +253,14 @@ object StreamFixture {
             check(capabilities.getInt("maxSubscriptions") == 8 && capabilities.getInt("maxLargeSubscriptions") == 2)
             check("wakeSubscriptions" in capabilities.getJSONArray("operations").strings())
             check("boundaries" in capabilities.getJSONArray("pollFields").strings())
+            check("cursor" in capabilities.getJSONArray("pollFields").strings())
+            check("fn" in capabilities.getJSONArray("subscribeBy").strings())
         }
         chunksAndMarker()
         wakeCutsASilentSocket()
         refusedStreamCarriesAReason()
+        threadStreamResumesFromTheLibraryCursor()
         failure.get()?.let { throw it }
-        println("KOTLIN_STREAMS_PASS: chunk boundaries, completion marker, idle, wake probe and error reasons")
+        println("KOTLIN_STREAMS_PASS: chunk boundaries, completion marker, idle, wake probe, error reasons and ThreadStream cursor")
     }
 }

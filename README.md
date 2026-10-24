@@ -191,6 +191,71 @@ at the commit in `api::CONTRACT`. Regenerate it with
 the registry drifts from it. With `T3_CONTRACTS_DIR=<checkout>/packages/contracts/src`
 set, the same test also re-reads the live sources.
 
+### Typed streams
+
+The 13 stream tags ot3 uses are registry rows with `"stream": true` in
+`api::streams`. Each has a `*_spec` that validates the payload with no network
+and returns a `StreamSpec` (registry row plus exact wire payload), and a
+`subscribe_*` that runs the existing `Connection::subscribe_probed` loop with
+the caller's `cancel`, `probe` and `receive`. Neither reconnects nor backs off:
+that stays with the host, as does keeping the cursor.
+
+```rust,no_run
+use t3_protocol::api::streams::{self, ThreadSub};
+# fn example(conn: &t3_protocol::Connection, cancelled: impl Fn() -> bool) -> t3_protocol::Result<()> {
+let sub = ThreadSub { after_sequence: Some(41), accept_bounded_snapshot: Some(true), ..ThreadSub::new("t-1") };
+let mut cursor = sub.after_sequence;
+streams::subscribe_thread(conn, &sub, cancelled, || false, |item| {
+    if let Some(item) = item {
+        // A snapshot sets the cursor; events, known or not, only move it on.
+        cursor = t3_protocol::stream::advance("orchestration.subscribeThread", cursor, &item);
+    }
+    Ok(())
+})?;
+// After a cut: subscribe again with `after_sequence: cursor`, with the host's backoff.
+# Ok(()) }
+```
+
+| `fn` | Wire tag | Rust | Items · cursor |
+| --- | --- | --- | --- |
+| `orchestration.subscribeShell` | same | `subscribe_shell(conn, &ShellSub, …)` | `kind`: `snapshot`, `synchronized`, `project.*`, `thread.*` · `afterSequence` |
+| `orchestration.subscribeThread` | same | `subscribe_thread(conn, &ThreadSub, …)` | `kind`: `snapshot`, `synchronized`, `event` · `afterSequence` |
+| `orchestration.subscribeCommandOutput` | same | `subscribe_command_output(conn, thread_id, item_id, …)` | `kind`: `replace`, `append` |
+| `terminal.attach` | same | `subscribe_terminal_attach(conn, &TerminalAttach, …)` | `type`, first `snapshot` · `sequence` (ordering only) |
+| `device.subscribeDeviceState` | `subscribeDeviceState` | `subscribe_device_state(conn, …)` | whole state per item |
+| `preview.subscribeDiscoveredLocalServers` | `subscribeDiscoveredLocalServers` | `subscribe_local_servers(conn, urls?, …)` | whole list per item |
+| `preview.subscribePreviewEvents` | `subscribePreviewEvents` | `subscribe_preview_events(conn, …)` | `type` events |
+| `server.subscribeServerConfig` | `subscribeServerConfig` | `subscribe_server_config(conn, &ConfigSub, …)` | `type`, first `snapshot` |
+| `worktreeSetup.subscribeWorktreeSetup` | `subscribeWorktreeSetup` | `subscribe_worktree_setup(conn, thread_id, …)` | whole state or `null` · `sequence` (ordering only) |
+| `server.getStorageCleanupReport` | same | `subscribe_storage_cleanup_report(conn, …)` | report or `null` |
+| `provider.install.subscribe` | same | `subscribe_provider_install(conn, instance_id, …)` | whole state per item |
+| `provider.auth.subscribe` | same | `subscribe_provider_auth(conn, instance_id, …)` | whole state per item |
+| `git.runStackedAction` | same | `subscribe_stacked_action(conn, &StackedAction, …)` | `kind` events, ends with `action_finished`/`action_failed`; replay `never` |
+
+`stream::cursor_of(tag, &item)` is an item's place in its stream:
+`snapshotSequence` of a shell or thread snapshot, otherwise `sequence`, also for
+thread events this build cannot decode. `stream::advance` applies ot3's rule (a
+snapshot sets the cursor; any other item only moves it forward), and
+`stream::start_of` tells whether a first item replaces the held state
+(`Snapshot`), resumes it from `afterSequence` (`Resume`) or only carries events
+(`Events`).
+
+`stream::first_item(conn, &spec, timeout, accept)` reads a stream like a request
+with a deadline. Four composed functions without a wire tag use it, callable
+through `call` like any unary function: `provider.installState`,
+`provider.authState` (10 s), `diagnostics.storageCleanupReport` (10 s, `null`
+before the first run) and `preview.discoveredServers` (4 s, waits for a list
+with servers). Nothing within the deadline is `stream_timeout`.
+
+Over the C ABI, `subscribe` takes `fn` and `args` next to the raw `tag` and
+`payload`. With `fn` the arguments are validated before a connection is looked
+up (`unknown_function`, `not_a_stream`, `invalid_<field>`); the raw form is
+unchanged. `call` on a stream function is `stream_function`. `describe` adds
+`streams`, one entry per stream function: `itemKey`, `items`, `starts`, `cursor`
+(`afterSequence` or `sequence`), `ends` and `firstItem`. `pollSubscription` adds
+`cursor` (the payload's `afterSequence` advanced over every polled item) and
+`start`. All of this is additive; `abiVersion` stays 3.
+
 ## Validation
 
 ```sh

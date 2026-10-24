@@ -17,6 +17,8 @@ pub mod review;
 pub mod server;
 pub mod vcs;
 
+pub mod streams;
+
 pub use orchestration::{Command, ThreadLaunch};
 
 /// T3 checkout the registry was verified against (`tests/fixtures/t3-contract.json`).
@@ -291,6 +293,8 @@ const MODULES: &[&[Function]] = &[
     vcs::FUNCTIONS,
     review::FUNCTIONS,
     projects::FUNCTIONS,
+
+    streams::FUNCTIONS,
 ];
 /// Every registered function, in a stable order.
 pub fn functions() -> impl Iterator<Item = &'static Function> {
@@ -302,7 +306,8 @@ pub fn function(name: &str) -> Option<&'static Function> {
 /// The registry as JSON, for hosts that generate wrappers (Kotlin) or probe support.
 pub fn describe() -> Value {
     json!({"apiVersion":API_VERSION,"contract":CONTRACT,
-        "functions":functions().map(Function::describe).collect::<Vec<_>>()})
+        "functions":functions().map(Function::describe).collect::<Vec<_>>(),
+        "streams":streams::describe()})
 }
 /// `timeoutMs` of a call: 1..=300 000, else `invalid_rpc_timeout`.
 pub fn timeout(ms: Option<&Value>) -> Result<Option<Duration>> {
@@ -324,7 +329,11 @@ pub(crate) fn send(conn: &Connection, f: &Function, payload: Value) -> Result<Va
 }
 /// Exactly one request; never retried. The default deadline keeps `rpc`'s behavior.
 pub(crate) fn send_with(conn: &Connection, f: &Function, payload: Value, timeout: Duration) -> Result<Value> {
-    let tag = f.tag.ok_or("unknown_function")?;
+    // Streams go through `subscribe`; composed reads have no tag of their own.
+    if f.stream {
+        return Err("stream_function".into());
+    }
+    let Some(tag) = f.tag else { return streams::read_first(conn, f, payload, timeout) };
     if timeout == Duration::from_millis(DEFAULT_TIMEOUT_MS) {
         conn.rpc(tag, payload)
     } else {

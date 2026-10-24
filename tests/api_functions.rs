@@ -63,10 +63,11 @@ fn every_function_sends_its_exact_tag_and_payload_once() {
     let expected = rows.iter().map(|(name, _, payload)| json!({"tag":name,"payload":payload})).collect::<Vec<_>>();
     assert_eq!(wire(&recorded), expected);
     assert_eq!(recorded.connections, rows.len(), "one socket per call, no retries");
-    // Every registered function has a row.
+    // Every registered unary function has a row (streams: tests/api_streams.rs).
     let mut covered = rows.iter().map(|(name, _, _)| *name).collect::<Vec<_>>();
     covered.dedup();
-    assert_eq!(covered, api::functions().map(|f| f.name).collect::<Vec<_>>());
+    let unary = api::functions().filter(|f| !f.stream && f.tag.is_some());
+    assert_eq!(covered, unary.map(|f| f.name).collect::<Vec<_>>());
 }
 
 #[test]

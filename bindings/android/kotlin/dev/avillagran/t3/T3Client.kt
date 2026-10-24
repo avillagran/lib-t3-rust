@@ -49,9 +49,18 @@ class T3Client : Closeable {
     )
     /** The typed API registry: functions, args, kind, replay rule, scope and deadline. Offline. */
     fun describe(): JSONObject = execute(JSONObject().put("op", "describe")) as JSONObject
-    /** Up to 8 per handle (2 of them bounded thread streams); more fail with `subscription_limit`. */
+    /** Up to 8 per handle (2 of them bounded thread streams); more fail with `subscription_limit`.
+     *  The raw tag form: [payload] reaches the server unchecked. Prefer [subscribeFn]. */
     fun subscribe(tag: String, payload: JSONObject): T3Subscription {
         val data = execute(JSONObject().put("op", "subscribe").put("tag", tag).put("payload", payload)) as JSONObject
+        return T3Subscription(this, data.getString("subscriptionId"))
+    }
+    /** A stream by typed function name (`describe` lists them with `"stream": true` and their
+     *  shapes under `streams`): [args] are validated in Rust before any socket, as with [call].
+     *  Same limits as [subscribe]. Never reconnects: on a closed batch subscribe again from
+     *  [T3Batch.cursor] with the host's backoff. */
+    fun subscribeFn(fn: String, args: JSONObject = JSONObject()): T3Subscription {
+        val data = execute(JSONObject().put("op", "subscribe").put("fn", fn).put("args", args)) as JSONObject
         return T3Subscription(this, data.getString("subscriptionId"))
     }
     /**
@@ -102,7 +111,13 @@ private fun JSONObject.text(key: String): String? = optString(key).takeIf { !isN
  *   server's `{"kind":"synchronized"}` item (still in [items]) onward: paint the initial state.
  * - [closed]: nothing more will arrive. [error] is a stable code (null after a cancel) and
  *   [errorMessage] an optional reason. On `stream_timeout`/`disconnected` close this
- *   subscription and subscribe again from the host's cursor, with the host's backoff.
+ *   subscription and subscribe again from [cursor], with the host's backoff.
+ * - [cursor]: where to resume, by the library's rule: the payload's `afterSequence` advanced
+ *   over every item polled so far (a snapshot sets it, other items only move it on). Pass it
+ *   as `afterSequence` when subscribing again. Null until known; for `terminal.attach` and
+ *   `subscribeWorktreeSetup` it only orders items.
+ * - [start]: what the first item meant: `snapshot` (it replaces the held state), `resume`
+ *   (it continues from `afterSequence`) or `events`; null before the first item.
  */
 data class T3Batch(
     val items: JSONArray,
@@ -112,6 +127,8 @@ data class T3Batch(
     val boundaries: List<Int> = emptyList(),
     val idle: Boolean = false,
     val completionMarker: Boolean = false,
+    val cursor: Long? = null,
+    val start: String? = null,
 )
 
 /** Regroups polled items into the server's chunks, carrying a partial chunk across polls. */
@@ -153,6 +170,8 @@ class T3Subscription internal constructor(private val client: T3Client, private 
             boundaries = if (ends == null) emptyList() else List(ends.length()) { ends.getInt(it) },
             idle = value.optBoolean("idle"),
             completionMarker = value.optBoolean("completionMarker"),
+            cursor = if (value.isNull("cursor")) null else value.getLong("cursor"),
+            start = value.text("start"),
         )
     }
     /**
@@ -167,6 +186,100 @@ class T3Subscription internal constructor(private val client: T3Client, private 
     override fun close() {
         if (closed.compareAndSet(false, true)) runCatching {
             client.execute(JSONObject().put("op", "cancelSubscription").put("subscriptionId", id))
+        }
+    }
+}
+/**
+ * One [ThreadStream.poll], already split into what to apply:
+ * - [snapshot]: the batch's last `snapshot` item, whole. It replaces whatever the host held,
+ *   including what earlier events built. Null when the batch has none.
+ * - [events]: the items after that snapshot (or all of them), in server order, to apply on
+ *   top: thread `event` items (also event types this build cannot decode) or shell
+ *   `project.*`/`thread.*` items. The `synchronized` marker is not among them.
+ * - [repaint]: a server chunk ended in this batch or the stream is caught up ([idle]):
+ *   paint now, never in the middle of a chunk.
+ * - [synchronized]: the batch carried the `{"kind":"synchronized"}` marker item.
+ * - [cursor], [start], [idle], [completionMarker], [closed], [error], [errorMessage]: as in
+ *   [T3Batch]; [batch] keeps the raw poll.
+ */
+data class ThreadUpdate(
+    val snapshot: JSONObject?,
+    val events: List<JSONObject>,
+    val repaint: Boolean,
+    val synchronized: Boolean,
+    val cursor: Long?,
+    val start: String?,
+    val idle: Boolean,
+    val completionMarker: Boolean,
+    val closed: Boolean,
+    val error: String?,
+    val errorMessage: String?,
+    val batch: T3Batch,
+)
+
+/**
+ * A thread (`orchestration.subscribeThread`) or shell (`orchestration.subscribeShell`) stream
+ * opened by typed function, read as snapshots, events and a resume cursor. One consumer only.
+ *
+ * Recommended loop: poll on a worker; apply [ThreadUpdate.snapshot] then [ThreadUpdate.events];
+ * repaint on [ThreadUpdate.repaint]; treat the view as current after `completionMarker` (when
+ * requested) or `idle`. When an update is closed, close this stream and, after the host's
+ * backoff, open a new one with `afterSequence = cursor`. After a resume or a network change call
+ * [T3Client.wakeSubscriptions]: a dead socket then closes with `stream_timeout` within ~3 s.
+ */
+class ThreadStream private constructor(val subscription: T3Subscription, initialCursor: Long?) : Closeable {
+    /** Where to resume; survives the stream so the host can subscribe again from it. */
+    @Volatile var cursor: Long? = initialCursor
+        private set
+    /** `snapshot` or `resume` once the first item arrived. */
+    @Volatile var start: String? = null
+        private set
+
+    fun poll(timeoutMs: Int = 1000): ThreadUpdate {
+        val batch = subscription.poll(timeoutMs)
+        var snapshot: JSONObject? = null
+        val events = mutableListOf<JSONObject>()
+        var synchronized = false
+        for (i in 0 until batch.items.length()) {
+            val item = batch.items.optJSONObject(i) ?: continue
+            when (item.optString("kind")) {
+                "snapshot" -> { snapshot = item; events.clear() }
+                "synchronized" -> synchronized = true
+                else -> events.add(item)
+            }
+        }
+        batch.cursor?.let { cursor = it }
+        batch.start?.let { start = it }
+        return ThreadUpdate(
+            snapshot = snapshot, events = events, repaint = batch.boundaries.isNotEmpty() || batch.idle,
+            synchronized = synchronized, cursor = cursor, start = start, idle = batch.idle,
+            completionMarker = batch.completionMarker, closed = batch.closed, error = batch.error,
+            errorMessage = batch.errorMessage, batch = batch,
+        )
+    }
+    /** Probes only this stream; see [T3Subscription.wake]. */
+    fun wake(): Boolean = subscription.wake()
+    override fun close() = subscription.close()
+
+    companion object {
+        /**
+         * `completionMarker`: ask for the `synchronized` item (only if the server supports it;
+         * otherwise `idle` is the catch-up signal). `boundedSnapshot` lets the first snapshot be a
+         * bounded window of up to 64 MiB (at most 2 such streams per handle).
+         */
+        fun thread(
+            client: T3Client, threadId: String, afterSequence: Long? = null, completionMarker: Boolean = false,
+            boundedSnapshot: Boolean = true, compactTurnItems: Boolean = true,
+        ): ThreadStream {
+            val args = JSONObject().put("threadId", threadId).put("afterSequence", afterSequence)
+                .put("requestCompletionMarker", completionMarker).put("acceptBoundedSnapshot", boundedSnapshot)
+                .put("acceptCompactTurnItems", compactTurnItems)
+            return ThreadStream(client.subscribeFn("orchestration.subscribeThread", args), afterSequence)
+        }
+        /** The environment's shell (projects and thread rows); same snapshot/event/cursor rules. */
+        fun shell(client: T3Client, afterSequence: Long? = null, completionMarker: Boolean = false): ThreadStream {
+            val args = JSONObject().put("afterSequence", afterSequence).put("requestCompletionMarker", completionMarker)
+            return ThreadStream(client.subscribeFn("orchestration.subscribeShell", args), afterSequence)
         }
     }
 }

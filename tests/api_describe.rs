@@ -28,7 +28,13 @@ fn capitalized(s: &str) -> String {
     let mut c = s.chars();
     c.next().map(|f| f.to_uppercase().chain(c).collect()).unwrap_or_default()
 }
-/// Kotlin wrappers: one class per module, one method per function.
+/// `provider.install.subscribe` → `installSubscribe`: the name after the module, camelCased.
+fn method_name(name: &str) -> String {
+    let mut parts = name.split('.').skip(1);
+    let first = parts.next().unwrap().to_string();
+    parts.fold(first, |acc, part| acc + &capitalized(part))
+}
+/// Kotlin wrappers: one class per module, one method per function (streams open a subscription).
 fn kotlin(describe: &Value) -> String {
     let functions = describe["functions"].as_array().unwrap();
     let mut modules = functions.iter().map(|f| f["module"].as_str().unwrap()).collect::<Vec<_>>();
@@ -43,7 +49,7 @@ fn kotlin(describe: &Value) -> String {
         writeln!(out, "import org.json.JSONArray").unwrap();
     }
     writeln!(out, "import org.json.JSONObject\n").unwrap();
-    writeln!(out, "/** Typed wrappers over [T3Client.call], one class per `describe` module. */").unwrap();
+    writeln!(out, "/** Typed wrappers over [T3Client.call] and [T3Client.subscribeFn], one class per `describe` module. */").unwrap();
     writeln!(out, "@Suppress(\"unused\")\nclass T3Api(client: T3Client) {{").unwrap();
     for m in &modules {
         writeln!(out, "    val {m} = {}(client)", capitalized(m)).unwrap();
@@ -52,14 +58,20 @@ fn kotlin(describe: &Value) -> String {
         writeln!(out, "\n    class {} internal constructor(private val client: T3Client) {{", capitalized(m)).unwrap();
         for f in functions.iter().filter(|f| f["module"] == *m) {
             let name = f["fn"].as_str().unwrap();
-            let method = name.split_once('.').unwrap().1;
+            let method = method_name(name);
             let scope = match f["scope"].as_str().unwrap() {
                 "dynamic" => format!("one of {}", f["scopes"].as_array().unwrap().iter().map(|s| s.as_str().unwrap()).collect::<Vec<_>>().join(", ")),
                 s => s.to_string(),
             };
-            writeln!(out, "        /** `{name}` · {} · replay {} · scope {scope} · {} ms */", f["kind"].as_str().unwrap(), f["replay"].as_str().unwrap(), f["timeoutMs"]).unwrap();
+            let stream = f["stream"] == true;
+            if stream {
+                writeln!(out, "        /** `{name}` · stream · {} · replay {} · scope {scope} */", f["kind"].as_str().unwrap(), f["replay"].as_str().unwrap()).unwrap();
+            } else {
+                writeln!(out, "        /** `{name}` · {} · replay {} · scope {scope} · {} ms */", f["kind"].as_str().unwrap(), f["replay"].as_str().unwrap(), f["timeoutMs"]).unwrap();
+            }
+            let (open, returns) = if stream { ("subscribeFn", "T3Subscription") } else { ("call", "Any?") };
             if f["openArgs"] == true {
-                writeln!(out, "        fun {method}(args: JSONObject): Any? = client.call(\"{name}\", args)").unwrap();
+                writeln!(out, "        fun {method}(args: JSONObject): {returns} = client.{open}(\"{name}\", args)").unwrap();
                 continue;
             }
             let args = f["args"].as_array().unwrap();
@@ -76,7 +88,7 @@ fn kotlin(describe: &Value) -> String {
                 .collect::<Vec<_>>()
                 .join(", ");
             let puts = args.iter().map(|a| format!(".put(\"{0}\", {0})", a["name"].as_str().unwrap())).collect::<String>();
-            writeln!(out, "        fun {method}({params}): Any? =\n            client.call(\"{name}\", JSONObject(){puts})").unwrap();
+            writeln!(out, "        fun {method}({params}): {returns} =\n            client.{open}(\"{name}\", JSONObject(){puts})").unwrap();
         }
         writeln!(out, "    }}").unwrap();
     }

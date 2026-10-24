@@ -30,7 +30,7 @@ fun main() {
         check(disconnected is T3Exception && disconnected.code == "not_connected")
         // Typed API: describe is offline, validation runs before the connection
         // check, and one generated wrapper per module reaches Rust through JNI.
-        check(client.describe().getJSONArray("functions").length() == 10)
+        check(client.describe().getJSONArray("functions").length() == 27)
         val api = T3Api(client)
         val invalid = runCatching { api.vcs.refreshStatus("") }.exceptionOrNull()
         check(invalid is T3Exception && invalid.code == "invalid_cwd")
