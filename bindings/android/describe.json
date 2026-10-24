@@ -1,0 +1,325 @@
+{
+  "apiVersion": 1,
+  "contract": "t3code@680152e27",
+  "functions": [
+    {
+      "args": [],
+      "fn": "server.getConfig",
+      "kind": "read",
+      "module": "server",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "server.getConfig",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [],
+      "fn": "server.getSettings",
+      "kind": "read",
+      "module": "server",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "server.getSettings",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "patch",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "providerInstanceMutation",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "server.updateSettings",
+      "kind": "mutation",
+      "module": "server",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "dynamic",
+      "scopes": [
+        "settings:write",
+        "providers:manage"
+      ],
+      "stream": false,
+      "tag": "server.updateSettings",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "type",
+          "required": true,
+          "type": "command"
+        },
+        {
+          "name": "commandId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "orchestration.dispatchCommand",
+      "kind": "mutation",
+      "module": "orchestration",
+      "openArgs": true,
+      "replay": "id",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "orchestration.dispatchCommand",
+      "timeoutMs": 20000,
+      "variants": [
+        "thread.create",
+        "message.dispatch",
+        "run.interrupt",
+        "subagent.stop",
+        "thread.metadata.update",
+        "thread.runtime-mode.set",
+        "thread.interaction-mode.set",
+        "thread.fork",
+        "thread.merge_back",
+        "thread.archive",
+        "thread.unarchive",
+        "thread.delete",
+        "thread.settle",
+        "thread.unsettle",
+        "thread.snooze",
+        "thread.unsnooze",
+        "thread.auto-settle",
+        "thread.auto-settle.set",
+        "thread.pin",
+        "thread.unpin",
+        "thread.pin.reorder",
+        "thread.mark-unread",
+        "thread.visit",
+        "queued-run.cancel",
+        "queued-run.reorder",
+        "queued-run.edit",
+        "queued-message.promote-to-steer",
+        "queue.resume",
+        "runtime-request.respond",
+        "thread.user-input.dismiss",
+        "checkpoint.rollback",
+        "thread.pull-request.link",
+        "thread.pull-request.unlink",
+        "thread.pull-request.watch"
+      ]
+    },
+    {
+      "args": [
+        {
+          "name": "commandId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "modelSelection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "runtimeMode",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "approval-required",
+            "auto-accept-edits",
+            "auto",
+            "full-access"
+          ]
+        },
+        {
+          "name": "interactionMode",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "default",
+            "plan"
+          ]
+        },
+        {
+          "name": "workspaceStrategy",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "creationSource",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "web",
+            "mobile",
+            "mcp",
+            "provider",
+            "server"
+          ]
+        },
+        {
+          "name": "threadId",
+          "required": false,
+          "type": "id"
+        },
+        {
+          "name": "reuseExistingThread",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "generateTitle",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "initialMessage",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "orchestration.launchThread",
+      "kind": "mutation",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "id",
+      "scope": "orchestration:operate",
+      "stream": false,
+      "tag": "orchestration.launchThread",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "preview.list",
+      "kind": "read",
+      "module": "preview",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "preview.list",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "resource",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "assets.createUrl",
+      "kind": "read",
+      "module": "assets",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "dynamic",
+      "scopes": [
+        "filesystem:read",
+        "orchestration:read"
+      ],
+      "stream": false,
+      "tag": "assets.createUrl",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        }
+      ],
+      "fn": "vcs.refreshStatus",
+      "kind": "read",
+      "module": "vcs",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "vcs.refreshStatus",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "baseRef",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "ignoreWhitespace",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "file",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "review.getDiffPreview",
+      "kind": "read",
+      "module": "review",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "filesystem:read",
+      "stream": false,
+      "tag": "review.getDiffPreview",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "relativePath",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "allowMissing",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "projects.readFile",
+      "kind": "read",
+      "module": "projects",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "filesystem:read",
+      "stream": false,
+      "tag": "projects.readFile",
+      "timeoutMs": 20000
+    }
+  ]
+}

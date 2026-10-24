@@ -1,8 +1,9 @@
 # Android / Omi integration
 
 `lib-t3-rust` keeps the Cargo package/import names `t3-protocol` / `t3_protocol`
-and the static archive `libt3_protocol.a`. ABI v2 is additive: the original four
-C symbols and synchronous JSON operations remain available to existing adapters.
+and the static archive `libt3_protocol.a`. ABI v2 and v3 are additive: the original
+four C symbols and synchronous JSON operations remain available to existing adapters.
+ABI v3 adds the typed API ops `call` and `describe` (see [Typed API](#typed-api)).
 
 ## Using the Android package
 
@@ -55,6 +56,63 @@ subscriptions before waiting for in-flight calls and releasing the handle; it is
 idempotent and may block, so close from a worker. A screen/environment generation
 must fence late results from an older request. No foreground service, background
 permission, automatic reconnection or mutation retry is introduced by this adapter.
+
+## Typed API
+
+Prefer the typed API to hand-built `rpc` payloads. The Rust registry validates
+arguments before any socket opens, applies each function's deadline, and sends
+once. Kotlin sees one generic call and the registry's own description:
+
+```kotlin
+// Worker thread / Dispatchers.IO, as for every other call.
+val status = client.call("vcs.refreshStatus", JSONObject().put("cwd", repoPath)) as JSONObject
+client.call("orchestration.dispatchCommand", JSONObject()
+    .put("type", "thread.archive")
+    .put("commandId", outbox.commandIdFor(action)) // minted and persisted by the app
+    .put("threadId", threadId))
+val functions = client.describe().getJSONArray("functions") // offline
+```
+
+```json
+{"op":"describe"}
+{"op":"call","fn":"vcs.refreshStatus","args":{"cwd":"/home/me/repo"},"timeoutMs":20000}
+```
+
+`timeoutMs` is optional (1..300000) and overrides the function's deadline. Errors
+arrive as `T3Exception(code, reason, requiredScope)`: `code` stays stable
+(`unknown_function`, `invalid_input`, `invalid_<field>` such as `invalid_cwd`,
+`not_connected`, `rpc_rejected`, `rpc_outcome_unknown`, …), `reason` is the
+server's one-line message, and `requiredScope` names the scope a
+`write_not_authorized` token lacked. Authorization is decided from T3's
+`EnvironmentAuthorizationError` tag, never from the text of a message. The app
+decides whether another token is available; the library never chooses one.
+
+Each `describe` entry gives `fn`, `module`, `tag`, `kind`, `replay`, `scope` (or
+`"dynamic"` plus `scopes`), `timeoutMs` and typed `args`. After
+`rpc_outcome_unknown`, `replay` tells the app what is safe: `free` repeat a read,
+`id` resend the identical payload with the same `commandId`, `set` repeating is
+harmless, `never` read the state back first. The library never retries.
+
+Typed Kotlin wrappers are generated from the saved `describe`
+([`bindings/android/describe.json`](../bindings/android/describe.json)). Today the
+generated [`T3Api.kt`](../bindings/android/tests/dev/avillagran/t3/T3Api.kt) is a test
+fixture (`T3Api(client).vcs.refreshStatus(path)`); `cargo test --test api_describe`
+fails when the registry, the saved `describe` and the wrappers disagree.
+
+Functions in this release:
+
+| `fn` | Kind · replay | Scope | Args |
+| --- | --- | --- | --- |
+| `server.getConfig` | read · free | `orchestration:read` | — |
+| `server.getSettings` | read · free | `orchestration:read` | — |
+| `server.updateSettings` | mutation · set | dynamic: `settings:write`, `providers:manage` | `patch`, `providerInstanceMutation?` |
+| `orchestration.dispatchCommand` | mutation · id | `orchestration:operate` | the command object (`type`, `commandId`, …) |
+| `orchestration.launchThread` | mutation · id | `orchestration:operate` | `commandId`, `projectId`, `title`, `modelSelection`, `runtimeMode`, `interactionMode`, `workspaceStrategy`, `creationSource?`, `threadId?`, `reuseExistingThread?`, `generateTitle?`, `initialMessage?` |
+| `preview.list` | read · free | `orchestration:read` | `threadId` |
+| `assets.createUrl` | read · free | dynamic: `filesystem:read`, `orchestration:read` | `resource` |
+| `vcs.refreshStatus` | read · free | `orchestration:read` | `cwd` |
+| `review.getDiffPreview` | read · free | `filesystem:read` | `cwd`, `baseRef?`, `ignoreWhitespace?`, `file?` |
+| `projects.readFile` | read · free | `filesystem:read` | `cwd`, `relativePath`, `allowMissing?` |
 
 ## Events through the existing JSON ABI
 
@@ -195,8 +253,8 @@ checksum in `dist/`; it does not sign or publish an Android application.
   bounded snapshots, through the Rust API and the JSON/binary ABI.
 - `tools/test-c-abi`: a real C caller links the static Rust archive.
 - `JAVA_HOME=... tools/test-jni`: real JNI/JVM calls, Unicode, error paths and ownership.
-- `tools/test-kotlin-jni`: canonical Kotlin adapter, typed errors and concurrent
-  close against a real native request. Supply the cached compiler variables above
+- `tools/test-kotlin-jni`: canonical Kotlin adapter, typed errors, `call`/`describe`
+  through the generated wrappers, and concurrent close against a real native request. Supply the cached compiler variables above
   and `JSON_JAR` for the host's org.json implementation.
 - Android cross-build/link checks cover all four ABIs. These are not Android
   device/UI/lifecycle E2E checks, which remain consumer work.

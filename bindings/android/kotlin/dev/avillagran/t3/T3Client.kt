@@ -20,7 +20,9 @@ class T3Client : Closeable {
     }
     private fun decode(bytes: ByteArray): Any? {
         val result = JSONObject(bytes.toString(Charsets.UTF_8))
-        if (!result.getBoolean("ok")) throw T3Exception(result.optString("error", "native_error"))
+        if (!result.getBoolean("ok")) throw T3Exception(
+            result.optString("error", "native_error"), result.text("message"), result.text("requiredScope")
+        )
         return result.opt("data").takeUnless { it === JSONObject.NULL }
     }
     fun execute(request: JSONObject): Any? = useHandle { native ->
@@ -40,6 +42,13 @@ class T3Client : Closeable {
     fun rpc(tag: String, payload: JSONObject): Any? = execute(
         JSONObject().put("op", "rpc").put("tag", tag).put("payload", payload)
     )
+    /** Typed API (ABI 3): validated in Rust before any socket, sent once, never retried.
+     *  `fn` and `args` follow [describe]; `timeoutMs` (1..300000) overrides the function's deadline. */
+    fun call(fn: String, args: JSONObject = JSONObject(), timeoutMs: Int? = null): Any? = execute(
+        JSONObject().put("op", "call").put("fn", fn).put("args", args).put("timeoutMs", timeoutMs)
+    )
+    /** The typed API registry: functions, args, kind, replay rule, scope and deadline. Offline. */
+    fun describe(): JSONObject = execute(JSONObject().put("op", "describe")) as JSONObject
     fun subscribe(tag: String, payload: JSONObject): T3Subscription {
         val data = execute(JSONObject().put("op", "subscribe").put("tag", tag).put("payload", payload)) as JSONObject
         return T3Subscription(this, data.getString("subscriptionId"))
@@ -65,8 +74,12 @@ class T3Client : Closeable {
         } finally { lifetime.write { if (handle != 0L) { T3Native.free(handle); handle = 0L } } }
     }
 }
-class T3Exception(val code: String) : Exception(code)
-data class T3Batch(val items: JSONArray, val closed: Boolean, val error: String?)
+/** `code` is stable; `reason` is the server's one-line message; `requiredScope`
+ *  names the scope a `write_not_authorized` token lacked (the host picks tokens). */
+class T3Exception(val code: String, val reason: String? = null, val requiredScope: String? = null) :
+    Exception(if (reason == null) code else "$code: $reason")
+private fun JSONObject.text(key: String): String? = optString(key).takeIf { !isNull(key) && it.isNotEmpty() }
+data class T3Batch(val items: JSONArray, val closed: Boolean, val error: String?, val errorMessage: String? = null)
 class T3Subscription internal constructor(private val client: T3Client, private val id: String) : Closeable {
     private val closed = AtomicBoolean(false)
     /** One consumer only. Waits until data arrives, closes, or timeout (0..1000 ms). */
@@ -76,7 +89,7 @@ class T3Subscription internal constructor(private val client: T3Client, private 
         val value = client.execute(JSONObject().put("op", "pollSubscription").put("subscriptionId", id)
             .put("timeoutMs", timeoutMs)) as JSONObject
         return T3Batch(value.getJSONArray("items"), value.getBoolean("closed"),
-            value.optString("error").takeIf { !value.isNull("error") && it.isNotEmpty() })
+            value.optString("error").takeIf { !value.isNull("error") && it.isNotEmpty() }, value.text("errorMessage"))
     }
     override fun close() {
         if (closed.compareAndSet(false, true)) runCatching {

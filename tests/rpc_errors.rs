@@ -10,7 +10,12 @@ fn rejections_keep_the_servers_reason_but_no_other_cause_data() {
     assert_eq!(error_code(&error), "rpc_rejected");
     assert_eq!(rejection_for_test(&json!({"private":"PRIVATE"})), "rpc_rejected");
     assert_eq!(rejection_for_test(&json!({"_tag":"Die","defect":"boom"})), "rpc_rejected: boom");
-    assert_eq!(rejection_for_test(&json!({"_tag":"Fail","error":{"_tag":"AuthScopeError"}})), "write_not_authorized: AuthScopeError");
+    // Authorization is the contract's tag, not a word in the error.
+    assert_eq!(rejection_for_test(&json!({"_tag":"Fail","error":{"_tag":"AuthScopeError"}})), "rpc_rejected: AuthScopeError");
+    assert_eq!(
+        rejection_for_test(&json!([{"_tag":"Fail","error":{"_tag":"EnvironmentAuthorizationError","message":"The authenticated token is missing required scope: settings:write.","requiredScope":"settings:write"}}])),
+        "write_not_authorized: [settings:write] The authenticated token is missing required scope: settings:write."
+    );
     let long = rejection_for_test(&json!({"_tag":"Fail","error":{"message":"x".repeat(400)}}));
     assert_eq!(long.chars().count(), "rpc_rejected: ".len() + 301);
     assert!(long.ends_with('…'));

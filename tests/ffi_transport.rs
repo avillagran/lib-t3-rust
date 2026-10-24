@@ -43,9 +43,10 @@ unsafe fn read(raw: *mut std::ffi::c_char) -> Value {
     value
 }
 #[test]
-fn capabilities_list_the_new_operations_and_keep_abi_2() {
+fn capabilities_list_the_new_operations_under_abi_3() {
     let caps = Client::new().call(json!({"op":"capabilities"}))["data"].clone();
-    assert_eq!(caps["abiVersion"], 2);
+    // The transport ops are additive; ABI 3 comes from the typed API (call/describe).
+    assert_eq!(caps["abiVersion"], 3);
     for op in ["connectBearer", "request", "requestOk", "fetchDescriptor", "pairBearer", "boundedThread", "assetBytes", "projectFavicon"] {
         assert!(caps["operations"].as_array().unwrap().contains(&json!(op)), "{op}");
     }
