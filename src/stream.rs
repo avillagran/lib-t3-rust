@@ -26,17 +26,19 @@ impl Connection {
  pub fn subscribe(&self,tag:&str,payload:Value,cancel:impl Fn()->bool,receive:impl FnMut(Option<Value>)->Result<()>)->Result<()>{self.subscribe_probed(tag,payload,cancel,||false,receive)}
  /// `probe` returning true (e.g. after a resume from suspend) pings at once and drops the
  /// socket unless a frame arrives within STREAM_PROBE_TIMEOUT.
- pub fn subscribe_probed(&self,tag:&str,payload:Value,cancel:impl Fn()->bool,probe:impl FnMut()->bool,mut receive:impl FnMut(Option<Value>)->Result<()>)->Result<()>{
-  self.subscribe_ticks(tag,payload,cancel,probe,|tick|match tick{Tick::Item(item)=>receive(Some(item)),Tick::ChunkEnd|Tick::Idle=>receive(None)})
+ pub fn subscribe_probed(&self,tag:&str,payload:Value,cancel:impl Fn()->bool,mut probe:impl FnMut()->bool,mut receive:impl FnMut(Option<Value>)->Result<()>)->Result<()>{
+  self.subscribe_ticks(tag,payload,cancel,||probe().then(Instant::now),|tick|match tick{Tick::Item(item)=>receive(Some(item)),Tick::ChunkEnd|Tick::Idle=>receive(None)})
  }
  /// `subscribe_probed` telling chunk ends and idle ticks apart, for the foreign-host inbox.
- pub(crate) fn subscribe_ticks(&self,tag:&str,payload:Value,cancel:impl Fn()->bool,mut probe:impl FnMut()->bool,mut receive:impl FnMut(Tick)->Result<()>)->Result<()>{
+ /// `probe` returns when a probe was requested: the STREAM_PROBE_TIMEOUT window starts
+ /// there (or when the socket opened, if later), not when this loop noticed it.
+ pub(crate) fn subscribe_ticks(&self,tag:&str,payload:Value,cancel:impl Fn()->bool,mut probe:impl FnMut()->Option<Instant>,mut receive:impl FnMut(Tick)->Result<()>)->Result<()>{
   if cancel(){return Ok(())}
   let mut ws=self.websocket_with_limit(item_limit(tag,&payload))?;
   if cancel(){let _=ws.close(None);return Ok(())}
   match ws.get_mut(){tungstenite::stream::MaybeTlsStream::Plain(s)=>s.set_read_timeout(Some(Duration::from_millis(100))),tungstenite::stream::MaybeTlsStream::Rustls(s)=>s.sock.set_read_timeout(Some(Duration::from_millis(100))),_=>return Err("unsupported_tls".into())}.map_err(|_|"disconnected")?;
   ws.send(Message::Text(json!({"_tag":"Request","id":"1","tag":tag,"payload":payload,"headers":[]}).to_string().into())).map_err(|_|"disconnected")?;
-  let mut ping=Instant::now();let mut seen=Instant::now();let mut probing:Option<Instant>=None;
+  let opened=Instant::now();let mut ping=opened;let mut seen=opened;let mut probing:Option<Instant>=None;
   while !cancel(){
    match ws.read(){
     Ok(Message::Text(t))=>{seen=Instant::now();probing=None;let mut v:Value=serde_json::from_str(&t).map_err(|_|"malformed_stream")?;drop(t);
@@ -54,7 +56,7 @@ impl Connection {
     Err(tungstenite::Error::Io(e)) if matches!(e.kind(),std::io::ErrorKind::WouldBlock|std::io::ErrorKind::TimedOut)=>receive(Tick::Idle)?,
     Err(_)=>return Err("disconnected".into())
    }
-   if probe(){ws.send(Message::Text(json!({"_tag":"Ping"}).to_string().into())).map_err(|_|"disconnected")?;ping=Instant::now();probing.get_or_insert_with(Instant::now);}
+   if let Some(asked)=probe(){ws.send(Message::Text(json!({"_tag":"Ping"}).to_string().into())).map_err(|_|"disconnected")?;ping=Instant::now();probing.get_or_insert(asked.max(opened));}
    if probing.is_some_and(|at|at.elapsed()>STREAM_PROBE_TIMEOUT){return Err("stream_timeout".into())}
    if ping.elapsed()>=STREAM_PING_INTERVAL{ws.send(Message::Text(json!({"_tag":"Ping"}).to_string().into())).map_err(|_|"disconnected")?;ping=Instant::now();}
    if seen.elapsed()>STREAM_IDLE_TIMEOUT{return Err("stream_timeout".into())}

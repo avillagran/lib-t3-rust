@@ -89,6 +89,7 @@ C ABI commands:
 {"op":"subscribe","tag":"orchestration.subscribeThread","payload":{"threadId":"selected"}}
 {"op":"pollSubscription","subscriptionId":"returned-id","timeoutMs":1000}
 {"op":"cancelSubscription","subscriptionId":"returned-id"}
+{"op":"wakeSubscriptions"}
 {"op":"disconnect"}
 {"op":"connectBearer","httpBaseUrl":"https://environment.example","token":"host-provided-token","options":{"requestTimeoutMs":8000,"connectTimeoutMs":3000,"poolIdleTimeoutMs":90000}}
 {"op":"request","method":"GET","path":"/api/orchestration/shell","maxBytes":1048576}
@@ -240,7 +241,9 @@ use local fixture servers, never real conversations or paid provider runs.
 - **Stream liveness.** Subscriptions ping every 5 s and drop after 20 s without
   any frame (`STREAM_PING_INTERVAL`, `STREAM_IDLE_TIMEOUT`). `subscribe_probed`
   lets the host ask for an immediate check after a resume or network change; a
-  socket that sends nothing within 3 s fails with `stream_timeout`.
+  socket that sends nothing within 3 s fails with `stream_timeout`. C hosts get
+  the same check from `{"op":"wakeSubscriptions"}`; see [docs/ANDROID.md](docs/ANDROID.md)
+  for the poll contract (`boundaries`, `idle`, `completionMarker`).
 - **Bounded snapshots.** Protocol GETs of `/api/orchestration/threads/<id>/bounded`
   and `orchestration.subscribeThread` with `acceptBoundedSnapshot` accept up to
   64 MiB; everything else stays at 8 MiB. Through the C ABI that stream's queue

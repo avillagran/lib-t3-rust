@@ -2,12 +2,12 @@
 use crate::{error_code, stream::{self, Tick}, Connection, Result, MAX_BYTES};
 use serde_json::{json, Value};
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Condvar, Mutex,
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 pub(crate) const MAX_ITEMS: usize = 64;
 /// Per-subscription bounds, fixed by its mode when it starts. Sizes are serialized JSON.
@@ -133,13 +133,16 @@ impl Shared {
 pub(crate) struct Subscription {
     shared: Arc<Shared>,
     cancel: Arc<AtomicBool>,
+    /// When the host last asked to probe the socket; the worker takes it on its next tick.
+    wake: Arc<Mutex<Option<Instant>>>,
 }
 impl Subscription {
     pub(crate) fn start(connection: Connection, tag: String, payload: Value) -> Result<Self> {
         let marker = payload["requestCompletionMarker"] == true;
         let shared = Arc::new(Shared::new(Limits::of(&tag, &payload), marker));
         let cancel = Arc::new(AtomicBool::new(false));
-        let (queue, stop) = (shared.clone(), cancel.clone());
+        let wake = Arc::new(Mutex::new(None));
+        let (queue, stop, woken) = (shared.clone(), cancel.clone(), wake.clone());
         std::thread::Builder::new()
             .name("t3-events".into())
             .spawn(move || {
@@ -148,7 +151,7 @@ impl Subscription {
                         &tag,
                         payload,
                         || stop.load(Ordering::Acquire),
-                        || false,
+                        || woken.lock().ok()?.take(),
                         |tick| {
                             match tick {
                                 Tick::Item(value) => queue.push(value)?,
@@ -167,7 +170,19 @@ impl Subscription {
                 });
             })
             .map_err(|_| "local_error")?;
-        Ok(Self { shared, cancel })
+        Ok(Self { shared, cancel, wake })
+    }
+    /// Pings at once on the worker's next read tick (at most 100 ms) and ends the stream
+    /// with `stream_timeout` unless a frame arrives within STREAM_PROBE_TIMEOUT of this
+    /// call. Returns false for a stream that already ended. Never reconnects.
+    pub(crate) fn wake(&self) -> bool {
+        let open = self.shared.inbox.lock().is_ok_and(|inbox| !inbox.closed);
+        if open {
+            if let Ok(mut asked) = self.wake.lock() {
+                asked.get_or_insert_with(Instant::now);
+            }
+        }
+        open
     }
 
     pub(crate) fn poll(&self, timeout_ms: u64) -> Result<Value> {
@@ -202,6 +217,21 @@ impl Subscription {
             self.shared.ready.notify_all();
         }
     }
+}
+/// `{"op":"wakeSubscriptions"}` probes every stream of the handle; with
+/// `"subscriptionId"` only that one. Returns `{"probed": open streams probed}`.
+pub(crate) fn wake_subscriptions(
+    subscriptions: &HashMap<String, Arc<Subscription>>,
+    request: &Value,
+) -> Result<Value> {
+    let probed = match request.get("subscriptionId") {
+        None | Some(Value::Null) => subscriptions.values().filter(|s| s.wake()).count(),
+        Some(Value::String(id)) => {
+            usize::from(subscriptions.get(id).ok_or("unknown_subscription")?.wake())
+        }
+        Some(_) => return Err("invalid_input".into()),
+    };
+    Ok(json!({ "probed": probed }))
 }
 impl Drop for Subscription {
     fn drop(&mut self) {
@@ -253,7 +283,7 @@ mod tests {
         assert_eq!(shared.push(json!("a".repeat(64 << 20))).unwrap_err(), "stream_backpressure");
     }
     fn subscription(shared: Shared) -> Subscription {
-        Subscription { shared: Arc::new(shared), cancel: Arc::default() }
+        Subscription { shared: Arc::new(shared), cancel: Arc::default(), wake: Arc::default() }
     }
     #[test]
     fn boundaries_survive_a_poll_in_the_middle_of_a_chunk() {
@@ -305,10 +335,7 @@ mod tests {
     }
     #[test]
     fn cancel_wakes_a_waiter_without_a_network_tick() {
-        let s = Arc::new(Subscription {
-            shared: Arc::default(),
-            cancel: Arc::default(),
-        });
+        let s = Arc::new(subscription(Shared::default()));
         let waiting = s.clone();
         let worker = std::thread::spawn(move || waiting.poll(1000).unwrap());
         s.cancel();

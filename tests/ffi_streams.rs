@@ -205,3 +205,59 @@ fn poll_marks_chunk_ends_the_completion_marker_and_idle() {
     client.call(json!({"op":"cancelSubscription","subscriptionId":id}));
     server.join().unwrap();
 }
+
+/// Records when each client Ping arrived; answers it with a Pong only when `answer`.
+fn pinged_server(answer: bool) -> (String, JoinHandle<Vec<Instant>>) {
+    serve(move |_, ws| {
+        let mut pings = vec![];
+        while let Some(frame) = read(ws) {
+            match frame["_tag"].as_str() {
+                Some("Ping") => {
+                    pings.push(Instant::now());
+                    if answer {
+                        send(ws, json!({"_tag":"Pong"}));
+                    }
+                }
+                Some("Interrupt") => break,
+                _ => {}
+            }
+        }
+        pings
+    })
+}
+
+#[test]
+fn wake_cuts_a_silent_socket_within_the_probe_window_and_keeps_a_live_one() {
+    let (silent_base, silent) = pinged_server(false);
+    let (live_base, live) = pinged_server(true);
+    // One handle per environment, as the host does; the op is per handle.
+    let (a, b) = (Client::connected(&silent_base), Client::connected(&live_base));
+    let silent_id = a.subscribe("orchestration.subscribeShell", json!({}));
+    let live_id = b.subscribe("orchestration.subscribeShell", json!({}));
+    // Let both workers open their sockets and reach the read loop.
+    for (client, id) in [(&a, &silent_id), (&b, &live_id)] {
+        client.poll_until(id, |batch| batch["idle"] == true);
+    }
+    assert_eq!(a.call(json!({"op":"wakeSubscriptions","subscriptionId":"missing"}))["error"], "unknown_subscription");
+    assert_eq!(a.call(json!({"op":"wakeSubscriptions","subscriptionId":7}))["error"], "invalid_input");
+    let woke = Instant::now();
+    assert_eq!(a.call(json!({"op":"wakeSubscriptions"})), json!({"ok":true,"data":{"probed":1}}));
+    assert_eq!(b.call(json!({"op":"wakeSubscriptions","subscriptionId":live_id})), json!({"ok":true,"data":{"probed":1}}));
+    let batches = a.poll_until(&silent_id, |_| false);
+    let cut = woke.elapsed();
+    let last = batches.last().unwrap();
+    assert_eq!(last["error"], "stream_timeout", "{last}");
+    // STREAM_PROBE_TIMEOUT (3 s) counted from the call, observed on the next 100 ms read tick.
+    assert!(cut >= Duration::from_millis(2900) && cut < Duration::from_millis(3400), "{cut:?}");
+    // A stream that already ended is not probed again.
+    assert_eq!(a.call(json!({"op":"wakeSubscriptions"}))["data"]["probed"], 0);
+    let pings = silent.join().unwrap();
+    assert!(pings[0].duration_since(woke) < Duration::from_millis(300), "no immediate ping");
+    // The answering socket outlives the probe window.
+    thread::sleep(Duration::from_millis(3600).saturating_sub(woke.elapsed()));
+    let batch = b.poll(&live_id);
+    assert_eq!(batch["closed"], false, "{batch}");
+    b.call(json!({"op":"cancelSubscription","subscriptionId":live_id}));
+    let pings = live.join().unwrap();
+    assert!(pings[0].duration_since(woke) < Duration::from_millis(300), "no immediate ping");
+}
