@@ -261,3 +261,59 @@ fn wake_cuts_a_silent_socket_within_the_probe_window_and_keeps_a_live_one() {
     let pings = live.join().unwrap();
     assert!(pings[0].duration_since(woke) < Duration::from_millis(300), "no immediate ping");
 }
+
+/// Accepts `sockets` subscription sockets, each held open until its Interrupt; returns the Requests.
+fn many_server(sockets: usize) -> (String, JoinHandle<Vec<Value>>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    let server = thread::spawn(move || {
+        let workers: Vec<_> = (0..sockets)
+            .map(|_| {
+                let (socket, _) = listener.accept().unwrap();
+                thread::spawn(move || {
+                    socket.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+                    let mut ws = tungstenite::accept(socket).unwrap();
+                    let request = read(&mut ws).unwrap();
+                    drain_until_interrupt(&mut ws);
+                    request
+                })
+            })
+            .collect();
+        workers.into_iter().map(|w| w.join().unwrap()).collect()
+    });
+    (base, server)
+}
+
+#[test]
+fn eight_streams_per_handle_and_the_ninth_fails_with_a_stable_code() {
+    let (base, server) = many_server(9);
+    let client = Client::connected(&base);
+    let bounded = json!({"threadId":"t","acceptBoundedSnapshot":true});
+    let mut ids = vec![
+        client.subscribe("orchestration.subscribeThread", bounded.clone()),
+        client.subscribe("orchestration.subscribeThread", bounded.clone()),
+    ];
+    // At most two streams in the 64 MiB mode, whatever the free slots.
+    let third = client.call(json!({"op":"subscribe","tag":"orchestration.subscribeThread","payload":bounded}));
+    assert_eq!(third, json!({"ok":false,"error":"subscription_limit"}));
+    for tag in ["orchestration.subscribeShell", "subscribeServerConfig", "subscribeDeviceState", "subscribePreviewEvents", "terminal.attach", "orchestration.subscribeThread"] {
+        ids.push(client.subscribe(tag, json!({"threadId":"t"})));
+    }
+    let ninth = client.call(json!({"op":"subscribe","tag":"orchestration.subscribeShell","payload":{}}));
+    assert_eq!(ninth, json!({"ok":false,"error":"subscription_limit"}));
+    // All eight are live at once, each on its own socket.
+    for id in &ids {
+        let batch = client.poll_until(id, |b| b["idle"] == true).pop().unwrap();
+        assert_eq!(batch["closed"], false, "{batch}");
+    }
+    // Cancelling frees the slot.
+    assert_eq!(client.call(json!({"op":"cancelSubscription","subscriptionId":ids.remove(2)}))["data"]["cancelled"], true);
+    ids.push(client.subscribe("orchestration.subscribeShell", json!({})));
+    client.poll_until(ids.last().unwrap(), |b| b["idle"] == true);
+    for id in &ids {
+        client.call(json!({"op":"cancelSubscription","subscriptionId":id}));
+    }
+    let requests = server.join().unwrap();
+    assert_eq!(requests.len(), 9);
+    assert_eq!(requests.iter().filter(|r| r["payload"]["acceptBoundedSnapshot"] == true).count(), 2);
+}
