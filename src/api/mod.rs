@@ -9,6 +9,7 @@ use serde_json::{json, Map, Value};
 use std::time::Duration;
 
 pub mod ids;
+pub(crate) mod reader;
 pub mod assets;
 pub mod orchestration;
 pub mod preview;
@@ -16,6 +17,20 @@ pub mod projects;
 pub mod review;
 pub mod server;
 pub mod vcs;
+// Tanda 2: the remaining unary RPCs.
+pub mod agent_sessions;
+pub mod device;
+pub mod diagnostics;
+pub mod filesystem;
+pub mod mcp_apps;
+pub mod project_clone;
+pub mod provider;
+pub mod pull_requests;
+pub mod scheduled_tasks;
+pub mod secrets;
+pub mod shell;
+pub mod terminal;
+pub mod worktree_setup;
 
 pub mod streams;
 
@@ -103,6 +118,8 @@ pub enum ArgType {
     Text,
     Bool,
     Integer,
+    /// A JSON number that may have a fraction.
+    Number,
     Object,
     Array,
     Enum(&'static [&'static str]),
@@ -120,6 +137,7 @@ impl ArgType {
             ArgType::Text => "text",
             ArgType::Bool => "bool",
             ArgType::Integer => "integer",
+            ArgType::Number => "number",
             ArgType::Object => "object",
             ArgType::Array => "array",
             ArgType::Enum(_) => "enum",
@@ -283,6 +301,33 @@ impl<'a> Args<'a> {
             .map(|v| Some(v).filter(|v| v.is_object()).ok_or_else(|| ids::invalid(name)))
             .transpose()
     }
+    /// A required object.
+    pub fn req_object(&self, name: &str) -> Result<&'a Value> {
+        self.object(name)?.ok_or_else(|| ids::invalid(name))
+    }
+    /// An optional non-negative integer.
+    pub fn u64(&self, name: &str) -> Result<Option<u64>> {
+        self.get(name)
+            .map(|v| v.as_u64().ok_or_else(|| ids::invalid(name)))
+            .transpose()
+    }
+    pub fn req_u64(&self, name: &str) -> Result<u64> {
+        self.u64(name)?.ok_or_else(|| ids::invalid(name))
+    }
+    /// An optional number (fractions allowed).
+    pub fn f64(&self, name: &str) -> Result<Option<f64>> {
+        self.get(name)
+            .map(|v| v.as_f64().ok_or_else(|| ids::invalid(name)))
+            .transpose()
+    }
+    pub fn array(&self, name: &str) -> Result<Option<&'a Vec<Value>>> {
+        self.get(name)
+            .map(|v| v.as_array().ok_or_else(|| ids::invalid(name)))
+            .transpose()
+    }
+    pub fn req_array(&self, name: &str) -> Result<&'a Vec<Value>> {
+        self.array(name)?.ok_or_else(|| ids::invalid(name))
+    }
 }
 
 const MODULES: &[&[Function]] = &[
@@ -293,6 +338,20 @@ const MODULES: &[&[Function]] = &[
     vcs::FUNCTIONS,
     review::FUNCTIONS,
     projects::FUNCTIONS,
+    // Tanda 2.
+    diagnostics::FUNCTIONS,
+    provider::FUNCTIONS,
+    project_clone::FUNCTIONS,
+    filesystem::FUNCTIONS,
+    pull_requests::FUNCTIONS,
+    device::FUNCTIONS,
+    scheduled_tasks::FUNCTIONS,
+    agent_sessions::FUNCTIONS,
+    mcp_apps::FUNCTIONS,
+    shell::FUNCTIONS,
+    secrets::FUNCTIONS,
+    worktree_setup::FUNCTIONS,
+    terminal::FUNCTIONS,
 
     streams::FUNCTIONS,
 ];
