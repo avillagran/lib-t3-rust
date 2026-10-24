@@ -108,20 +108,49 @@ generated [`T3Api.kt`](../bindings/android/tests/dev/avillagran/t3/T3Api.kt) is 
 fixture (`T3Api(client).vcs.refreshStatus(path)`); `cargo test --test api_describe`
 fails when the registry, the saved `describe` and the wrappers disagree.
 
-Functions in this release:
+The generator maps `integer` to `Long`, `number` to `Double`, `object` and
+`command` to `JSONObject`, `array` to `JSONArray` and the rest to `String`; a Kotlin
+keyword used as an argument is backquoted (`` `when` `` in the keybinding calls).
+Functions with `openArgs` (`dispatchCommand`, `projects.mutate`, `device.action`)
+take the whole variant as one `JSONObject`. `cargo test --test api_describe` checks
+`T3Api.kt` against `describe.json` byte for byte; `tools/test-kotlin-jni` compiles
+it, which needs a JDK and `kotlinc`.
 
-| `fn` | Kind · replay | Scope | Args |
-| --- | --- | --- | --- |
-| `server.getConfig` | read · free | `orchestration:read` | — |
-| `server.getSettings` | read · free | `orchestration:read` | — |
-| `server.updateSettings` | mutation · set | dynamic: `settings:write`, `providers:manage` | `patch`, `providerInstanceMutation?` |
-| `orchestration.dispatchCommand` | mutation · id | `orchestration:operate` | the command object (`type`, `commandId`, …) |
-| `orchestration.launchThread` | mutation · id | `orchestration:operate` | `commandId`, `projectId`, `title`, `modelSelection`, `runtimeMode`, `interactionMode`, `workspaceStrategy`, `creationSource?`, `threadId?`, `reuseExistingThread?`, `generateTitle?`, `initialMessage?` |
-| `preview.list` | read · free | `orchestration:read` | `threadId` |
-| `assets.createUrl` | read · free | dynamic: `filesystem:read`, `orchestration:read` | `resource` |
-| `vcs.refreshStatus` | read · free | `orchestration:read` | `cwd` |
-| `review.getDiffPreview` | read · free | `filesystem:read` | `cwd`, `baseRef?`, `ignoreWhitespace?`, `file?` |
-| `projects.readFile` | read · free | `filesystem:read` | `cwd`, `relativePath`, `allowMissing?` |
+Functions in this release (99; the README's Typed API section has each one's
+Rust signature, kind, scope, deadline and arguments):
+
+| Kotlin (`T3Api(client).…`) | Functions |
+| --- | --- |
+| `server` (9) | `getConfig`, `getSettings`, `updateSettings`, `discoverSourceControl`, `reportClientActivity`, `upsertKeybinding`, `removeKeybinding`, `searchAcpRegistry`, `prepareAcpRegistryAgent` |
+| `orchestration` (10) | `dispatchCommand`, `launchThread`, `getThreadProjection`, `getTurnItem`, `getTurnDiff`, `getFullThreadDiff`, `getWorkflowScript`, `stopWorkflow`, `searchThreads`, `getArchivedShellSnapshot` |
+| `preview` (9) | `list`, `open`, `navigate`, `resize`, `adjust`, `refresh`, `close`, `clearProfile`, `reportStatus` |
+| `assets` (2) | `createUrl`, `delete` |
+| `vcs` (7) | `refreshStatus`, `listRefs`, `createRef`, `switchRef`, `pull`, `init`, `preparePullRequestThread` |
+| `review` (2) | `getDiffPreview`, `getDiffFileContents` |
+| `projects` (4) | `readFile`, `searchEntries`, `mutate`, `createNew` |
+| `diagnostics` (8) | `getHostResources`, `getProcessDiagnostics`, `getResourceTelemetryHistory`, `signalProcess`, `checkOtlpEndpoint`, `getUsageSummary`, `refreshUsageRates`, `runStorageCleanup` |
+| `provider` (9) | `refreshProviders`, `updateProvider`, `authStart`, `authRespond`, `authCancel`, `authLogout`, `installStart`, `installCancel`, `installRemove` |
+| `projectClone` (1) | `start` |
+| `filesystem` (2) | `browse`, `getMetadata` |
+| `pullRequests` (13) | `list`, `detail`, `checks`, `activity`, `routing`, `routingIdentity`, `reviewerCandidates`, `labelCandidates`, `comment`, `submitReview`, `runAction`, `requestReviewers`, `setLabels` |
+| `device` (7) | `list`, `configure`, `testHost`, `open`, `close`, `detail`, `action` |
+| `scheduledTasks` (5) | `list`, `upsert`, `setEnabled`, `delete`, `runNow` |
+| `agentSessions` (2) | `scan`, `import` |
+| `mcpApps` (3) | `callTool`, `readResource`, `updateModelContext` |
+| `shell` (1) | `openInEditor` |
+| `secrets` (1) | `answerRequest` |
+| `worktreeSetup` (1) | `cancel` |
+| `terminal` (3) | `open`, `write`, `resize` |
+
+A scope listed as `dynamic` depends on the payload. The rules, so the app can
+pick a token before calling: `assets.createUrl` needs `filesystem:read` for
+workspace and media files and `orchestration:read` for the rest;
+`server.updateSettings` needs `providers:manage` for provider keys or a
+`providerInstanceMutation`; `projects.mutate` adds `settings:write` when it sends
+`scripts`; `git.preparePullRequestThread` adds `orchestration:operate` for
+`mode: "worktree"` with a `threadId`; `device.list` needs `orchestration:operate`
+with `updateTool` or `retryHostId` (unless it is `inspectOnly` without
+`updateTool`).
 
 ## Events through the existing JSON ABI
 
