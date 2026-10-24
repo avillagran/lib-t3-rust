@@ -372,8 +372,19 @@ With `"connect":true` the handle switches to the new session after the exchange
 succeeds, cancelling its streams; a failed pairing leaves the old one in place.
 `boundedThread` returns the restored bounded snapshot (up to 64 MiB).
 
-Signed assets use the binary path, never Base64 JSON. Pass the metadata to the
-JNI `image` native (`t3_client_image`), which forwards it unchanged:
+Signed assets use the binary path, never Base64 JSON. From Kotlin:
+
+```kotlin
+val clip = client.assetBytes(resource, maxBytes = 50L * 1024 * 1024, timeoutMs = 120_000)
+// clip.status = {sizeBytes, mimeType}; clip.bytes is owned by the caller
+val icon = client.projectFavicon(cwd = "/repo", path = "favicon.svg") // path is optional
+if (icon.found) showIcon(icon.bytes!!, icon.mimeType)
+```
+
+`T3Asset` carries `status` (the JSON data), `bytes` (null when `found` is false),
+`found` and `mimeType`. `maxBytes` defaults to `T3Client.MAX_ASSET_BYTES` (64 MiB).
+Both wrappers pass this metadata to the JNI `image` native (`t3_client_image`), which
+forwards it unchanged:
 
 ```json
 {"op":"assetBytes","resource":{"_tag":"attachment","attachmentId":"a","fileName":"clip.mp4","mimeType":"video/mp4","disposition":"inline"},"maxBytes":52428800,"timeoutMs":120000}
@@ -383,9 +394,8 @@ JNI `image` native (`t3_client_image`), which forwards it unchanged:
 The status is `{sizeBytes, mimeType}`, or `{found:false, sizeBytes:0}` with no
 bytes for a project without a favicon. Errors are `asset_*`,
 `invalid_asset_url`, `invalid_asset_limit` and `invalid_asset_timeout`; through
-`t3_client_call` these two operations fail with `binary_operation`. The Kotlin
-`T3Client` has no typed wrapper for them yet. A wrapper is a one-line
-`T3Native.image` call with this metadata; the C++ adapter needs no change.
+`t3_client_call` these two operations fail with `binary_operation`. In Kotlin they
+throw `T3Exception` with that code, like every other operation.
 
 ## Building from source
 

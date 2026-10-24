@@ -75,12 +75,27 @@ class T3Client : Closeable {
         val metadata = JSONObject().put("name", name).put("mimeType", mimeType).put("sizeBytes", sizeBytes)
         decode(T3Native.upload(native, metadata.toString().toByteArray(Charsets.UTF_8), fd)) as JSONObject
     }
-    fun image(id: String, name: String, mimeType: String): ByteArray = useHandle { native ->
-        val metadata = JSONObject().put("id", id).put("name", name).put("mimeType", mimeType)
+    /** Bytes through the binary native path (never Base64 JSON); null bytes when none came back. */
+    private fun binary(metadata: JSONObject): T3Asset = useHandle { native ->
         val result = T3Native.image(native, metadata.toString().toByteArray(Charsets.UTF_8))
-        decode(requireNotNull(result[0]))
-        requireNotNull(result[1]) { "missing_image_bytes" }
+        T3Asset(decode(requireNotNull(result[0])) as JSONObject, result[1])
     }
+    fun image(id: String, name: String, mimeType: String): ByteArray {
+        val asset = binary(JSONObject().put("id", id).put("name", name).put("mimeType", mimeType))
+        return requireNotNull(asset.bytes) { "missing_image_bytes" }
+    }
+    /**
+     * A signed asset (an `assets.createUrl` resource, e.g. a video attachment) as bytes, bounded
+     * by [maxBytes] (1..64 MiB); [timeoutMs] overrides the 30 s default. [T3Asset.status] is
+     * `{sizeBytes, mimeType}`. Errors are `asset_*`, `invalid_asset_*` or `not_connected`.
+     */
+    fun assetBytes(resource: JSONObject, maxBytes: Long = MAX_ASSET_BYTES, timeoutMs: Int? = null): T3Asset =
+        binary(JSONObject().put("op", "assetBytes").put("resource", resource).put("maxBytes", maxBytes)
+            .put("timeoutMs", timeoutMs))
+    /** The project's favicon at [cwd] (optionally a known [path]); [T3Asset.bytes] is null and
+     *  `found` false in [T3Asset.status] when the project has none. */
+    fun projectFavicon(cwd: String, path: String? = null): T3Asset =
+        binary(JSONObject().put("op", "projectFavicon").put("cwd", cwd).put("path", path))
     override fun close() {
         if (!closing.compareAndSet(false, true)) return
         // Wake long-polls before waiting for the last in-flight native caller.
@@ -90,6 +105,17 @@ class T3Client : Closeable {
             }
         } finally { lifetime.write { if (handle != 0L) { T3Native.free(handle); handle = 0L } } }
     }
+
+    companion object {
+        /** The largest [assetBytes] limit the library accepts (64 MiB). */
+        const val MAX_ASSET_BYTES: Long = 64L * 1024 * 1024
+    }
+}
+/** A binary result: [status] is the operation's JSON data, [bytes] the payload (owned by the caller)
+ *  or null when there is none (a project without a favicon). */
+class T3Asset(val status: JSONObject, val bytes: ByteArray?) {
+    val found: Boolean get() = status.optBoolean("found", true)
+    val mimeType: String? get() = status.text("mimeType")
 }
 /** `code` is stable; `reason` is the server's one-line message; `requiredScope`
  *  names the scope a `write_not_authorized` token lacked (the host picks tokens). */
