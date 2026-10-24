@@ -124,9 +124,17 @@ or real conversations are created by these tests.
 | Devices | `device_hub` |
 | Configuration | `connection_catalog`, `projects`, `settings` |
 | Cache policy | `compaction` |
+| Helpers | `util` (`text`, `truth`, `valid_id`, `epoch`) |
+| Checkpoints and plans | `checkpoint_revert`, `plan_workflow`, `prompt_recall`, `message_text` |
+| Rich text | `latex` (Qt rich text, see below) |
+| Settings contracts | `storage_settings`, `native_settings`, `scoped_settings`, `provider_instances` |
+| Review and tools | `diff_review`, `tool_inspector`, `failure_context` |
+| Git and threads | `git_controls`, `branch_picker`, `thread_details`, `pull_requests` |
+| Usage and quotas | `quota_sources`, `usage_summary` |
+| Server lifecycle | `server_updates`, `reconnect` |
 
 Modules derive portable models and validate native commands; hosts own dispatch,
-persistence, deduplication, reconnection, backoff and UI. Preventive compaction
+persistence, deduplication, the reconnection loop, wakeup detection and UI. Preventive compaction
 requires a durable host-owned one-attempt claim before dispatch. Transport tests
 use local fixture servers, never real conversations or paid provider runs.
 
@@ -162,6 +170,44 @@ use local fixture servers, never real conversations or paid provider runs.
   apps, `activity` marks failed tool rows, `sidebar::sidebar_status` follows
   T3's sidebar status and snooze rules, `compaction` leaves settled threads
   asleep, and `queue` keeps a message promoted to steer visible.
+
+### Domain modules shared with ot3
+
+The pure halves of ot3's domain modules live here so Omi's Kotlin client reuses
+them through JNI instead of reimplementing them. Each one is JSON in, JSON out,
+with the same function names and output bytes ot3 had; ot3 re-exports them (see
+[OT3_REEXPORTS.md](docs/OT3_REEXPORTS.md)) and keeps the parts that need its
+environment, an RPC, the filesystem or a process.
+
+- **Checkpoints and plans.** `checkpoint_revert` builds the rewind reference,
+  command and read-back observation. `plan_workflow` projects proposed plans and
+  their follow-up commands; the caller passes its Markdown renderer.
+  `prompt_recall` recovers a sent prompt as plain text.
+- **Settings.** `storage_settings`, `native_settings` and `scoped_settings`
+  project server settings into descriptors and validate patches, including
+  project overrides and `t3.json`. `provider_instances` validates provider
+  instance mutations and confirms them against the read-back.
+- **Review, Git and threads.** `diff_review` parses checkpoint diffs,
+  `tool_inspector` scopes and bounds turn-item reads, `failure_context` picks a
+  run's failed tools, `git_controls` builds confirmed VCS action plans,
+  `branch_picker` holds the ref and branch rules, `thread_details` resolves the
+  workspace and editors, and `pull_requests` now also builds comment, review and
+  action payloads and the `thread.pull-request.*` commands.
+- **Usage and server lifecycle.** `quota_sources` keeps usage limit observations
+  free of credentials, `usage_summary` sums `server.getUsageSummary` (the host
+  passes its IANA time zone), `server_updates` compares versions and decides when
+  an automatic update may run, and `reconnect` holds the backoff and the
+  transient-error rule. The host reports resume or network changes with
+  `reconnect::notify()`; `Waiter::default()` follows that process-wide counter.
+
+### Rich text is Qt's for now
+
+`latex::to_rich_text` and the Markdown that ot3 renders around it emit Qt's rich
+text subset (`<sup>`, `<sub>`, inline styles, `<p align="center">`), not general
+HTML. `latex::render(tex, display, Surface::Qt)` is the same output behind an
+explicit surface. An Android surface gets its own variant once its renderer is
+designed; until then, Kotlin should treat this output as Qt-specific.
+`plan_workflow` takes the renderer as a parameter, so it is not tied to Qt.
 
 ## Development
 
