@@ -130,8 +130,12 @@ errorMessage}` inside the usual `{ok,data}` envelope. `error` is a stable code;
 synchronized shapes. One consumer polls each stream. Poll waits on a condition
 variable rather than repeatedly calling Java; it does not hold the connection
 lock and cannot stall sends or reads. At most four streams exist per handle;
-each queue holds at most 64 items and 8 MiB of serialized payload. Overflow ends
-the stream with `stream_backpressure`, preserving already queued events. Resume
+each queue holds at most 64 items and 8 MiB of serialized payload. The one
+exception is `orchestration.subscribeThread` with `acceptBoundedSnapshot:true`:
+its socket accepts 64 MiB frames, so one item may be a 64 MiB snapshot and its
+queue holds 72 MiB (that snapshot plus 8 MiB of events). Without the flag a
+larger frame is refused by the socket and the stream ends with `disconnected`.
+Overflow ends the stream with `stream_backpressure`, preserving already queued events. Resume
 from the last applied cursor or obtain a fresh snapshot; never silently drop gaps.
 Close a finished subscription to release its slot. Disconnect or a successful
 connection switch cancels all streams; a failed switch preserves the old session.
