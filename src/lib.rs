@@ -48,12 +48,15 @@ pub mod message_text;
 pub mod storage_settings;
 pub mod diff_review;
 pub mod tool_inspector;
+pub mod quota_sources;
 pub mod git_controls;
+pub mod provider_instances;
 pub mod scoped_settings;
 pub mod native_settings;
 pub mod branch_picker;
 pub mod thread_details;
 pub mod failure_context;
+pub mod usage_summary;
 
 pub type Result<T> = std::result::Result<T, String>;
 const MAX_BYTES: u64 = 8 * 1024 * 1024;
