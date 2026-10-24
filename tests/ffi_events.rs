@@ -289,7 +289,7 @@ fn native_image_callback_gets_validated_bytes_from_the_signed_grant() {
         let header = read_http(&mut stream).to_ascii_lowercase();
         assert!(header.starts_with("get /api/assets/signed-fixture "));
         assert!(!header.contains("authorization:"));
-        stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 8\r\nConnection: close\r\n\r\n\x89PNG\r\n\x1a\n").unwrap();
+        stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: 8\r\nConnection: close\r\n\r\n\x89PNG\r\n\x1a\n").unwrap();
     });
     let client = Client::new();
     client.call(json!({"op":"connectBearer","httpBaseUrl":base,"token":"fixture-token"}));
@@ -308,5 +308,33 @@ fn native_image_callback_gets_validated_bytes_from_the_signed_grant() {
         assert_eq!(value["ok"], true);
     }
     assert_eq!(image, b"\x89PNG\r\n\x1a\n");
+    server.join().unwrap();
+}
+#[test]
+fn rpc_with_timeout_over_the_json_abi_keeps_a_stable_error_code() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    let server = thread::spawn(move || {
+        for exit in [
+            json!({"_tag":"Success","value":{"hostStatus":"ready"}}),
+            json!({"_tag":"Failure","cause":[{"_tag":"Fail","error":{"_tag":"DeviceBusy","message":"Device is updating","token":"PRIVATE"}}]}),
+        ] {
+            let (stream, _) = listener.accept().unwrap();
+            let mut ws = tungstenite::accept(stream).unwrap();
+            let request: Value = serde_json::from_str(ws.read().unwrap().to_text().unwrap()).unwrap();
+            assert_eq!(request["tag"], "device.configure");
+            ws.send(tungstenite::Message::Text(json!({"_tag":"Exit","requestId":"1","exit":exit}).to_string().into())).unwrap();
+            let _ = ws.read();
+        }
+    });
+    let client = Client::new();
+    assert_eq!(client.call(json!({"op":"rpcWithTimeout","tag":"device.configure","payload":{},"timeoutMs":0}))["error"], "invalid_rpc_timeout");
+    assert_eq!(client.call(json!({"op":"connectBearer","httpBaseUrl":base,"token":"synthetic"}))["ok"], true);
+    let request = json!({"op":"rpcWithTimeout","tag":"device.configure","payload":{"enabled":true},"timeoutMs":5000});
+    assert_eq!(client.call(request.clone()), json!({"ok":true,"data":{"hostStatus":"ready"}}));
+    assert_eq!(
+        client.call(request),
+        json!({"ok":false,"error":"rpc_rejected","message":"Device is updating"})
+    );
     server.join().unwrap();
 }

@@ -30,7 +30,7 @@ fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
     match field(&request, "op")? {
         "capabilities" => Ok(
             json!({"abiVersion":2,"libraryVersion":env!("CARGO_PKG_VERSION"),
-            "operations":["connectBearer","connectRelay","request","rpc","disconnect","subscribe","pollSubscription","cancelSubscription"],
+            "operations":["connectBearer","connectRelay","request","rpc","rpcWithTimeout","disconnect","subscribe","pollSubscription","cancelSubscription"],
             "nativeAttachmentUpload":true,"nativeImageDownload":true,"maxSubscriptions":4,
             "queueMaxItems":64,"queueMaxBytes":MAX_BYTES,"maxPollMs":1000}),
         ),
@@ -71,6 +71,15 @@ fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
             request["protocol"].as_bool().unwrap_or(true),
         ),
         "rpc" => connection(handle)?.rpc(field(&request, "tag")?, request["payload"].clone()),
+        "rpcWithTimeout" => {
+            // Validated before connecting: 1 ms to 300 s, as `rpc_with_timeout` requires.
+            let timeout = request["timeoutMs"]
+                .as_u64()
+                .filter(|ms| (1..=300_000).contains(ms))
+                .map(Duration::from_millis)
+                .ok_or("invalid_rpc_timeout")?;
+            connection(handle)?.rpc_with_timeout(field(&request, "tag")?, request["payload"].clone(), timeout)
+        }
         "subscribe" => {
             let mut h = handle.lock().map_err(|_| "internal_error")?;
             if h.subscriptions.len() >= 4 {
@@ -165,7 +174,14 @@ pub unsafe extern "C" fn t3_client_call(
 fn response(result: Result<Value>) -> *mut c_char {
     let response = match result {
         Ok(data) => json!({"ok":true,"data":data}),
-        Err(code) => json!({"ok":false,"error":code}),
+        // `error` stays a stable code; a server's reason travels separately.
+        Err(error) => {
+            let code = error_code(&error);
+            match error.get(code.len() + 2..).filter(|_| code.len() < error.len()) {
+                Some(reason) => json!({"ok":false,"error":code,"message":reason}),
+                None => json!({"ok":false,"error":code}),
+            }
+        }
     };
     CString::new(response.to_string()).unwrap().into_raw()
 }
@@ -275,6 +291,21 @@ mod tests {
             );
             t3_string_free(response);
             t3_client_free(h);
+        }
+    }
+    #[test]
+    fn c_abi_errors_keep_a_stable_code_and_carry_the_reason_apart() {
+        unsafe {
+            let read = |r: *mut c_char| {
+                let v: Value = serde_json::from_slice(CStr::from_ptr(r).to_bytes()).unwrap();
+                t3_string_free(r);
+                v
+            };
+            assert_eq!(
+                read(response(Err("rpc_rejected: Project p-1 was not found.".into()))),
+                json!({"ok":false,"error":"rpc_rejected","message":"Project p-1 was not found."})
+            );
+            assert_eq!(read(response(Err("not_connected".into()))), json!({"ok":false,"error":"not_connected"}));
         }
     }
 }
