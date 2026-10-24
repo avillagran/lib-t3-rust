@@ -29,12 +29,20 @@ class T3Client : Closeable {
         val input = request.toString().toByteArray(Charsets.UTF_8)
         try { decode(T3Native.call(native, input)) } finally { input.fill(0) }
     }
-    fun connectBearer(baseUrl: String, token: String) {
-        execute(JSONObject().put("op", "connectBearer").put("httpBaseUrl", baseUrl).put("token", token))
+    /** [options] (ABI 3): `requestTimeoutMs`, `connectTimeoutMs`, `poolIdleTimeoutMs`, `maxBytes`;
+     *  absent keys keep the defaults, anything else fails with `invalid_connection_options`. */
+    fun connectBearer(baseUrl: String, token: String, options: JSONObject? = null) {
+        execute(JSONObject().put("op", "connectBearer").put("httpBaseUrl", baseUrl).put("token", token)
+            .put("options", options))
     }
-    fun connectRelay(relayUrl: String, cloudJwt: String, environmentId: String) {
+    /** Same [options] as [connectBearer]; [clientId] names this client to the relay. */
+    fun connectRelay(
+        relayUrl: String, cloudJwt: String, environmentId: String, clientId: String = "t3-mobile",
+        options: JSONObject? = null,
+    ) {
         execute(JSONObject().put("op", "connectRelay").put("relayUrl", relayUrl)
-            .put("cloudJwt", cloudJwt).put("environmentId", environmentId).put("clientId", "t3-mobile"))
+            .put("cloudJwt", cloudJwt).put("environmentId", environmentId).put("clientId", clientId)
+            .put("options", options))
     }
     fun request(path: String, protocol: Boolean = true): Any? = execute(
         JSONObject().put("op", "request").put("method", "GET").put("path", path).put("protocol", protocol)
