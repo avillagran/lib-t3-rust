@@ -45,3 +45,25 @@ fn provider_turn_keeps_token_usage_only_when_an_update_omits_it() {
     assert!(apply(&mut p, &event("provider-turn.updated", json!({"id":"new"}))));
     assert!(p["providerTurns"][1]["tokenUsage"].is_null());
 }
+#[test]
+fn live_mcp_app_keeps_its_reference_when_outputs_are_dropped() {
+    use t3_protocol::documents::mcp_app;
+    let app = json!({"t3McpApp":{"attachmentId":"att","server":"weather","tool":"forecast","resourceUri":"ui://weather/forecast"}});
+    // Text content carrying the app as JSON, as MCP tool results do.
+    let item = json!({"id":"i1","threadId":"t","type":"mcp_tool_call","status":"completed","toolName":"weather.forecast","output":{"content":[{"type":"text","text":app.to_string()}],"secret":"dropped"}});
+    let mut p = json!({"thread":{"id":"t"}});
+    assert!(apply(&mut p, &event("turn-item.updated", item.clone())));
+    let kept = &p["turnItems"][0];
+    assert_eq!(kept["output"], app, "only the app reference survives compaction");
+    assert_eq!(mcp_app(kept), mcp_app(&item));
+    assert_eq!(mcp_app(kept).unwrap()["mcpApp"]["threadId"], "t");
+    let mut running = item.clone();
+    running["status"] = json!("inProgress");
+    assert!(mcp_app(&running).is_none());
+    let mut failed = item;
+    failed["output"]["isError"] = json!(true);
+    assert!(mcp_app(&failed).is_none());
+    let mut p = json!({"thread":{"id":"t"}});
+    assert!(apply(&mut p, &event("turn-item.updated", failed)));
+    assert!(p["turnItems"][0]["output"].is_null());
+}
