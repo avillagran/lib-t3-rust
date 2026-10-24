@@ -28,6 +28,28 @@ extern "C" {
  *     "invalid_<field>", "invalid_rpc_timeout"), then sends exactly once.
  *   "write_not_authorized" failures add "requiredScope" (e.g. "settings:write").
  */
+/* Streams. {"op":"subscribe","tag":T,"payload":{...}} -> {subscriptionId}. One
+ * consumer polls each stream:
+ * {"op":"pollSubscription","subscriptionId":S,"timeoutMs":0..1000} (default 1000)
+ * returns as soon as there is something new (items, a chunk end, idle turning
+ * true, or the end), else after timeoutMs, with
+ *   {"items":[...],"boundaries":[n,...],"idle":bool,"completionMarker":bool,
+ *    "closed":bool,"error":"code"|null,"errorMessage":"reason"|null}
+ * items: native T3 stream items in server order; never dropped or reordered.
+ * boundaries: strictly ascending end offsets into this batch's items. Each n
+ *   means a server chunk ended after items[0..n): apply/paint there. Items after
+ *   the last boundary belong to a chunk that continues in the next poll; n = 0
+ *   means the chunk whose items ended the previous batch ended right there.
+ * idle: the last chunk is complete and no new frame completed during one 100 ms
+ *   read tick: caught up for now (a large frame may still be in transit, and it
+ *   can be true before the first item). It stays true until the next item;
+ *   turning true wakes one waiting poll. Without requestCompletionMarker it is
+ *   the only catch-up signal (the rule ot3 uses); with it, wait for completionMarker.
+ * completionMarker: only when the payload had "requestCompletionMarker":true;
+ *   true from the batch carrying the server's {"kind":"synchronized"} item (kept
+ *   in items, at its position) onward: the initial snapshot/replay is complete.
+ * closed/error: once closed the stream delivers nothing more; error is a stable
+ *   code (null after cancel), errorMessage an optional one-line reason. */
 void *t3_client_new(void);
 char *t3_client_call(void *handle, const uint8_t *input, size_t len);
 /* Upload read/release callbacks may run on an HTTP worker. With both callbacks

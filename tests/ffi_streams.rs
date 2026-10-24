@@ -148,3 +148,60 @@ fn without_bounded_snapshots_a_twenty_mib_item_is_rejected_not_truncated() {
     assert!(items(&batches).is_empty(), "a partial item leaked");
     server.join().unwrap();
 }
+
+/// Rebuilds the server's chunks from poll batches using only `boundaries`.
+fn chunks(batches: &[Value]) -> (Vec<Vec<Value>>, Vec<Value>) {
+    let (mut done, mut open) = (vec![], vec![]);
+    for batch in batches {
+        let items = batch["items"].as_array().unwrap();
+        let mut start = 0;
+        for end in batch["boundaries"].as_array().unwrap() {
+            let end = end.as_u64().unwrap() as usize;
+            assert!(end >= start && end <= items.len(), "{batch}");
+            open.extend_from_slice(&items[start..end]);
+            done.push(std::mem::take(&mut open));
+            start = end;
+        }
+        open.extend_from_slice(&items[start..]);
+    }
+    (done, open)
+}
+
+#[test]
+fn poll_marks_chunk_ends_the_completion_marker_and_idle() {
+    let (base, server) = serve(|request, ws| {
+        assert_eq!(request["payload"], json!({"afterSequence":41,"requestCompletionMarker":true}));
+        assert!(chunk(ws, json!([{"kind":"snapshot","snapshot":{"snapshotSequence":41}},{"kind":"synchronized"}])));
+        assert_eq!(read(ws).unwrap()["_tag"], "Ack");
+        assert!(chunk(ws, json!([
+            {"kind":"thread.updated","sequence":42,"thread":{"id":"a"}},
+            {"kind":"thread.removed","sequence":43,"threadId":"b"},
+            {"kind":"project.updated","sequence":44,"project":{"id":"p"}},
+        ])));
+        assert_eq!(read(ws).unwrap()["_tag"], "Ack");
+        drain_until_interrupt(ws)
+    });
+    let client = Client::connected(&base);
+    let id = client.subscribe("orchestration.subscribeShell", json!({"afterSequence":41,"requestCompletionMarker":true}));
+    // Poll until both chunks are in and the stream says it is caught up.
+    let mut batches = vec![];
+    while items(&batches).len() < 5 || batches.last().is_none_or(|b: &Value| b["idle"] != true) {
+        let batch = client.poll(&id);
+        assert_eq!(batch["closed"], false, "{batch}");
+        batches.push(batch);
+        assert!(batches.len() < 50, "{batches:?}");
+    }
+    let (done, open) = chunks(&batches);
+    assert!(open.is_empty(), "items after the last boundary: {open:?}");
+    assert_eq!(done.iter().map(Vec::len).collect::<Vec<_>>(), vec![2, 3]);
+    assert_eq!(done[0][1], json!({"kind":"synchronized"}));
+    assert_eq!(done[1][2]["sequence"], 44);
+    let last = batches.last().unwrap();
+    assert_eq!((last["completionMarker"].clone(), last["closed"].clone()), (json!(true), json!(false)));
+    // The batch carrying the marker item is the first to report it, and it stays set.
+    let first_marked = batches.iter().position(|b| b["completionMarker"] == true).unwrap();
+    assert!(items(&batches[first_marked..=first_marked]).contains(&json!({"kind":"synchronized"})));
+    assert!(batches[first_marked..].iter().all(|b| b["completionMarker"] == true));
+    client.call(json!({"op":"cancelSubscription","subscriptionId":id}));
+    server.join().unwrap();
+}

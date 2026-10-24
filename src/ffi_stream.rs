@@ -1,5 +1,5 @@
 //! Bounded foreign-host event inbox. No host callbacks or unbounded worker queues.
-use crate::{error_code, stream, Connection, Result, MAX_BYTES};
+use crate::{error_code, stream::{self, Tick}, Connection, Result, MAX_BYTES};
 use serde_json::{json, Value};
 use std::{
     collections::VecDeque,
@@ -52,6 +52,16 @@ impl std::io::Write for Counter {
 struct Inbox {
     items: VecDeque<(Value, usize)>,
     bytes: usize,
+    /// End offsets into `items` of the server chunks that ended since the last poll.
+    boundaries: Vec<usize>,
+    /// Items of the chunk still being delivered, counted across polls.
+    open_chunk: usize,
+    /// Caught up: the last chunk ended and a read tick passed without a frame.
+    idle: bool,
+    /// `idle` turned true after the last poll; wakes one waiting poll.
+    idle_unreported: bool,
+    /// Sticky once the server's completion marker item was queued.
+    completion_marker: bool,
     closed: bool,
     error: Option<String>,
 }
@@ -60,10 +70,12 @@ struct Shared {
     inbox: Mutex<Inbox>,
     ready: Condvar,
     limits: Limits,
+    /// The payload asked for `requestCompletionMarker`, so `{"kind":"synchronized"}` is one.
+    marker_requested: bool,
 }
 impl Shared {
-    fn new(limits: Limits) -> Self {
-        Self { limits, ..Self::default() }
+    fn new(limits: Limits, marker_requested: bool) -> Self {
+        Self { limits, marker_requested, ..Self::default() }
     }
     fn push(&self, item: Value) -> Result<()> {
         let mut size = Counter(0);
@@ -79,14 +91,40 @@ impl Shared {
         {
             return Err("stream_backpressure".into());
         }
+        if self.marker_requested && item["kind"] == "synchronized" {
+            inbox.completion_marker = true;
+        }
         inbox.bytes += size;
         inbox.items.push_back((item, size));
+        inbox.open_chunk += 1;
+        inbox.idle = false;
         self.ready.notify_all();
         Ok(())
+    }
+    fn chunk_end(&self) {
+        if let Ok(mut inbox) = self.inbox.lock() {
+            // An empty chunk adds no boundary, so offsets stay strictly ascending.
+            if inbox.open_chunk > 0 && !inbox.closed {
+                inbox.open_chunk = 0;
+                let end = inbox.items.len();
+                inbox.boundaries.push(end);
+                self.ready.notify_all();
+            }
+        }
+    }
+    fn idle(&self) {
+        if let Ok(mut inbox) = self.inbox.lock() {
+            if !inbox.idle && !inbox.closed {
+                inbox.idle = true;
+                inbox.idle_unreported = true;
+                self.ready.notify_all();
+            }
+        }
     }
     fn finish(&self, error: Option<String>) {
         if let Ok(mut inbox) = self.inbox.lock() {
             inbox.closed = true;
+            inbox.idle = false;
             inbox.error = error;
             self.ready.notify_all();
         }
@@ -98,20 +136,24 @@ pub(crate) struct Subscription {
 }
 impl Subscription {
     pub(crate) fn start(connection: Connection, tag: String, payload: Value) -> Result<Self> {
-        let shared = Arc::new(Shared::new(Limits::of(&tag, &payload)));
+        let marker = payload["requestCompletionMarker"] == true;
+        let shared = Arc::new(Shared::new(Limits::of(&tag, &payload), marker));
         let cancel = Arc::new(AtomicBool::new(false));
         let (queue, stop) = (shared.clone(), cancel.clone());
         std::thread::Builder::new()
             .name("t3-events".into())
             .spawn(move || {
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    connection.subscribe(
+                    connection.subscribe_ticks(
                         &tag,
                         payload,
                         || stop.load(Ordering::Acquire),
-                        |item| {
-                            if let Some(value) = item {
-                                queue.push(value)?;
+                        || false,
+                        |tick| {
+                            match tick {
+                                Tick::Item(value) => queue.push(value)?,
+                                Tick::ChunkEnd => queue.chunk_end(),
+                                Tick::Idle => queue.idle(),
                             }
                             Ok(())
                         },
@@ -134,21 +176,27 @@ impl Subscription {
             .shared
             .ready
             .wait_timeout_while(inbox, Duration::from_millis(timeout_ms), |v| {
-                v.items.is_empty() && !v.closed
+                v.items.is_empty() && v.boundaries.is_empty() && !v.idle_unreported && !v.closed
             })
             .map_err(|_| "internal_error")?;
         let items: Vec<_> = inbox.items.drain(..).map(|(v, _)| v).collect();
+        let boundaries = std::mem::take(&mut inbox.boundaries);
         inbox.bytes = 0;
+        inbox.idle_unreported = false;
         // `error` stays a stable code; a reason after it goes to `errorMessage`.
         let code = inbox.error.as_deref().map(error_code);
         let message = inbox.error.as_deref().zip(code).and_then(|(e, c)| e.get(c.len() + 2..));
-        Ok(json!({"items":items,"closed":inbox.closed,"error":code,"errorMessage":message}))
+        Ok(json!({"items":items,"boundaries":boundaries,"idle":inbox.idle,
+            "completionMarker":inbox.completion_marker,
+            "closed":inbox.closed,"error":code,"errorMessage":message}))
     }
     pub(crate) fn cancel(&self) {
         self.cancel.store(true, Ordering::Release);
         if let Ok(mut inbox) = self.shared.inbox.lock() {
             inbox.items.clear();
+            inbox.boundaries.clear();
             inbox.bytes = 0;
+            inbox.idle = false;
             inbox.closed = true;
             inbox.error = None;
             self.shared.ready.notify_all();
@@ -196,13 +244,64 @@ mod tests {
             assert_eq!(Limits::of(tag, &payload), Limits::NORMAL, "{tag} {payload}");
         }
         // A large item fits once; the queue then still holds 8 MiB of events behind it.
-        let shared = Shared::new(large);
+        let shared = Shared::new(large, false);
         shared.push(json!("a".repeat(63 << 20))).unwrap();
         shared.push(json!("b".repeat(7 << 20))).unwrap();
         assert_eq!(shared.push(json!("c".repeat(3 << 20))).unwrap_err(), "stream_backpressure");
         assert_eq!(shared.inbox.lock().unwrap().items.len(), 2);
-        let shared = Shared::new(large);
+        let shared = Shared::new(large, false);
         assert_eq!(shared.push(json!("a".repeat(64 << 20))).unwrap_err(), "stream_backpressure");
+    }
+    fn subscription(shared: Shared) -> Subscription {
+        Subscription { shared: Arc::new(shared), cancel: Arc::default() }
+    }
+    #[test]
+    fn boundaries_survive_a_poll_in_the_middle_of_a_chunk() {
+        let s = subscription(Shared::new(Limits::NORMAL, true));
+        let q = &s.shared;
+        q.push(json!({"kind":"snapshot"})).unwrap();
+        q.push(json!({"kind":"synchronized"})).unwrap();
+        q.chunk_end();
+        q.chunk_end(); // an empty chunk adds nothing
+        q.push(json!({"kind":"event","sequence":1})).unwrap();
+        let first = s.poll(0).unwrap();
+        assert_eq!(first["items"].as_array().unwrap().len(), 3);
+        assert_eq!(first["boundaries"], json!([2]));
+        assert_eq!((first["idle"].clone(), first["completionMarker"].clone()), (json!(false), json!(true)));
+        // The rest of the open chunk, then its end, land in the next batch.
+        q.push(json!({"kind":"event","sequence":2})).unwrap();
+        q.chunk_end();
+        q.idle();
+        let second = s.poll(0).unwrap();
+        assert_eq!(second["boundaries"], json!([1]));
+        assert_eq!(second["idle"], true);
+        assert_eq!(second["completionMarker"], true);
+        // A chunk whose items were all polled before it ended reports offset 0.
+        q.push(json!({"kind":"event","sequence":3})).unwrap();
+        assert_eq!(s.poll(0).unwrap()["boundaries"], json!([]));
+        q.chunk_end();
+        let third = s.poll(1000).unwrap();
+        assert_eq!((third["items"].clone(), third["boundaries"].clone()), (json!([]), json!([0])));
+    }
+    #[test]
+    fn idle_wakes_a_poll_once_and_a_marker_needs_the_request_flag() {
+        let s = Arc::new(subscription(Shared::new(Limits::NORMAL, false)));
+        s.shared.push(json!({"kind":"synchronized"})).unwrap();
+        s.shared.chunk_end();
+        assert_eq!(s.poll(0).unwrap()["completionMarker"], false);
+        let waiting = s.clone();
+        let start = std::time::Instant::now();
+        let worker = std::thread::spawn(move || waiting.poll(1000).unwrap());
+        std::thread::sleep(Duration::from_millis(30));
+        s.shared.idle();
+        s.shared.idle();
+        let woke = worker.join().unwrap();
+        assert!(start.elapsed() < Duration::from_millis(900), "idle did not wake the poll");
+        assert_eq!((woke["idle"].clone(), woke["items"].clone()), (json!(true), json!([])));
+        // Still idle, but nothing new: the next poll waits its full timeout.
+        let start = std::time::Instant::now();
+        assert_eq!(s.poll(150).unwrap()["idle"], true);
+        assert!(start.elapsed() >= Duration::from_millis(140));
     }
     #[test]
     fn cancel_wakes_a_waiter_without_a_network_tick() {
