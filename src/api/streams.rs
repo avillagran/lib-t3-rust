@@ -201,6 +201,120 @@ pub const FUNCTIONS: &[Function] = &[
     DISCOVERED_SERVERS,
 ];
 
+/// How a host reads a stream's items, as `describe` lists them under `streams`.
+pub struct Shape {
+    pub function: &'static Function,
+    /// Member that tells items apart, or `None` when every item is the whole state.
+    pub item_key: Option<&'static str>,
+    /// Values of `item_key` (`[]` with no key). Newer servers may add more.
+    pub items: &'static [&'static str],
+    /// What the first item can mean (`stream::Start`).
+    pub starts: &'static [&'static str],
+    /// `afterSequence`: resubscribe with the poll's `cursor`. `sequence`: items
+    /// carry one only to drop replays. `None`: no cursor.
+    pub cursor: Option<&'static str>,
+    /// Items after which the server ends the stream.
+    pub ends: &'static [&'static str],
+    /// The composed read of its current state, if there is one.
+    pub first_item: Option<&'static str>,
+}
+const STATE: &[&str] = &["snapshot"];
+pub const SHAPES: &[Shape] = &[
+    Shape {
+        function: &SUBSCRIBE_SHELL,
+        item_key: Some("kind"),
+        items: &["synchronized", "snapshot", "project.updated", "project.removed", "thread.updated", "thread.removed"],
+        starts: &["snapshot", "resume"],
+        cursor: Some("afterSequence"),
+        ends: &[],
+        first_item: None,
+    },
+    Shape {
+        function: &SUBSCRIBE_THREAD,
+        item_key: Some("kind"),
+        items: &["synchronized", "snapshot", "event"],
+        starts: &["snapshot", "resume"],
+        cursor: Some("afterSequence"),
+        ends: &[],
+        first_item: None,
+    },
+    Shape {
+        function: &SUBSCRIBE_COMMAND_OUTPUT,
+        item_key: Some("kind"),
+        items: &["replace", "append"],
+        starts: STATE,
+        cursor: None,
+        ends: &[],
+        first_item: None,
+    },
+    Shape {
+        function: &TERMINAL_ATTACH,
+        item_key: Some("type"),
+        items: &["snapshot", "output", "exited", "closed", "error", "cleared", "restarted", "activity"],
+        starts: STATE,
+        cursor: Some("sequence"),
+        ends: &[],
+        first_item: None,
+    },
+    Shape { function: &SUBSCRIBE_DEVICE_STATE, item_key: None, items: &[], starts: STATE, cursor: None, ends: &[], first_item: None },
+    Shape {
+        function: &SUBSCRIBE_DISCOVERED_LOCAL_SERVERS,
+        item_key: None,
+        items: &[],
+        starts: STATE,
+        cursor: None,
+        ends: &[],
+        first_item: Some("preview.discoveredServers"),
+    },
+    Shape {
+        function: &SUBSCRIBE_PREVIEW_EVENTS,
+        item_key: Some("type"),
+        items: &["opened", "navigated", "resized", "failed", "closed"],
+        starts: &["events"],
+        cursor: None,
+        ends: &[],
+        first_item: None,
+    },
+    Shape {
+        function: &SUBSCRIBE_SERVER_CONFIG,
+        item_key: Some("type"),
+        items: &["snapshot", "keybindingsUpdated", "providerStatuses", "settingsUpdated", "environmentThemesUpdated", "usageLimitSourcesUpdated"],
+        starts: STATE,
+        cursor: None,
+        ends: &[],
+        first_item: None,
+    },
+    Shape { function: &SUBSCRIBE_WORKTREE_SETUP, item_key: None, items: &[], starts: STATE, cursor: Some("sequence"), ends: &[], first_item: None },
+    Shape {
+        function: &STORAGE_CLEANUP_REPORT,
+        item_key: None,
+        items: &[],
+        starts: STATE,
+        cursor: None,
+        ends: &[],
+        first_item: Some("diagnostics.storageCleanupReport"),
+    },
+    Shape { function: &PROVIDER_INSTALL, item_key: None, items: &[], starts: STATE, cursor: None, ends: &[], first_item: Some("provider.installState") },
+    Shape { function: &PROVIDER_AUTH, item_key: None, items: &[], starts: STATE, cursor: None, ends: &[], first_item: Some("provider.authState") },
+    Shape {
+        function: &RUN_STACKED_ACTION,
+        item_key: Some("kind"),
+        items: &["action_started", "phase_started", "hook_started", "hook_output", "hook_finished", "action_finished", "action_failed"],
+        starts: &["events"],
+        cursor: None,
+        ends: &["action_finished", "action_failed"],
+        first_item: None,
+    },
+];
+/// `describe`'s `streams`: one entry per stream function, in registry order.
+pub fn describe() -> Value {
+    json!(SHAPES
+        .iter()
+        .map(|s| json!({"fn":s.function.name,"tag":s.function.tag,"itemKey":s.item_key,"items":s.items,
+            "starts":s.starts,"cursor":s.cursor,"ends":s.ends,"firstItem":s.first_item}))
+        .collect::<Vec<_>>())
+}
+
 /// A validated subscription: its registry row and the exact wire payload.
 #[derive(Clone)]
 pub struct StreamSpec {

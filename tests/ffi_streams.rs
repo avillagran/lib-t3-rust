@@ -362,7 +362,8 @@ fn capabilities_list_the_stream_ops_and_limits_without_a_new_abi_version() {
     assert_eq!((c["queueMaxItems"].clone(), c["queueMaxBytes"].clone(), c["itemMaxBytes"].clone()), (json!(64), json!(8 << 20), json!(8 << 20)));
     assert_eq!((c["largeItemMaxBytes"].clone(), c["largeQueueMaxBytes"].clone()), (json!(64 << 20), json!(72 << 20)));
     assert_eq!((c["maxPollMs"].clone(), c["probeTimeoutMs"].clone(), c["idleTimeoutMs"].clone()), (json!(1000), json!(3000), json!(20000)));
-    assert_eq!(c["pollFields"], json!(["items", "boundaries", "idle", "completionMarker", "closed", "error", "errorMessage"]));
+    assert_eq!(c["pollFields"], json!(["items", "boundaries", "idle", "completionMarker", "closed", "error", "errorMessage", "cursor", "start"]));
+    assert_eq!(c["subscribeBy"], json!(["tag", "fn"]));
     // Wake needs no connection and probes nothing on an empty handle.
     assert_eq!(client.call(json!({"op":"wakeSubscriptions"})), json!({"ok":true,"data":{"probed":0}}));
 }
