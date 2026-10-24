@@ -306,7 +306,8 @@ pub fn function(name: &str) -> Option<&'static Function> {
 /// The registry as JSON, for hosts that generate wrappers (Kotlin) or probe support.
 pub fn describe() -> Value {
     json!({"apiVersion":API_VERSION,"contract":CONTRACT,
-        "functions":functions().map(Function::describe).collect::<Vec<_>>()})
+        "functions":functions().map(Function::describe).collect::<Vec<_>>(),
+        "streams":streams::describe()})
 }
 /// `timeoutMs` of a call: 1..=300 000, else `invalid_rpc_timeout`.
 pub fn timeout(ms: Option<&Value>) -> Result<Option<Duration>> {

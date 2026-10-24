@@ -96,6 +96,26 @@ int main(void) {
     response = t3_client_call(client, (const uint8_t *)empty_cwd, strlen(empty_cwd));
     assert(response && strstr(response, "\"error\":\"invalid_cwd\""));
     t3_string_free(response);
+    /* Streams by function name: validated offline too; a stream is never a call. */
+    response = t3_client_call(client, (const uint8_t *)describe, strlen(describe));
+    assert(response && strstr(response, "\"streams\"") && strstr(response, "\"cursor\":\"afterSequence\""));
+    t3_string_free(response);
+    const char *bad_thread = "{\"op\":\"subscribe\",\"fn\":\"orchestration.subscribeThread\",\"args\":{\"threadId\":\"\"}}";
+    response = t3_client_call(client, (const uint8_t *)bad_thread, strlen(bad_thread));
+    assert(response && strstr(response, "\"error\":\"invalid_thread_id\""));
+    t3_string_free(response);
+    const char *unary = "{\"op\":\"subscribe\",\"fn\":\"vcs.refreshStatus\",\"args\":{\"cwd\":\"/r\"}}";
+    response = t3_client_call(client, (const uint8_t *)unary, strlen(unary));
+    assert(response && strstr(response, "\"error\":\"not_a_stream\""));
+    t3_string_free(response);
+    const char *stream_call = "{\"op\":\"call\",\"fn\":\"orchestration.subscribeShell\",\"args\":{}}";
+    response = t3_client_call(client, (const uint8_t *)stream_call, strlen(stream_call));
+    assert(response && strstr(response, "\"error\":\"stream_function\""));
+    t3_string_free(response);
+    const char *shell = "{\"op\":\"subscribe\",\"fn\":\"orchestration.subscribeShell\",\"args\":{\"afterSequence\":3}}";
+    response = t3_client_call(client, (const uint8_t *)shell, strlen(shell));
+    assert(response && strstr(response, "\"error\":\"not_connected\""));
+    t3_string_free(response);
     const char *valid = "{\"op\":\"call\",\"fn\":\"vcs.refreshStatus\",\"args\":{\"cwd\":\"/r\"}}";
     response = t3_client_call(client, (const uint8_t *)valid, strlen(valid));
     assert(response && strstr(response, "\"error\":\"not_connected\""));

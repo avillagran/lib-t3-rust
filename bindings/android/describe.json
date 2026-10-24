@@ -734,5 +734,212 @@
       "tag": null,
       "timeoutMs": 4000
     }
+  ],
+  "streams": [
+    {
+      "cursor": "afterSequence",
+      "ends": [],
+      "firstItem": null,
+      "fn": "orchestration.subscribeShell",
+      "itemKey": "kind",
+      "items": [
+        "synchronized",
+        "snapshot",
+        "project.updated",
+        "project.removed",
+        "thread.updated",
+        "thread.removed"
+      ],
+      "starts": [
+        "snapshot",
+        "resume"
+      ],
+      "tag": "orchestration.subscribeShell"
+    },
+    {
+      "cursor": "afterSequence",
+      "ends": [],
+      "firstItem": null,
+      "fn": "orchestration.subscribeThread",
+      "itemKey": "kind",
+      "items": [
+        "synchronized",
+        "snapshot",
+        "event"
+      ],
+      "starts": [
+        "snapshot",
+        "resume"
+      ],
+      "tag": "orchestration.subscribeThread"
+    },
+    {
+      "cursor": null,
+      "ends": [],
+      "firstItem": null,
+      "fn": "orchestration.subscribeCommandOutput",
+      "itemKey": "kind",
+      "items": [
+        "replace",
+        "append"
+      ],
+      "starts": [
+        "snapshot"
+      ],
+      "tag": "orchestration.subscribeCommandOutput"
+    },
+    {
+      "cursor": "sequence",
+      "ends": [],
+      "firstItem": null,
+      "fn": "terminal.attach",
+      "itemKey": "type",
+      "items": [
+        "snapshot",
+        "output",
+        "exited",
+        "closed",
+        "error",
+        "cleared",
+        "restarted",
+        "activity"
+      ],
+      "starts": [
+        "snapshot"
+      ],
+      "tag": "terminal.attach"
+    },
+    {
+      "cursor": null,
+      "ends": [],
+      "firstItem": null,
+      "fn": "device.subscribeDeviceState",
+      "itemKey": null,
+      "items": [],
+      "starts": [
+        "snapshot"
+      ],
+      "tag": "subscribeDeviceState"
+    },
+    {
+      "cursor": null,
+      "ends": [],
+      "firstItem": "preview.discoveredServers",
+      "fn": "preview.subscribeDiscoveredLocalServers",
+      "itemKey": null,
+      "items": [],
+      "starts": [
+        "snapshot"
+      ],
+      "tag": "subscribeDiscoveredLocalServers"
+    },
+    {
+      "cursor": null,
+      "ends": [],
+      "firstItem": null,
+      "fn": "preview.subscribePreviewEvents",
+      "itemKey": "type",
+      "items": [
+        "opened",
+        "navigated",
+        "resized",
+        "failed",
+        "closed"
+      ],
+      "starts": [
+        "events"
+      ],
+      "tag": "subscribePreviewEvents"
+    },
+    {
+      "cursor": null,
+      "ends": [],
+      "firstItem": null,
+      "fn": "server.subscribeServerConfig",
+      "itemKey": "type",
+      "items": [
+        "snapshot",
+        "keybindingsUpdated",
+        "providerStatuses",
+        "settingsUpdated",
+        "environmentThemesUpdated",
+        "usageLimitSourcesUpdated"
+      ],
+      "starts": [
+        "snapshot"
+      ],
+      "tag": "subscribeServerConfig"
+    },
+    {
+      "cursor": "sequence",
+      "ends": [],
+      "firstItem": null,
+      "fn": "worktreeSetup.subscribeWorktreeSetup",
+      "itemKey": null,
+      "items": [],
+      "starts": [
+        "snapshot"
+      ],
+      "tag": "subscribeWorktreeSetup"
+    },
+    {
+      "cursor": null,
+      "ends": [],
+      "firstItem": "diagnostics.storageCleanupReport",
+      "fn": "server.getStorageCleanupReport",
+      "itemKey": null,
+      "items": [],
+      "starts": [
+        "snapshot"
+      ],
+      "tag": "server.getStorageCleanupReport"
+    },
+    {
+      "cursor": null,
+      "ends": [],
+      "firstItem": "provider.installState",
+      "fn": "provider.install.subscribe",
+      "itemKey": null,
+      "items": [],
+      "starts": [
+        "snapshot"
+      ],
+      "tag": "provider.install.subscribe"
+    },
+    {
+      "cursor": null,
+      "ends": [],
+      "firstItem": "provider.authState",
+      "fn": "provider.auth.subscribe",
+      "itemKey": null,
+      "items": [],
+      "starts": [
+        "snapshot"
+      ],
+      "tag": "provider.auth.subscribe"
+    },
+    {
+      "cursor": null,
+      "ends": [
+        "action_finished",
+        "action_failed"
+      ],
+      "firstItem": null,
+      "fn": "git.runStackedAction",
+      "itemKey": "kind",
+      "items": [
+        "action_started",
+        "phase_started",
+        "hook_started",
+        "hook_output",
+        "hook_finished",
+        "action_finished",
+        "action_failed"
+      ],
+      "starts": [
+        "events"
+      ],
+      "tag": "git.runStackedAction"
+    }
   ]
 }
