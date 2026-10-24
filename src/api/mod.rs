@@ -328,7 +328,11 @@ pub(crate) fn send(conn: &Connection, f: &Function, payload: Value) -> Result<Va
 }
 /// Exactly one request; never retried. The default deadline keeps `rpc`'s behavior.
 pub(crate) fn send_with(conn: &Connection, f: &Function, payload: Value, timeout: Duration) -> Result<Value> {
-    let tag = f.tag.ok_or("unknown_function")?;
+    // Streams go through `subscribe`; composed reads have no tag of their own.
+    if f.stream {
+        return Err("stream_function".into());
+    }
+    let Some(tag) = f.tag else { return streams::read_first(conn, f, payload, timeout) };
     if timeout == Duration::from_millis(DEFAULT_TIMEOUT_MS) {
         conn.rpc(tag, payload)
     } else {

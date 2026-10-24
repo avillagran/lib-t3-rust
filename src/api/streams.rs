@@ -6,6 +6,7 @@
 use super::{api_fn, ids, Args, Function};
 use crate::{Connection, Result};
 use serde_json::{json, Map, Value};
+use std::time::Duration;
 
 /// Largest `afterSequence` T3 decodes (`NonNegativeInt` is a safe JS integer).
 const SEQUENCE_MAX: u64 = (1 << 53) - 1;
@@ -149,6 +150,37 @@ pub const RUN_STACKED_ACTION: Function = Function {
     }
 };
 
+/// Reads of a stream's first item with a deadline (`stream::first_item`), for
+/// hosts that only want the current state: no queue and no `poll`.
+pub const INSTALL_STATE: Function = api_fn! {
+    name: "provider.installState", module: "provider", tag: None,
+    kind: Read, scope: Fixed("orchestration:read"),
+    args: [(instanceId, Slug, required)],
+    payload: |a| instance_payload(a.req("instanceId")?),
+    timeout_ms: 10_000,
+};
+pub const AUTH_STATE: Function = api_fn! {
+    name: "provider.authState", module: "provider", tag: None,
+    kind: Read, scope: Fixed("providers:manage"),
+    args: [(instanceId, Slug, required)],
+    payload: |a| instance_payload(a.req("instanceId")?),
+    timeout_ms: 10_000,
+};
+pub const LAST_STORAGE_CLEANUP_REPORT: Function = api_fn! {
+    name: "diagnostics.storageCleanupReport", module: "diagnostics", tag: None,
+    kind: Read, scope: Fixed("orchestration:read"),
+    args: [], payload: |_| Ok(json!({})),
+    timeout_ms: 10_000,
+};
+/// Waits up to its deadline for a list with servers: the first may precede the scan.
+pub const DISCOVERED_SERVERS: Function = api_fn! {
+    name: "preview.discoveredServers", module: "preview", tag: None,
+    kind: Read, scope: Fixed("orchestration:read"),
+    args: [(configuredUrls, Array, optional)],
+    payload: |a| local_servers_payload(strings(a, "configuredUrls")?.as_deref()),
+    timeout_ms: 4_000,
+};
+
 pub const FUNCTIONS: &[Function] = &[
     SUBSCRIBE_SHELL,
     SUBSCRIBE_THREAD,
@@ -163,6 +195,10 @@ pub const FUNCTIONS: &[Function] = &[
     PROVIDER_INSTALL,
     PROVIDER_AUTH,
     RUN_STACKED_ACTION,
+    INSTALL_STATE,
+    AUTH_STATE,
+    LAST_STORAGE_CLEANUP_REPORT,
+    DISCOVERED_SERVERS,
 ];
 
 /// A validated subscription: its registry row and the exact wire payload.
@@ -498,6 +534,42 @@ subscribe_fns! {
     subscribe_provider_auth(instance_id: &str) => provider_auth_spec;
     /// `GitActionProgressEvent` by `kind`, ending with `action_finished` or `action_failed`.
     subscribe_stacked_action(action: &StackedAction) => stacked_action_spec;
+}
+
+/// `provider.installState`: the current `ProviderInstallState` (10 s unless `timeout`).
+pub fn install_state(conn: &Connection, instance_id: &str, timeout: Option<Duration>) -> Result<Value> {
+    first_state(conn, &INSTALL_STATE, instance_payload(instance_id)?, timeout)
+}
+/// `provider.authState`: the current `ProviderAuthState` (10 s unless `timeout`).
+pub fn auth_state(conn: &Connection, instance_id: &str, timeout: Option<Duration>) -> Result<Value> {
+    first_state(conn, &AUTH_STATE, instance_payload(instance_id)?, timeout)
+}
+/// `diagnostics.storageCleanupReport`: the last `StorageCleanupReport`, or `null` before the first run.
+pub fn storage_cleanup_report(conn: &Connection, timeout: Option<Duration>) -> Result<Value> {
+    first_state(conn, &LAST_STORAGE_CLEANUP_REPORT, json!({}), timeout)
+}
+/// `preview.discoveredServers`: `{servers, scannedAt, …}`, the first list with servers
+/// or the last one seen within 4 s (unless `timeout`).
+pub fn discovered_servers(conn: &Connection, configured_urls: Option<&[String]>, timeout: Option<Duration>) -> Result<Value> {
+    first_state(conn, &DISCOVERED_SERVERS, local_servers_payload(configured_urls)?, timeout)
+}
+fn first_state(conn: &Connection, f: &Function, payload: Value, timeout: Option<Duration>) -> Result<Value> {
+    read_first(conn, f, payload, timeout.unwrap_or(f.timeout()))
+}
+/// A composed first-item read (`tag: None`): the stream it reads and when an item is enough.
+/// Nothing within the deadline is `stream_timeout`.
+pub(crate) fn read_first(conn: &Connection, f: &Function, payload: Value, timeout: Duration) -> Result<Value> {
+    let (stream, accept): (&'static Function, fn(&Value) -> bool) = match f.name {
+        "provider.installState" => (&PROVIDER_INSTALL, |_| true),
+        "provider.authState" => (&PROVIDER_AUTH, |_| true),
+        "diagnostics.storageCleanupReport" => (&STORAGE_CLEANUP_REPORT, |_| true),
+        "preview.discoveredServers" => {
+            (&SUBSCRIBE_DISCOVERED_LOCAL_SERVERS, |v| v["servers"].as_array().is_some_and(|s| !s.is_empty()))
+        }
+        _ => return Err("unknown_function".into()),
+    };
+    crate::stream::first_item(conn, &StreamSpec::new(stream, payload), timeout, accept)?
+        .ok_or_else(|| "stream_timeout".into())
 }
 
 fn thread_payload(thread_id: &str) -> Result<Value> {

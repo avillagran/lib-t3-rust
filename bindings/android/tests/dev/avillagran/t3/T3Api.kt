@@ -31,6 +31,9 @@ class T3Api(client: T3Client) {
     }
 
     class Diagnostics internal constructor(private val client: T3Client) {
+        /** `diagnostics.storageCleanupReport` · read · replay free · scope orchestration:read · 10000 ms */
+        fun storageCleanupReport(): Any? =
+            client.call("diagnostics.storageCleanupReport", JSONObject())
     }
 
     class Orchestration internal constructor(private val client: T3Client) {
@@ -45,6 +48,9 @@ class T3Api(client: T3Client) {
         /** `preview.list` · read · replay free · scope orchestration:read · 20000 ms */
         fun list(threadId: String): Any? =
             client.call("preview.list", JSONObject().put("threadId", threadId))
+        /** `preview.discoveredServers` · read · replay free · scope orchestration:read · 4000 ms */
+        fun discoveredServers(configuredUrls: JSONArray? = null): Any? =
+            client.call("preview.discoveredServers", JSONObject().put("configuredUrls", configuredUrls))
     }
 
     class Projects internal constructor(private val client: T3Client) {
@@ -54,6 +60,12 @@ class T3Api(client: T3Client) {
     }
 
     class Provider internal constructor(private val client: T3Client) {
+        /** `provider.installState` · read · replay free · scope orchestration:read · 10000 ms */
+        fun installState(instanceId: String): Any? =
+            client.call("provider.installState", JSONObject().put("instanceId", instanceId))
+        /** `provider.authState` · read · replay free · scope providers:manage · 10000 ms */
+        fun authState(instanceId: String): Any? =
+            client.call("provider.authState", JSONObject().put("instanceId", instanceId))
     }
 
     class Review internal constructor(private val client: T3Client) {
