@@ -13,7 +13,7 @@ It has no UI, account configuration or background service. Add the verified AAR
 to the Android application's dependencies:
 
 ```kotlin
-implementation(files("libs/lib-t3-rust-android-v0.3.0.aar"))
+implementation(files("libs/lib-t3-rust-android-v0.3.2.aar"))
 ```
 
 The application supplies its existing INTERNET permission and Kotlin standard
