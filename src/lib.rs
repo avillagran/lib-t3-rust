@@ -46,8 +46,11 @@ pub mod prompt_recall;
 pub mod latex;
 pub mod message_text;
 pub mod storage_settings;
+pub mod diff_review;
+pub mod tool_inspector;
 pub mod scoped_settings;
 pub mod native_settings;
+pub mod failure_context;
 
 pub type Result<T> = std::result::Result<T, String>;
 const MAX_BYTES: u64 = 8 * 1024 * 1024;
