@@ -43,7 +43,7 @@ fn capabilities_announce_abi_3_and_keep_every_earlier_operation() {
     }
     assert_eq!(caps["functions"], t3_protocol::api::functions().count());
     assert_eq!(caps["contract"], t3_protocol::api::CONTRACT);
-    assert_eq!(caps["maxSubscriptions"], 4);
+    assert_eq!(caps["maxSubscriptions"], 8);
 }
 
 #[test]

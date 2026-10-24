@@ -28,15 +28,14 @@ pub extern "C" fn t3_client_new() -> *mut std::ffi::c_void {
 }
 fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
     match field(&request, "op")? {
-        "capabilities" => Ok(crate::ffi_call::capabilities(
+        "capabilities" => Ok(crate::ffi_stream::with_capabilities(crate::ffi_call::capabilities(
             json!({"abiVersion":3,"libraryVersion":env!("CARGO_PKG_VERSION"),
-            "operations":["connectBearer","connectRelay","request","requestOk","rpc","rpcWithTimeout","disconnect","subscribe","pollSubscription","cancelSubscription","fetchDescriptor","pairBearer","boundedThread","assetBytes","projectFavicon"],
+            "operations":["connectBearer","connectRelay","request","requestOk","rpc","rpcWithTimeout","disconnect","subscribe","pollSubscription","cancelSubscription","wakeSubscriptions","fetchDescriptor","pairBearer","boundedThread","assetBytes","projectFavicon"],
             "binaryOperations":["image","assetBytes","projectFavicon"],
             "connectionOptions":["requestTimeoutMs","connectTimeoutMs","poolIdleTimeoutMs","maxBytes"],
-            "nativeAttachmentUpload":true,"nativeImageDownload":true,"maxSubscriptions":4,
-            "queueMaxItems":64,"queueMaxBytes":MAX_BYTES,"maxPollMs":1000,
+            "nativeAttachmentUpload":true,"nativeImageDownload":true,
             "maxAssetBytes":assets::MAX_ASSET_BYTES}),
-        )),
+        ))),
         "call" => crate::ffi_call::call(&request, || connection(handle)),
         "describe" => Ok(crate::ffi_call::describe()),
         "connectBearer" => {
@@ -134,14 +133,12 @@ fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
         }
         "subscribe" => {
             let mut h = handle.lock().map_err(|_| "internal_error")?;
-            if h.subscriptions.len() >= 4 {
-                return Err("subscription_limit".into());
-            }
             let connection = h.connection.clone().ok_or("not_connected")?;
             let tag = field(&request, "tag")?;
             if tag.len() > 256 || tag.chars().any(char::is_control) {
                 return Err("invalid_input".into());
             }
+            crate::ffi_stream::admit(&h.subscriptions, tag, &request["payload"])?;
             let subscription =
                 Subscription::start(connection, tag.into(), request["payload"].clone())?;
             let id = uuid::Uuid::new_v4().to_string();
@@ -175,6 +172,10 @@ fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
             }
             Ok(json!({"cancelled":subscription.is_some()}))
         }
+        "wakeSubscriptions" => crate::ffi_stream::wake_subscriptions(
+            &handle.lock().map_err(|_| "internal_error")?.subscriptions,
+            &request,
+        ),
         _ => Err("unknown_operation".into()),
     }
 }

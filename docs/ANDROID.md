@@ -32,17 +32,25 @@ val stream = client.subscribe("orchestration.subscribeThread", JSONObject()
     .put("acceptBoundedSnapshot", true)
     .put("acceptCompactTurnItems", true))
 // A resume can also set afterSequence from the last applied native event.
+val chunks = dev.avillagran.t3.T3Chunks()
 try {
     while (isForeground) {
-        val batch = stream.poll() // waits up to 1s; wakes immediately on new data
-        applyNativeItems(batch.items)
-        if (batch.closed) break // inspect batch.error, reconcile/reconnect explicitly
+        val batch = stream.poll() // waits up to 1s; wakes at once on items, chunk ends, idle
+        for (chunk in chunks.accept(batch)) applyNativeChunk(chunk) // whole server chunks
+        if (batch.completionMarker || batch.idle) paintIfChanged() // initial state complete
+        if (batch.closed) break // inspect batch.error/errorMessage, reconnect explicitly
     }
 } finally {
     stream.close()
     client.close()
 }
 ```
+
+On resume or a `ConnectivityManager` network change, call
+`client.wakeSubscriptions()` (or `stream.wake()`): a dead socket then closes the
+batch with `stream_timeout` in about 3 s instead of 20 s, and the host subscribes
+again from its cursor. Besides `errorMessage`, `T3Batch` carries `boundaries`,
+`idle` and `completionMarker`; `T3Chunks` regroups items into whole server chunks.
 
 Omi owns endpoint discovery, login, Android secure storage, lifecycle, cursor
 persistence and UI. It connects directly to T3. Omarchy-Link is not a T3 message
@@ -121,17 +129,52 @@ Functions in this release:
 {"op":"subscribe","tag":"orchestration.subscribeThread","payload":{"threadId":"selected","afterSequence":10,"requestCompletionMarker":true,"acceptBoundedSnapshot":true,"acceptCompactTurnItems":true}}
 {"op":"pollSubscription","subscriptionId":"returned-id","timeoutMs":1000}
 {"op":"cancelSubscription","subscriptionId":"returned-id"}
+{"op":"wakeSubscriptions"}
 ```
 
-`capabilities` reports ABI/library versions and limits without connecting.
-Subscribe returns `subscriptionId`; poll returns `{items, closed, error,
-errorMessage}` inside the usual `{ok,data}` envelope. `error` is a stable code;
-`errorMessage` carries a reason when the failure had one. Items preserve T3's native snapshot/event/
-synchronized shapes. One consumer polls each stream. Poll waits on a condition
+`capabilities` reports ABI/library versions and limits without connecting:
+`maxSubscriptions` (8), `maxLargeSubscriptions` (2), `queueMaxItems` (64),
+`queueMaxBytes`/`itemMaxBytes` (8 MiB), `largeItemMaxBytes` (64 MiB),
+`largeQueueMaxBytes` (72 MiB), `maxPollMs` (1000), `probeTimeoutMs` (3000),
+`idleTimeoutMs` (20000) and `pollFields`. Boundaries, idle, the completion marker
+and `wakeSubscriptions` are additive, so `abiVersion` stays 3; a host can test
+for `"wakeSubscriptions"` in `operations` or `"boundaries"` in `pollFields`.
+Subscribe returns `subscriptionId`; poll returns `{items, boundaries, idle,
+completionMarker, closed, error, errorMessage}` inside the usual `{ok,data}`
+envelope. `error` is a stable code; `errorMessage` carries a reason when the
+failure had one. Items preserve T3's native snapshot/event/synchronized shapes.
+
+Poll returns as soon as something is new (items, a chunk end, `idle` turning
+true, or the end of the stream), otherwise after `timeoutMs`:
+
+| Field | Meaning |
+|---|---|
+| `items` | Native items in server order, never dropped or reordered. |
+| `boundaries` | Strictly ascending end offsets into this batch's `items`: `n` means a server chunk ended after `items[0..n)`. Apply items and repaint at boundaries, so a replay burst never shows half-applied state. Items after the last boundary belong to a chunk that continues in the next poll; `0` means the chunk that ended the previous batch ended right there. |
+| `idle` | The last chunk is complete and no new frame completed during one 100 ms read tick: caught up for now. A large frame may still be in transit, and it can be `true` before the first item. Stays `true` until the next item; turning `true` wakes one waiting poll. Without `requestCompletionMarker` it is the only catch-up signal (the same rule ot3 uses); with it, wait for `completionMarker`. |
+| `completionMarker` | Only with `"requestCompletionMarker":true` in the payload: `true` from the batch that carries the server's `{"kind":"synchronized"}` item (left in `items` at its position) onward. The initial snapshot or replay is complete; paint it. |
+| `closed`, `error`, `errorMessage` | Once `closed` nothing more arrives. `error` is a stable code (`null` after cancel); `errorMessage` an optional one-line reason. |
+
+```json
+{"items":[{"kind":"snapshot","snapshotSequence":41,"projection":{}},{"kind":"synchronized"},{"kind":"event","sequence":42,"event":{}}],
+ "boundaries":[2],"idle":false,"completionMarker":true,"closed":false,"error":null,"errorMessage":null}
+```
+
+Here the first chunk (snapshot and marker) is complete and can be painted; the
+event belongs to a chunk whose end arrives in a later poll. One consumer polls each stream. Poll waits on a condition
 variable rather than repeatedly calling Java; it does not hold the connection
-lock and cannot stall sends or reads. At most four streams exist per handle;
-each queue holds at most 64 items and 8 MiB of serialized payload. Overflow ends
-the stream with `stream_backpressure`, preserving already queued events. Resume
+lock and cannot stall sends or reads. At most eight streams exist per handle
+(shell, open thread, command output, server config, preview, terminal, devices…),
+each on its own WebSocket because T3 serves one request per socket. Each queue
+holds at most 64 items and 8 MiB of serialized payload. The one exception is
+`orchestration.subscribeThread` with `acceptBoundedSnapshot:true`: its socket
+accepts 64 MiB frames, so one item may be a 64 MiB snapshot and its queue holds
+72 MiB (that snapshot plus 8 MiB of events). At most two of the eight streams may
+use that mode, so a handle never queues more than 2 × 72 + 6 × 8 = 192 MiB of
+serialized JSON (in practice far less: each poll drains its queue). A ninth
+stream, or a third bounded one, fails with `subscription_limit`. Without the
+flag a larger frame is refused by the socket and the stream ends with `disconnected`.
+Overflow ends the stream with `stream_backpressure`, preserving already queued events. Resume
 from the last applied cursor or obtain a fresh snapshot; never silently drop gaps.
 Close a finished subscription to release its slot. Disconnect or a successful
 connection switch cancels all streams; a failed switch preserves the old session.
@@ -139,6 +182,21 @@ connection switch cancels all streams; a failed switch preserves the old session
 The worker handles Effect Chunk/Ack, Ping/Pong and Interrupt framing in Rust.
 It pings every 5 s and closes a stream with `stream_timeout` after 20 s without
 any frame, so a suspended device or a changed network surfaces quickly.
+
+To check sooner, call wake when the app returns to the foreground or
+`ConnectivityManager` reports a network change:
+
+```json
+{"op":"wakeSubscriptions"}
+{"op":"wakeSubscriptions","subscriptionId":"returned-id"}
+```
+
+It returns `{"probed":n}` (open streams probed; an unknown id fails with
+`unknown_subscription`). Each probed stream pings at once, on its worker's next
+100 ms read tick, and ends with `stream_timeout` unless a frame arrives within 3 s
+of the call: a dead socket surfaces in about 3 s (3.0 to 3.1 s measured), a live
+one keeps streaming. The library never reconnects; on `stream_timeout` the host
+cancels the subscription and subscribes again from its cursor, with its own backoff.
 Cancellation wakes a blocked poll immediately; the network worker observes it on
 its next read tick. DNS/connect/TLS negotiation already in progress can take its
 normal timeout before the worker exits. No callbacks into the JVM occur from the
@@ -254,7 +312,9 @@ checksum in `dist/`; it does not sign or publish an Android application.
 - `tools/test-c-abi`: a real C caller links the static Rust archive.
 - `JAVA_HOME=... tools/test-jni`: real JNI/JVM calls, Unicode, error paths and ownership.
 - `tools/test-kotlin-jni`: canonical Kotlin adapter, typed errors, `call`/`describe`
-  through the generated wrappers, and concurrent close against a real native request. Supply the cached compiler variables above
+  through the generated wrappers, and concurrent close against a real native
+  request; `StreamFixture` drives streams through a JDK-only fake WebSocket (chunk
+  boundaries, completion marker, idle, wake probe and error reasons). Supply the cached compiler variables above
   and `JSON_JAR` for the host's org.json implementation.
 - Android cross-build/link checks cover all four ABIs. These are not Android
   device/UI/lifecycle E2E checks, which remain consumer work.
