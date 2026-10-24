@@ -29,6 +29,34 @@ int main(void) {
     response = t3_client_call(client, (const uint8_t *)capabilities, strlen(capabilities));
     assert(response && strstr(response, "\"rpcWithTimeout\""));
     t3_string_free(response);
+    response = t3_client_call(client, (const uint8_t *)capabilities, strlen(capabilities));
+    assert(response && strstr(response, "\"abiVersion\":2") && strstr(response, "\"assetBytes\"")
+        && strstr(response, "\"pairBearer\"") && strstr(response, "\"fetchDescriptor\"")
+        && strstr(response, "\"boundedThread\""));
+    t3_string_free(response);
+    const char *bad_options = "{\"op\":\"connectBearer\",\"httpBaseUrl\":\"http://127.0.0.1:9\",\"token\":\"fixture-secret\",\"options\":{\"requestTimeoutMs\":0}}";
+    response = t3_client_call(client, (const uint8_t *)bad_options, strlen(bad_options));
+    assert(response && strstr(response, "\"error\":\"invalid_connection_options\""));
+    t3_string_free(response);
+    const char *bounded = "{\"op\":\"boundedThread\",\"threadId\":\"t\"}";
+    response = t3_client_call(client, (const uint8_t *)bounded, strlen(bounded));
+    assert(response && strstr(response, "not_connected"));
+    t3_string_free(response);
+    const char *descriptor = "{\"op\":\"fetchDescriptor\",\"httpBaseUrl\":\"https://host/prefix\"}";
+    response = t3_client_call(client, (const uint8_t *)descriptor, strlen(descriptor));
+    assert(response && strstr(response, "\"error\":\"invalid_endpoint\""));
+    t3_string_free(response);
+    const char *pair = "{\"op\":\"pairBearer\",\"httpBaseUrl\":\"http://127.0.0.1:9\",\"pairingCode\":\" \"}";
+    response = t3_client_call(client, (const uint8_t *)pair, strlen(pair));
+    assert(response && strstr(response, "\"error\":\"invalid_pairing_code\""));
+    t3_string_free(response);
+    const char *asset = "{\"op\":\"assetBytes\",\"resource\":{\"_tag\":\"attachment\"},\"maxBytes\":1024}";
+    response = t3_client_call(client, (const uint8_t *)asset, strlen(asset));
+    assert(response && strstr(response, "\"error\":\"binary_operation\""));
+    t3_string_free(response);
+    response = t3_client_image(client, (const uint8_t *)asset, strlen(asset), no_image, NULL);
+    assert(response && strstr(response, "not_connected"));
+    t3_string_free(response);
     response = t3_client_call(client, (const uint8_t *)"{", 1);
     assert(response && strstr(response, "malformed"));
     t3_string_free(response);

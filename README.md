@@ -87,7 +87,18 @@ C ABI commands:
 {"op":"pollSubscription","subscriptionId":"returned-id","timeoutMs":1000}
 {"op":"cancelSubscription","subscriptionId":"returned-id"}
 {"op":"disconnect"}
+{"op":"connectBearer","httpBaseUrl":"https://environment.example","token":"host-provided-token","options":{"requestTimeoutMs":8000,"connectTimeoutMs":3000,"poolIdleTimeoutMs":90000}}
+{"op":"request","method":"GET","path":"/api/orchestration/shell","maxBytes":1048576}
+{"op":"requestOk","method":"POST","path":"/api/auth/clients/revoke","body":{"sessionId":"s-1"},"protocol":false}
+{"op":"fetchDescriptor","httpBaseUrl":"https://environment.example","environmentId":"00000000-0000-4000-8000-000000000001"}
+{"op":"pairBearer","httpBaseUrl":"https://environment.example","pairingCode":"from-the-pairing-link","client":{"label":"Omi","deviceType":"mobile","os":"android"},"connect":true}
+{"op":"boundedThread","threadId":"selected"}
 ```
+
+Signed assets return bytes through `t3_client_image`'s callback, never as
+Base64 JSON: metadata `{"op":"assetBytes","resource":{...},"maxBytes":N}` or
+`{"op":"projectFavicon","cwd":"/repo","path":"favicon.svg"}`. Metadata without
+`op` is the original attachment image read.
 
 Responses are `{ "ok": true, "data": ... }` or
 `{ "ok": false, "error": "stable_code" }`; a rejected RPC may add
@@ -118,7 +129,7 @@ or real conversations are created by these tests.
 | Area | Modules |
 | --- | --- |
 | Native state | `projection`, `history`, `lifecycle`, `stream` |
-| Transport | `Connection::rpc`, `Connection::rpc_with_timeout`, `stream` (`subscribe`, `subscribe_probed`) |
+| Transport | `ConnectionOptions`, `Connection::rpc`, `Connection::rpc_with_timeout`, `stream` (`subscribe`, `subscribe_probed`), `assets`, `pairing`, `bounded_snapshot` |
 | Chat operations | `composer`, `queue`, `questions`, `approvals`, `tasks` |
 | Presentation | `activity`, `changes`, `documents`, `sidebar`, `models`, `i18n` |
 | Devices | `device_hub` |
@@ -208,6 +219,55 @@ HTML. `latex::render(tex, display, Surface::Qt)` is the same output behind an
 explicit surface. An Android surface gets its own variant once its renderer is
 designed; until then, Kotlin should treat this output as Qt-specific.
 `plan_workflow` takes the renderer as a parameter, so it is not tied to Qt.
+
+### Unreleased (transport, lote 2)
+
+All additive; `Connection::new`, `with_http_client` and C ABI v2 behave as before.
+
+- **`ConnectionOptions`.** Request timeout (12 s), connect timeout (none), pool
+  idle timeout (90 s) and `request_json` limit (8 MiB), defaults in one place.
+  `Connection::with_options`, `connect_relay_with_options` and
+  `RelayClient::with_options` take them. `build_http_client()` gives a pooled
+  `reqwest` client (no proxy, no redirects) to share. `with_credential` puts a
+  read and a write token on one pool. They apply to HTTP only: WebSocket RPC
+  keeps 8 s connect, 12 s read/write and the 20 s `rpc` deadline
+  (`rpc_with_timeout` for longer).
+- **HTTP details.** `Content-Type` is matched without case or parameters
+  (`Application/JSON; charset=utf-8`), `Content-Encoding: identity` without case.
+  `request_json_with_limit` sets one call's limit (1 byte to 64 MiB).
+  `request_ok` accepts any 2xx without reading the body.
+- **Signed assets.** `Connection::asset_bytes(resource, limit)` /
+  `asset_bytes_with(resource, &AssetOptions)` read any `assets.createUrl`
+  resource: same origin, under `/api/assets/` after dot segments, no credential,
+  no redirects, exact limit (up to 64 MiB), 30 s by default. Errors:
+  `invalid_asset_url`, `asset_unreachable`, `asset_unavailable`,
+  `asset_too_large`. `assets::attachment_resource(id, name, mime, inline)` builds
+  the attachment resource. `project_favicon(cwd, path)` reads 2 MiB within 3 s
+  and returns `None` for T3's missing-favicon URL without fetching it.
+- **Discovery and pairing.** `fetch_descriptor(base)` and
+  `verify_environment(base, id, &options)` read `/.well-known/t3/environment`
+  without credentials. `pair_bearer(base, secret, expected, &PairingClient,
+  &options)` checks the descriptor (UUID, expected environment) before sending
+  the pairing secret to `POST /oauth/token`. It returns a `PairedBearer` with the
+  token, descriptor, scope and `connection()`. Errors: `pairing_rejected` (any
+  non-2xx), `unsupported_pairing_token`, `t3_environment_mismatch`,
+  `invalid_t3_environment_id`, `invalid_pairing_code`, `invalid_pairing_client`.
+- **Session pruning.** `Connection::revoke_stale_sessions(select)` lists
+  `/api/auth/clients`, applies the host's policy and revokes each chosen session.
+- **Bounded threads.** `bounded_snapshot::{path, restore, valid_thread_id}` and
+  `Connection::bounded_thread(id)` read `bounded?compactTurnItems=1` and restore
+  compacted local turn items.
+
+Behaviour hosts take over from their own HTTP code, and what stays theirs:
+
+| Topic | Library behaviour |
+| --- | --- |
+| Proxy, redirects | Always disabled, including descriptor, pairing and pruning. Paths that used to follow `HTTP(S)_PROXY` or redirects no longer do. |
+| 401 / 403, other non-2xx, network | `unauthorized`, `http_<code>`, `unreachable`. Descriptor reads keep these codes: map them if the UI wants another one. |
+| Error bodies | Discarded, as before. Only RPC failures carry a reason. |
+| Extra headers, absolute URLs to other hosts | Not supported. Same-origin T3 traffic only; third-party HTTP stays in the host. |
+| Asset error codes | One family (`asset_*`). A host that shows `attachment_*` or `revert_attachment_*` maps them; an exact-size check is `limit = sizeBytes` plus `bytes.len() == sizeBytes`. |
+| Image error codes | Unchanged (`image_*`, `invalid_image`, `invalid_asset_url`). |
 
 ## Development
 
