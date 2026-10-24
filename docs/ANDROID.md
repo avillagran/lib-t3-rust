@@ -429,6 +429,25 @@ to explicitly installed/cached tools. Run it in the clean, committed release
 checkout after building all four ABIs. It produces the versioned AAR and SHA-256
 checksum in `dist/`; it does not sign or publish an Android application.
 
+### Releases
+
+Pushing a `v*` tag runs [`.github/workflows/android-release.yml`](../.github/workflows/android-release.yml)
+on `ubuntu-24.04`: it checks that the tag matches the `Cargo.toml` version, installs
+the four Rust Android targets, NDK 28.2.13676358 and the `android-36` platform
+through the runner's `sdkmanager`, JDK 21 and the Kotlin 2.3.21 compiler (the
+compiler and org.json downloads are pinned by SHA-256 in
+[`.github/actions/android-toolchain`](../.github/actions/android-toolchain/action.yml)),
+runs `tools/build-android arm64-v8a x86_64 armeabi-v7a x86` and
+`tools/package-android`, verifies the checksum and publishes
+`lib-t3-rust-android-v<version>.aar` and its `.sha256` as a GitHub release. A manual
+run (`workflow_dispatch`) builds and packages the same way and only uploads both
+files as a workflow artifact, which is how the workflow is checked before a tag.
+
+Every push and pull request also runs the `kotlin` job of
+[`test.yml`](../.github/workflows/test.yml): `tools/compile-android-kotlin` against
+`android.jar`, then `tools/test-jni` and `tools/test-kotlin-jni` on x86_64, so no
+Kotlin change is tagged without compiling.
+
 ## Validation
 
 - `cargo test --locked`: local HTTP/WebSocket fixtures cover exact event delivery,
@@ -441,7 +460,7 @@ checksum in `dist/`; it does not sign or publish an Android application.
   through the generated wrappers, and concurrent close against a real native
   request; `StreamFixture` drives streams through a JDK-only fake WebSocket (chunk
   boundaries, completion marker, idle, wake probe and error reasons). Supply the cached compiler variables above
-  and `JSON_JAR` for the host's org.json implementation.
+  and `JSON_JAR` for the host's org.json implementation; CI runs it in the `kotlin` job.
 - Android cross-build/link checks cover all four ABIs. These are not Android
   device/UI/lifecycle E2E checks, which remain consumer work.
 
