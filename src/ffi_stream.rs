@@ -362,6 +362,21 @@ mod tests {
         assert!(start.elapsed() >= Duration::from_millis(140));
     }
     #[test]
+    fn a_terminal_error_keeps_its_code_and_carries_the_reason_apart() {
+        let s = subscription(Shared::default());
+        s.shared.push(json!({"kind":"event","sequence":1})).unwrap();
+        s.shared.finish(Some("rpc_connection_failed: HTTP error: 401 Unauthorized".into()));
+        let end = s.poll(0).unwrap();
+        assert_eq!(end["items"], json!([{"kind":"event","sequence":1}]));
+        assert_eq!((end["closed"].clone(), end["idle"].clone()), (json!(true), json!(false)));
+        assert_eq!(end["error"], "rpc_connection_failed");
+        assert_eq!(end["errorMessage"], "HTTP error: 401 Unauthorized");
+        let s = subscription(Shared::default());
+        s.shared.finish(Some("stream_timeout".into()));
+        let end = s.poll(0).unwrap();
+        assert_eq!((end["error"].clone(), end["errorMessage"].clone()), (json!("stream_timeout"), Value::Null));
+    }
+    #[test]
     fn cancel_wakes_a_waiter_without_a_network_tick() {
         let s = Arc::new(subscription(Shared::default()));
         let waiting = s.clone();
