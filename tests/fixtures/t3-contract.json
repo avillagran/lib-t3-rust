@@ -191,12 +191,32 @@
    "scope": "orchestration:operate",
    "stream": false
   },
+  "orchestration.getArchivedShellSnapshot": {
+   "dynamic": false,
+   "scope": "orchestration:read",
+   "stream": false
+  },
+  "orchestration.getFullThreadDiff": {
+   "dynamic": false,
+   "scope": "orchestration:read",
+   "stream": false
+  },
+  "orchestration.getThreadProjection": {
+   "dynamic": false,
+   "scope": "orchestration:read",
+   "stream": false
+  },
   "orchestration.getTurnDiff": {
    "dynamic": false,
    "scope": "orchestration:read",
    "stream": false
   },
   "orchestration.getTurnItem": {
+   "dynamic": false,
+   "scope": "orchestration:read",
+   "stream": false
+  },
+  "orchestration.getWorkflowScript": {
    "dynamic": false,
    "scope": "orchestration:read",
    "stream": false
@@ -211,6 +231,11 @@
    "scope": "orchestration:read",
    "stream": false
   },
+  "orchestration.searchThreadStream": {
+   "dynamic": false,
+   "scope": "orchestration:read",
+   "stream": true
+  },
   "orchestration.searchThreads": {
    "dynamic": false,
    "scope": "orchestration:read",
@@ -220,6 +245,16 @@
    "dynamic": false,
    "scope": "orchestration:operate",
    "stream": false
+  },
+  "orchestration.subscribeArchivedShell": {
+   "dynamic": false,
+   "scope": "orchestration:read",
+   "stream": true
+  },
+  "orchestration.subscribeCommandOutput": {
+   "dynamic": false,
+   "scope": "orchestration:read",
+   "stream": true
   },
   "orchestration.subscribeShell": {
    "dynamic": false,
@@ -601,9 +636,24 @@
    "scope": "orchestration:operate",
    "stream": false
   },
+  "scheduledTasks.getWebhookDelivery": {
+   "dynamic": false,
+   "scope": "orchestration:operate",
+   "stream": false
+  },
   "scheduledTasks.list": {
    "dynamic": false,
    "scope": "orchestration:read",
+   "stream": false
+  },
+  "scheduledTasks.listWebhookDeliveries": {
+   "dynamic": false,
+   "scope": "orchestration:operate",
+   "stream": false
+  },
+  "scheduledTasks.rotateWebhookToken": {
+   "dynamic": false,
+   "scope": "orchestration:operate",
    "stream": false
   },
   "scheduledTasks.runNow": {
@@ -651,6 +701,11 @@
    "scope": "orchestration:operate",
    "stream": false
   },
+  "server.disableAcpRegistryProvider": {
+   "dynamic": false,
+   "scope": "providers:manage",
+   "stream": false
+  },
   "server.discoverSourceControl": {
    "dynamic": false,
    "scope": "orchestration:read",
@@ -682,6 +737,11 @@
    "stream": false
   },
   "server.getProcessResourceHistory": {
+   "dynamic": false,
+   "scope": "diagnostics:read",
+   "stream": false
+  },
+  "server.getResourceTelemetryHistory": {
    "dynamic": false,
    "scope": "diagnostics:read",
    "stream": false
@@ -784,6 +844,11 @@
   "server.signalProcess": {
    "dynamic": false,
    "scope": "environment:maintain",
+   "stream": false
+  },
+  "server.uninstallAcpRegistryManagedBinary": {
+   "dynamic": false,
+   "scope": "providers:manage",
    "stream": false
   },
   "server.updateProvider": {

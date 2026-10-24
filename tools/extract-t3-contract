@@ -79,7 +79,7 @@ def main():
     # Streams: `Rpc.make(X.key, { ... stream: true ... })`.
     # Only tags with an `Rpc.make` are served; WS_METHODS also keeps retired names.
     streams, every = set(), set()
-    for match in re.finditer(r"Rpc\.make\((WS_METHODS|ORCHESTRATION_V2_WS_METHODS)\.(\w+),", rpc):
+    for match in re.finditer(r"Rpc\.make\(\s*(WS_METHODS|ORCHESTRATION_V2_WS_METHODS)\.(\w+),", rpc):
         every.add(tag_of(match.group(1), match.group(2)))
         body = block(rpc[match.start() :], r"Rpc\.make\([^,]+,\s*\{")
         if re.search(r"^\s*stream:\s*true", body, re.M):
