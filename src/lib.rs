@@ -39,6 +39,7 @@ pub mod tasks;
 pub mod i18n;
 pub mod stream;
 pub mod projection;
+pub mod util;
 
 pub type Result<T> = std::result::Result<T, String>;
 const MAX_BYTES: u64 = 8 * 1024 * 1024;
