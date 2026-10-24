@@ -317,3 +317,34 @@ fn eight_streams_per_handle_and_the_ninth_fails_with_a_stable_code() {
     assert_eq!(requests.len(), 9);
     assert_eq!(requests.iter().filter(|r| r["payload"]["acceptBoundedSnapshot"] == true).count(), 2);
 }
+
+#[test]
+fn a_refused_stream_reports_a_stable_code_and_the_reason_apart() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    let server = thread::spawn(move || {
+        use std::io::{Read, Write};
+        let (mut socket, _) = listener.accept().unwrap();
+        socket.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        let mut head = vec![];
+        let mut byte = [0];
+        while !head.ends_with(b"\r\n\r\n") && socket.read(&mut byte).unwrap() == 1 {
+            head.push(byte[0]);
+        }
+        assert!(String::from_utf8(head).unwrap().starts_with("GET /ws"));
+        socket.write_all(b"HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap();
+    });
+    let client = Client::connected(&base);
+    let id = client.subscribe("orchestration.subscribeShell", json!({}));
+    let end = client.poll_until(&id, |_| false).pop().unwrap();
+    assert_eq!(end["error"], "rpc_connection_failed", "{end}");
+    assert!(end["errorMessage"].as_str().unwrap().contains("401"), "{end}");
+    server.join().unwrap();
+    // A stream the server ends normally has a code and no reason.
+    let (base, server) = serve(|_, ws| send(ws, json!({"_tag":"Exit","requestId":"1","exit":{"_tag":"Success"}})));
+    let client = Client::connected(&base);
+    let id = client.subscribe("orchestration.subscribeShell", json!({}));
+    let end = client.poll_until(&id, |_| false).pop().unwrap();
+    assert_eq!((end["error"].clone(), end["errorMessage"].clone()), (json!("stream_closed"), Value::Null));
+    server.join().unwrap();
+}
