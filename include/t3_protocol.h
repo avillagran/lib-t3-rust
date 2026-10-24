@@ -28,8 +28,14 @@ extern "C" {
  *     "invalid_<field>", "invalid_rpc_timeout"), then sends exactly once.
  *   "write_not_authorized" failures add "requiredScope" (e.g. "settings:write").
  */
-/* Streams. {"op":"subscribe","tag":T,"payload":{...}} -> {subscriptionId}. One
- * consumer polls each stream:
+/* Streams. {"op":"subscribe","tag":T,"payload":{...}} -> {subscriptionId}.
+ * Up to 8 per handle, each on its own WebSocket; at most 2 may be
+ * orchestration.subscribeThread with "acceptBoundedSnapshot":true. A ninth (or
+ * a third bounded) fails with "subscription_limit"; an ended stream keeps its
+ * slot until cancelSubscription. Each queue holds 64 items and 8 MiB of JSON;
+ * a bounded thread stream takes one item up to 64 MiB in a 72 MiB queue, so a
+ * handle queues at most 192 MiB. Overflow ends the stream with
+ * "stream_backpressure", keeping what was queued. One consumer polls each stream:
  * {"op":"pollSubscription","subscriptionId":S,"timeoutMs":0..1000} (default 1000)
  * returns as soon as there is something new (items, a chunk end, idle turning
  * true, or the end), else after timeoutMs, with

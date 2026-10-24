@@ -10,6 +10,12 @@ use std::{
     time::{Duration, Instant},
 };
 pub(crate) const MAX_ITEMS: usize = 64;
+/// Streams per handle (shell, open thread, command output, config, preview, terminal,
+/// devices…), each with its own WebSocket: T3 serves one request per socket.
+pub(crate) const MAX_SUBSCRIPTIONS: usize = 8;
+/// Of those, streams in the 64 MiB bounded-snapshot mode. Queued payload per handle
+/// stays under 2 × 72 MiB + 6 × 8 MiB = 192 MiB of serialized JSON.
+pub(crate) const MAX_LARGE_SUBSCRIPTIONS: usize = 2;
 /// Per-subscription bounds, fixed by its mode when it starts. Sizes are serialized JSON.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct Limits {
@@ -30,6 +36,9 @@ impl Limits {
         } else {
             Self::NORMAL
         }
+    }
+    pub(crate) fn large(self) -> bool {
+        self != Self::NORMAL
     }
 }
 impl Default for Limits {
@@ -172,6 +181,9 @@ impl Subscription {
             .map_err(|_| "local_error")?;
         Ok(Self { shared, cancel, wake })
     }
+    fn limits(&self) -> Limits {
+        self.shared.limits
+    }
     /// Pings at once on the worker's next read tick (at most 100 ms) and ends the stream
     /// with `stream_timeout` unless a frame arrives within STREAM_PROBE_TIMEOUT of this
     /// call. Returns false for a stream that already ended. Never reconnects.
@@ -217,6 +229,21 @@ impl Subscription {
             self.shared.ready.notify_all();
         }
     }
+}
+/// A slot for one more stream, or `subscription_limit`. Ended streams keep their slot
+/// until the host cancels them.
+pub(crate) fn admit(
+    subscriptions: &HashMap<String, Arc<Subscription>>,
+    tag: &str,
+    payload: &Value,
+) -> Result<()> {
+    let large = || subscriptions.values().filter(|s| s.limits().large()).count();
+    if subscriptions.len() >= MAX_SUBSCRIPTIONS
+        || Limits::of(tag, payload).large() && large() >= MAX_LARGE_SUBSCRIPTIONS
+    {
+        return Err("subscription_limit".into());
+    }
+    Ok(())
 }
 /// `{"op":"wakeSubscriptions"}` probes every stream of the handle; with
 /// `"subscriptionId"` only that one. Returns `{"probed": open streams probed}`.
@@ -266,6 +293,7 @@ mod tests {
         let bounded = json!({"threadId":"t","acceptBoundedSnapshot":true});
         let large = Limits::of("orchestration.subscribeThread", &bounded);
         assert_eq!(large, Limits { item: 64 << 20, queue: 72 << 20 });
+        assert!(large.large() && !Limits::NORMAL.large());
         for (tag, payload) in [
             ("orchestration.subscribeThread", json!({"threadId":"t"})),
             ("orchestration.subscribeThread", json!({"acceptBoundedSnapshot":"true"})),

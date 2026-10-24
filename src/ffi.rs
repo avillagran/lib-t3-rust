@@ -33,7 +33,7 @@ fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
             "operations":["connectBearer","connectRelay","request","requestOk","rpc","rpcWithTimeout","disconnect","subscribe","pollSubscription","cancelSubscription","fetchDescriptor","pairBearer","boundedThread","assetBytes","projectFavicon"],
             "binaryOperations":["image","assetBytes","projectFavicon"],
             "connectionOptions":["requestTimeoutMs","connectTimeoutMs","poolIdleTimeoutMs","maxBytes"],
-            "nativeAttachmentUpload":true,"nativeImageDownload":true,"maxSubscriptions":4,
+            "nativeAttachmentUpload":true,"nativeImageDownload":true,"maxSubscriptions":crate::ffi_stream::MAX_SUBSCRIPTIONS,
             "queueMaxItems":64,"queueMaxBytes":MAX_BYTES,"maxPollMs":1000,
             "maxAssetBytes":assets::MAX_ASSET_BYTES}),
         )),
@@ -134,14 +134,12 @@ fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
         }
         "subscribe" => {
             let mut h = handle.lock().map_err(|_| "internal_error")?;
-            if h.subscriptions.len() >= 4 {
-                return Err("subscription_limit".into());
-            }
             let connection = h.connection.clone().ok_or("not_connected")?;
             let tag = field(&request, "tag")?;
             if tag.len() > 256 || tag.chars().any(char::is_control) {
                 return Err("invalid_input".into());
             }
+            crate::ffi_stream::admit(&h.subscriptions, tag, &request["payload"])?;
             let subscription =
                 Subscription::start(connection, tag.into(), request["payload"].clone())?;
             let id = uuid::Uuid::new_v4().to_string();
