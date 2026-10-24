@@ -6,7 +6,7 @@ and Omi. Extracted with source history from ot3; the Cargo package remains
 
 ```toml
 [dependencies]
-t3-protocol = { git = "https://github.com/avillagran/lib-t3-rust", tag = "v0.2.0" }
+t3-protocol = { git = "https://github.com/avillagran/lib-t3-rust", tag = "v0.3.0" }
 ```
 
 For reproducible application builds, pin a full `rev` and commit Cargo.lock.
@@ -82,6 +82,7 @@ C ABI commands:
 {"op":"connectRelay","relayUrl":"https://relay.example","cloudJwt":"host-provided-jwt","clientId":"t3-mobile","environmentId":"00000000-0000-4000-8000-000000000001"}
 {"op":"request","method":"GET","path":"/api/orchestration/shell","protocol":true}
 {"op":"rpc","tag":"server.getConfig","payload":{}}
+{"op":"rpcWithTimeout","tag":"device.configure","payload":{},"timeoutMs":120000}
 {"op":"subscribe","tag":"orchestration.subscribeThread","payload":{"threadId":"selected"}}
 {"op":"pollSubscription","subscriptionId":"returned-id","timeoutMs":1000}
 {"op":"cancelSubscription","subscriptionId":"returned-id"}
@@ -89,7 +90,8 @@ C ABI commands:
 ```
 
 Responses are `{ "ok": true, "data": ... }` or
-`{ "ok": false, "error": "stable_code" }`. Inputs remain owned by the caller;
+`{ "ok": false, "error": "stable_code" }`; a rejected RPC may add
+`"message"` with the server's one-line reason, so `error` stays comparable. Inputs remain owned by the caller;
 the caller clears its credential buffers. Never free a handle during a call.
 Connection changes are atomic: a failed connect leaves the prior connection
 intact, so the host must treat the returned error as a failed switch.
@@ -116,8 +118,10 @@ or real conversations are created by these tests.
 | Area | Modules |
 | --- | --- |
 | Native state | `projection`, `history`, `lifecycle`, `stream` |
+| Transport | `Connection::rpc`, `Connection::rpc_with_timeout`, `stream` (`subscribe`, `subscribe_probed`) |
 | Chat operations | `composer`, `queue`, `questions`, `approvals`, `tasks` |
 | Presentation | `activity`, `changes`, `documents`, `sidebar`, `models`, `i18n` |
+| Devices | `device_hub` |
 | Configuration | `connection_catalog`, `projects`, `settings` |
 | Cache policy | `compaction` |
 
@@ -125,6 +129,39 @@ Modules derive portable models and validate native commands; hosts own dispatch,
 persistence, deduplication, reconnection, backoff and UI. Preventive compaction
 requires a durable host-owned one-attempt claim before dispatch. Transport tests
 use local fixture servers, never real conversations or paid provider runs.
+
+### Added in 0.3.0
+
+- **Long RPCs.** `Connection::rpc_with_timeout(tag, payload, timeout)` runs the
+  same Effect request/exit as `rpc` with an explicit deadline of up to 300 s and
+  heartbeats, for lifecycle calls that outlast `rpc`'s 20 s. It never retries:
+  a deadline sends `Interrupt` and returns `rpc_outcome_unknown`.
+- **Failure reasons.** A rejected RPC reads `rpc_rejected: <message>` (or
+  `write_not_authorized: <tag>`), taking only the cause's first error message or
+  tag, bounded to one line. `error_code()` strips the reason before comparing.
+- **Stream liveness.** Subscriptions ping every 5 s and drop after 20 s without
+  any frame (`STREAM_PING_INTERVAL`, `STREAM_IDLE_TIMEOUT`). `subscribe_probed`
+  lets the host ask for an immediate check after a resume or network change; a
+  socket that sends nothing within 3 s fails with `stream_timeout`.
+- **Bounded snapshots.** Protocol GETs of `/api/orchestration/threads/<id>/bounded`
+  and `orchestration.subscribeThread` with `acceptBoundedSnapshot` accept up to
+  64 MiB; everything else stays at 8 MiB.
+- **Images.** `media_image(thread, path)` reads host-local media through a signed
+  grant scoped to that thread and path. Attachments also accept HEIC, HEIF and
+  AVIF, and the served type must match the attachment.
+- **`device_hub`.** Builds the native device hub proxy paths for iOS
+  (serve-sim MJPEG and input) and Android (serve-emu H.264 socket with `SEMU`
+  headers), screenshots for both, with a session `wsTicket` and `hostId`.
+  `MjpegFrames` splits JPEG streams, `parse_semu` reads access units and
+  `input_message` encodes normalized touch, button, key and text input.
+  Decoding and display stay with the host.
+- **T3 0.1 / 0.1.2 models.** `projection` applies partial-payload events
+  (pull request link updates, detached provider sessions, cancelled background
+  work, rollback requests), mirrors context handoffs and transfers, keeps token
+  usage and html_render / MCP app references. `documents::mcp_app` reads MCP
+  apps, `activity` marks failed tool rows, `sidebar::sidebar_status` follows
+  T3's sidebar status and snooze rules, `compaction` leaves settled threads
+  asleep, and `queue` keeps a message promoted to steer visible.
 
 ## Development
 
