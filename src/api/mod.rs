@@ -22,6 +22,7 @@ pub mod diagnostics;
 pub mod filesystem;
 pub mod project_clone;
 pub mod provider;
+pub mod pull_requests;
 
 pub mod streams;
 
@@ -334,6 +335,7 @@ const MODULES: &[&[Function]] = &[
     provider::FUNCTIONS,
     project_clone::FUNCTIONS,
     filesystem::FUNCTIONS,
+    pull_requests::FUNCTIONS,
 
     streams::FUNCTIONS,
 ];
