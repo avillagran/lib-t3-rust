@@ -103,18 +103,20 @@ functions also appear under `streams` with their item shapes (see Typed streams)
 harmless, `never` read the state back first. The library never retries.
 
 Typed Kotlin wrappers are generated from the saved `describe`
-([`bindings/android/describe.json`](../bindings/android/describe.json)). Today the
-generated [`T3Api.kt`](../bindings/android/tests/dev/avillagran/t3/T3Api.kt) is a test
-fixture (`T3Api(client).vcs.refreshStatus(path)`); `cargo test --test api_describe`
-fails when the registry, the saved `describe` and the wrappers disagree.
+([`bindings/android/describe.json`](../bindings/android/describe.json)). The
+generated [`T3Api.kt`](../bindings/android/kotlin/dev/avillagran/t3/T3Api.kt) sits
+next to `T3Client.kt` and ships in the AAR (`T3Api(client).vcs.refreshStatus(path)`);
+`cargo test --test api_describe` fails when the registry, the saved `describe` and
+the wrappers disagree.
 
 The generator maps `integer` to `Long`, `number` to `Double`, `object` and
 `command` to `JSONObject`, `array` to `JSONArray` and the rest to `String`; a Kotlin
 keyword used as an argument is backquoted (`` `when` `` in the keybinding calls).
 Functions with `openArgs` (`dispatchCommand`, `projects.mutate`, `device.action`)
 take the whole variant as one `JSONObject`. `cargo test --test api_describe` checks
-`T3Api.kt` against `describe.json` byte for byte; `tools/test-kotlin-jni` compiles
-it, which needs a JDK and `kotlinc`.
+`T3Api.kt` against `describe.json` byte for byte; `tools/compile-android-kotlin`
+compiles it with `T3Client.kt` against `android.jar` (as `tools/package-android`
+does) and `tools/test-kotlin-jni` runs it through JNI, which needs a JDK and `kotlinc`.
 
 Unary functions in this release (99; the README's Typed API section has each
 one's Rust signature, kind, scope, deadline and arguments; streams follow in
@@ -401,7 +403,8 @@ configuration for offline builds. ELF libraries use 16 KiB maximum page alignmen
 Outputs live under `dist/android/<abi>/libt3_jni.so`. Desktop Linux libraries are
 not Android libraries, even when the CPU matches.
 
-`tools/package-android` compiles the Kotlin wrapper and assembles an AAR. It needs
+`tools/package-android` compiles the Kotlin adapter (`T3Client.kt` and `T3Api.kt`,
+through `tools/compile-android-kotlin`) and assembles an AAR. It needs
 `JAVA_HOME`, `ANDROID_JAR`, `KOTLIN_STDLIB` and `KOTLIN_COMPILER_CLASSPATH` pointing
 to explicitly installed/cached tools. Run it in the clean, committed release
 checkout after building all four ABIs. It produces the versioned AAR and SHA-256

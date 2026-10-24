@@ -1,11 +1,11 @@
 //! The saved `describe` (`bindings/android/describe.json`) and the Kotlin
-//! wrappers generated from it (`bindings/android/tests/.../T3Api.kt`) must match
-//! the registry. Regenerate both with `T3_UPDATE_FIXTURES=1 cargo test --test api_describe`.
+//! wrappers generated from it (`bindings/android/kotlin/.../T3Api.kt`, shipped in
+//! the AAR) must match the registry. Regenerate both with `T3_UPDATE_FIXTURES=1 cargo test --test api_describe`.
 use serde_json::Value;
 use std::{fmt::Write, fs, path::Path};
 
 const DESCRIBE: &str = "bindings/android/describe.json";
-const KOTLIN: &str = "bindings/android/tests/dev/avillagran/t3/T3Api.kt";
+const KOTLIN: &str = "bindings/android/kotlin/dev/avillagran/t3/T3Api.kt";
 
 fn check(path: &str, expected: &str) {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(path);

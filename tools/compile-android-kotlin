@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Compile the canonical Kotlin adapter (T3Client.kt and the generated T3Api.kt) against android.jar.
+set -euo pipefail
+cd -- "$(dirname -- "$0")/.."
+: "${JAVA_HOME:?Set JAVA_HOME to an installed JDK}"
+: "${ANDROID_JAR:?Set ANDROID_JAR to the installed SDK android.jar}"
+: "${KOTLIN_STDLIB:?Set KOTLIN_STDLIB to the installed kotlin-stdlib jar}"
+: "${KOTLIN_COMPILER_CLASSPATH:?Set KOTLIN_COMPILER_CLASSPATH to the installed compiler and dependencies}"
+classes=${1:?Usage: tools/compile-android-kotlin <classes-dir>}
+mkdir -p "$classes"
+"$JAVA_HOME/bin/java" -Xmx384m -cp "$KOTLIN_COMPILER_CLASSPATH" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
+  -no-stdlib -no-reflect -jvm-target 17 -classpath "$ANDROID_JAR:$KOTLIN_STDLIB" \
+  -d "$classes" bindings/android/kotlin/dev/avillagran/t3/*.kt
