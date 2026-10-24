@@ -12,7 +12,7 @@ It has no UI, account configuration or background service. Add the verified AAR
 to the Android application's dependencies:
 
 ```kotlin
-implementation(files("libs/lib-t3-rust-android-v0.2.0.aar"))
+implementation(files("libs/lib-t3-rust-android-v0.3.0.aar"))
 ```
 
 The application supplies its existing INTERNET permission and Kotlin standard
@@ -66,8 +66,9 @@ permission, automatic reconnection or mutation retry is introduced by this adapt
 ```
 
 `capabilities` reports ABI/library versions and limits without connecting.
-Subscribe returns `subscriptionId`; poll returns `{items, closed, error}` inside
-the usual `{ok,data}` envelope. Items preserve T3's native snapshot/event/
+Subscribe returns `subscriptionId`; poll returns `{items, closed, error,
+errorMessage}` inside the usual `{ok,data}` envelope. `error` is a stable code;
+`errorMessage` carries a reason when the failure had one. Items preserve T3's native snapshot/event/
 synchronized shapes. One consumer polls each stream. Poll waits on a condition
 variable rather than repeatedly calling Java; it does not hold the connection
 lock and cannot stall sends or reads. At most four streams exist per handle;
@@ -78,10 +79,25 @@ Close a finished subscription to release its slot. Disconnect or a successful
 connection switch cancels all streams; a failed switch preserves the old session.
 
 The worker handles Effect Chunk/Ack, Ping/Pong and Interrupt framing in Rust.
+It pings every 5 s and closes a stream with `stream_timeout` after 20 s without
+any frame, so a suspended device or a changed network surfaces quickly.
 Cancellation wakes a blocked poll immediately; the network worker observes it on
 its next read tick. DNS/connect/TLS negotiation already in progress can take its
 normal timeout before the worker exits. No callbacks into the JVM occur from the
 stream worker. Server cursors, projections and retry/backoff remain host-owned.
+
+## Long-running RPCs
+
+```json
+{"op":"rpcWithTimeout","tag":"device.configure","payload":{"enabled":true},"timeoutMs":120000}
+```
+
+Same request/exit as `rpc`, with an explicit deadline of 1 ms to 300 s
+(`timeoutMs`, validated before connecting; otherwise `invalid_rpc_timeout`).
+It is never retried: a deadline interrupts the request and returns
+`rpc_outcome_unknown`, which the host reconciles. Failures keep `error` a stable
+code and may add `message` with the server's one-line reason. Use it through
+`T3Client.execute(JSONObject)` from a worker.
 
 ## Attachments
 
