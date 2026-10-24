@@ -43,6 +43,7 @@ pub mod util;
 pub mod checkpoint_revert;
 pub mod plan_workflow;
 pub mod prompt_recall;
+pub mod latex;
 pub mod message_text;
 
 pub type Result<T> = std::result::Result<T, String>;
