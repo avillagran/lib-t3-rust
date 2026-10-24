@@ -42,6 +42,9 @@ pub mod projection;
 
 pub type Result<T> = std::result::Result<T, String>;
 const MAX_BYTES: u64 = 8 * 1024 * 1024;
+// Bounded native snapshots can exceed the generic response limit even when
+// compactTurnItems is enabled. Keep this allowance specific to thread reads.
+const THREAD_SNAPSHOT_MAX_BYTES: u64 = 64 * 1024 * 1024;
 const GRANT: &str = "urn:ietf:params:oauth:grant-type:token-exchange";
 const ACCESS: &str = "urn:ietf:params:oauth:token-type:access_token";
 fn now() -> i64 {
@@ -95,6 +98,9 @@ fn http() -> Result<Http> {
         .map_err(|_| "local_error".into())
 }
 fn decode(response: Response) -> Result<Value> {
+    decode_with_limit(response, MAX_BYTES)
+}
+fn decode_with_limit(response: Response, max_bytes: u64) -> Result<Value> {
     let code = response.status().as_u16();
     if code == 401 || code == 403 {
         return Err("unauthorized".into());
@@ -126,10 +132,10 @@ fn decode(response: Response) -> Result<Value> {
     }
     let mut bytes = Zeroizing::new(Vec::new());
     response
-        .take(MAX_BYTES + 1)
+        .take(max_bytes + 1)
         .read_to_end(&mut bytes)
         .map_err(|_| "unreachable")?;
-    if bytes.len() as u64 > MAX_BYTES {
+    if bytes.len() as u64 > max_bytes {
         return Err("too_large".into());
     }
     serde_json::from_slice(&bytes).map_err(|_| "malformed".into())
@@ -376,9 +382,19 @@ impl Connection {
         if let Some(b) = body {
             req = req.json(b);
         }
-        decode(req.send().map_err(|_| "unreachable")?)
+        let segments = url.path().split('/').collect::<Vec<_>>();
+        let limit = if method == reqwest::Method::GET && protocol
+            && matches!(segments.as_slice(), ["", "api", "orchestration", "threads", id, "bounded"] if !id.is_empty()) {
+            THREAD_SNAPSHOT_MAX_BYTES
+        } else {
+            MAX_BYTES
+        };
+        decode_with_limit(req.send().map_err(|_| "unreachable")?, limit)
     }
     fn websocket(&self)->Result<tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<TcpStream>>>{
+        self.websocket_with_limit(MAX_BYTES)
+    }
+    fn websocket_with_limit(&self, max_bytes: u64)->Result<tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<TcpStream>>>{
         let mut url = self.ws.clone();
         url.set_path("/ws");
         url.set_query(Some("orchestrationProtocol=2"));
@@ -426,8 +442,8 @@ impl Connection {
             .set_write_timeout(Some(Duration::from_secs(12)))
             .map_err(|_| "disconnected")?;
         let config = tungstenite::protocol::WebSocketConfig::default()
-            .max_message_size(Some(MAX_BYTES as usize))
-            .max_frame_size(Some(MAX_BYTES as usize));
+            .max_message_size(Some(max_bytes as usize))
+            .max_frame_size(Some(max_bytes as usize));
         let (ws, _) = tungstenite::client_tls_with_config(req, stream, Some(config), None)
             .map_err(|e| with_reason("rpc_connection_failed", &e.to_string()))?;
         Ok(ws)
