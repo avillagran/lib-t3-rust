@@ -63,6 +63,11 @@ mod options;
 pub use options::ConnectionOptions;
 pub mod assets;
 pub use assets::{AssetBytes, AssetOptions};
+pub mod pairing;
+pub use pairing::{
+    fetch_descriptor, fetch_descriptor_with, pair_bearer, verify_environment, PairedBearer,
+    PairingClient,
+};
 use options::valid_limit;
 
 pub type Result<T> = std::result::Result<T, String>;
@@ -779,12 +784,7 @@ impl RelayClient {
             Some(ws),
             Credential::bearer("validation-only")?,
         )?;
-        let descriptor = decode(
-            http.get(endpoint(&base, "/.well-known/t3/environment")?)
-                .header("Accept-Encoding", "identity")
-                .send()
-                .map_err(|_| "unreachable")?,
-        )?;
+        let descriptor = pairing::descriptor(http, &base)?;
         if descriptor["environmentId"] != environment_id {
             return Err("t3_environment_mismatch".into());
         }
