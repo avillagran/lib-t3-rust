@@ -30,7 +30,7 @@ int main(void) {
     assert(response && strstr(response, "\"rpcWithTimeout\""));
     t3_string_free(response);
     response = t3_client_call(client, (const uint8_t *)capabilities, strlen(capabilities));
-    assert(response && strstr(response, "\"abiVersion\":2") && strstr(response, "\"assetBytes\"")
+    assert(response && strstr(response, "\"abiVersion\":3") && strstr(response, "\"assetBytes\"")
         && strstr(response, "\"pairBearer\"") && strstr(response, "\"fetchDescriptor\"")
         && strstr(response, "\"boundedThread\""));
     t3_string_free(response);
@@ -66,6 +66,30 @@ int main(void) {
     t3_string_free(response);
     response = t3_client_image(client, (const uint8_t *)"{}", 2, no_image, NULL);
     assert(response && strstr(response, "not_connected"));
+    t3_string_free(response);
+    /* ABI 3: describe works offline; call validates before needing a connection. */
+    const char *describe = "{\"op\":\"describe\"}";
+    response = t3_client_call(client, (const uint8_t *)describe, strlen(describe));
+    assert(response && strstr(response, "\"ok\":true") && strstr(response, "\"fn\":\"vcs.refreshStatus\""));
+    t3_string_free(response);
+    response = t3_client_call(client, (const uint8_t *)capabilities, strlen(capabilities));
+    assert(response && strstr(response, "\"abiVersion\":3") && strstr(response, "\"call\"") && strstr(response, "\"describe\""));
+    t3_string_free(response);
+    const char *unknown = "{\"op\":\"call\",\"fn\":\"vcs.nope\",\"args\":{}}";
+    response = t3_client_call(client, (const uint8_t *)unknown, strlen(unknown));
+    assert(response && strstr(response, "\"error\":\"unknown_function\""));
+    t3_string_free(response);
+    const char *not_object = "{\"op\":\"call\",\"fn\":\"vcs.refreshStatus\",\"args\":[]}";
+    response = t3_client_call(client, (const uint8_t *)not_object, strlen(not_object));
+    assert(response && strstr(response, "\"error\":\"invalid_input\""));
+    t3_string_free(response);
+    const char *empty_cwd = "{\"op\":\"call\",\"fn\":\"vcs.refreshStatus\",\"args\":{\"cwd\":\"\"}}";
+    response = t3_client_call(client, (const uint8_t *)empty_cwd, strlen(empty_cwd));
+    assert(response && strstr(response, "\"error\":\"invalid_cwd\""));
+    t3_string_free(response);
+    const char *valid = "{\"op\":\"call\",\"fn\":\"vcs.refreshStatus\",\"args\":{\"cwd\":\"/r\"}}";
+    response = t3_client_call(client, (const uint8_t *)valid, strlen(valid));
+    assert(response && strstr(response, "\"error\":\"not_connected\""));
     t3_string_free(response);
     t3_client_free(client);
     t3_client_free(NULL);

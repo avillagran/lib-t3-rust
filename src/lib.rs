@@ -72,6 +72,7 @@ pub use pairing::{
 use options::valid_limit;
 pub mod api;
 pub mod errors;
+mod ffi_call;
 
 pub type Result<T> = std::result::Result<T, String>;
 const MAX_BYTES: u64 = 8 * 1024 * 1024;

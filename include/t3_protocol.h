@@ -1,6 +1,6 @@
 #ifndef T3_PROTOCOL_H
 #define T3_PROTOCOL_H
-#define T3_PROTOCOL_ABI_VERSION 2
+#define T3_PROTOCOL_ABI_VERSION 3
 #include <stddef.h>
 #include <stdint.h>
 #ifdef __cplusplus
@@ -18,6 +18,15 @@ extern "C" {
  * Result: {"ok":true,"data":...} or {"ok":false,"error":"code"}; a failure
  * may add "message" with the server's one-line reason. "error" stays a code.
  * Input must be valid for len bytes; the caller owns and clears its credentials.
+ *
+ * ABI 3 adds the typed API (additive; every op above is unchanged):
+ *   {"op":"describe"} -> {"apiVersion","contract","functions":[{"fn","module",
+ *     "tag","kind","replay","scope","timeoutMs","stream","args":[...]}]};
+ *     needs no connection.
+ *   {"op":"call","fn":"vcs.refreshStatus","args":{"cwd":"/r"},"timeoutMs"?}
+ *     validates locally before any socket ("unknown_function", "invalid_input",
+ *     "invalid_<field>", "invalid_rpc_timeout"), then sends exactly once.
+ *   "write_not_authorized" failures add "requiredScope" (e.g. "settings:write").
  */
 void *t3_client_new(void);
 char *t3_client_call(void *handle, const uint8_t *input, size_t len);
