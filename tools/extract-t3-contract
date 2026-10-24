@@ -3,8 +3,8 @@
 
 Usage: tools/extract-t3-contract /path/to/t3code [output.json]
 
-Reads only source text from the T3 checkout (packages/contracts/src and
-apps/server/src/auth/RpcAuthorization.ts); runs nothing from it. The JSON pins
+Reads only source text from the T3 checkout (packages/contracts/src,
+apps/server/src/auth/RpcAuthorization.ts and apps/server/src/ws.ts); runs nothing from it. The JSON pins
 the commit, so `tests/api_contract.rs` can check the typed API registry against
 the exact contract it was written for.
 """
@@ -38,6 +38,9 @@ def block(text, start_pattern):
 
 def methods(body):
     return dict(re.findall(r'^\s*(\w+):\s*"([^"]+)"', body, re.M))
+
+
+HANDLER_SCOPES = {"device.list": "requiredScopeForDeviceList"}
 
 
 def main():
@@ -76,6 +79,15 @@ def main():
         for namespace, key in re.findall(r"method === (WS_METHODS|ORCHESTRATION_V2_WS_METHODS)\.(\w+)", text):
             dynamic.add(tag_of(namespace, key))
 
+    # Payload-dependent scopes decided inside a handler, which neither table shows:
+    # `device.list` asks `requiredScopeForDeviceList` (orchestration:operate with
+    # `updateTool`/`retryHostId`). Fail if the handler stops calling it.
+    ws = read(root, "apps/server/src/ws.ts")
+    for tag, check in HANDLER_SCOPES.items():
+        if f"{check}(" not in ws:
+            sys.exit(f"{tag}: ws.ts no longer calls {check}; re-read its handler")
+        dynamic.add(tag)
+
     # Streams: `Rpc.make(X.key, { ... stream: true ... })`.
     # Only tags with an `Rpc.make` are served; WS_METHODS also keeps retired names.
     streams, every = set(), set()
@@ -97,7 +109,7 @@ def main():
     command_types = sorted(set(re.findall(r'^    type: Schema\.Literal\("([^"]+)"\)', orchestration[start:end], re.M)))
 
     commit = subprocess.run(["git", "-C", str(root), "rev-parse", "--short=9", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
-    document = {"contract": f"t3code@{commit}", "methods": result, "commandTypes": command_types}
+    document = {"contract": f"t3code@{commit}", "methods": result, "commandTypes": command_types, "scopes": sorted(set(scopes.values()))}
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(document, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     print(f"{out}: {len(result)} methods ({len(streams)} streams), {len(command_types)} command types, {document['contract']}")

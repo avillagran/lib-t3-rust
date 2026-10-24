@@ -38,22 +38,36 @@ fn auth_words_in_a_git_failure_stay_rpc_rejected() {
     assert_eq!(errors::required_scope(&first), None);
 }
 
+/// The server reads the request and drops the socket: `rpc_outcome_unknown`,
+/// after exactly one request on exactly one connection.
+fn outcome_unknown_once(name: &str, args: serde_json::Value, kind: Kind) {
+    assert_eq!(api::function(name).unwrap().kind, kind);
+    let fake = FakeT3::spawn(vec![Reply::DropAfterRequest]);
+    assert_eq!(api::call(&fake.connection(), name, &args, None).unwrap_err(), "rpc_outcome_unknown", "{name}");
+    let recorded = fake.finish();
+    assert_eq!(recorded.requests.len(), 1, "{name}: exactly one request");
+    assert_eq!(recorded.requests[0]["tag"], api::function(name).unwrap().tag.unwrap());
+    assert_eq!(recorded.connections, 1, "{name}: no retry");
+}
 #[test]
-fn outcome_unknown_after_sending_is_reported_once_for_each_kind() {
-    // One representative per kind tanda 1 has: L, M·id, M·set.
-    let cases = [
-        ("server.getConfig", json!({}), Kind::Read),
-        ("orchestration.dispatchCommand", json!({"type":"thread.archive","commandId":"c-1","threadId":"t-1"}), Kind::MutationWithCommandId),
-        ("server.updateSettings", json!({"patch":{"enableProviderUpdateChecks":true}}), Kind::IdempotentMutation),
-    ];
-    for (name, args, kind) in cases {
-        assert_eq!(api::function(name).unwrap().kind, kind);
-        let fake = FakeT3::spawn(vec![Reply::DropAfterRequest]);
-        assert_eq!(api::call(&fake.connection(), name, &args, None).unwrap_err(), "rpc_outcome_unknown", "{name}");
-        let recorded = fake.finish();
-        assert_eq!(recorded.requests.len(), 1, "{name}: exactly one request");
-        assert_eq!(recorded.connections, 1, "{name}: no retry");
-    }
+fn outcome_unknown_for_a_read_is_reported_once() {
+    outcome_unknown_once("server.getConfig", json!({}), Kind::Read);
+}
+#[test]
+fn outcome_unknown_for_a_command_id_mutation_is_reported_once() {
+    outcome_unknown_once("orchestration.dispatchCommand", json!({"type":"thread.archive","commandId":"c-1","threadId":"t-1"}), Kind::MutationWithCommandId);
+}
+#[test]
+fn outcome_unknown_for_an_idempotent_mutation_is_reported_once() {
+    outcome_unknown_once("server.updateSettings", json!({"patch":{"enableProviderUpdateChecks":true}}), Kind::IdempotentMutation);
+}
+#[test]
+fn outcome_unknown_for_an_unrepeatable_mutation_is_reported_once() {
+    // device.action carries its own 30 s deadline, so this also goes through rpc_with_timeout.
+    outcome_unknown_once("device.action", json!({"type":"shake","deviceId":"booted"}), Kind::UnrepeatableMutation);
+}
+#[test]
+fn outcome_unknown_through_typed_signatures_and_caller_deadlines() {
     // The same through a typed signature and a caller deadline (rpc_with_timeout).
     let fake = FakeT3::spawn(vec![Reply::DropAfterRequest]);
     let command = Command::ThreadArchive { command_id: "c-1".into(), thread_id: "t-1".into() };
