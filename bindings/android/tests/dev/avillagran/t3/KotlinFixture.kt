@@ -51,7 +51,14 @@ fun main() {
             val error = runCatching { call() }.exceptionOrNull()
             check(error is T3Exception && error.code == "not_connected") { error.toString() }
         }
-        client.connectBearer("http://127.0.0.1:${server.address.port}", "fixture-token")
+        val base = "http://127.0.0.1:${server.address.port}"
+        val badOptions = runCatching { client.connectBearer(base, "fixture-token", JSONObject().put("retries", 3)) }
+        check((badOptions.exceptionOrNull() as? T3Exception)?.code == "invalid_connection_options") { badOptions.toString() }
+        val relay = runCatching {
+            client.connectRelay("https://relay.invalid", "jwt", "env-1", clientId = "fixture", options = JSONObject().put("requestTimeoutMs", 0))
+        }
+        check((relay.exceptionOrNull() as? T3Exception)?.code == "invalid_connection_options") { relay.toString() }
+        client.connectBearer(base, "fixture-token", JSONObject().put("requestTimeoutMs", 5000).put("connectTimeoutMs", 2000))
         check((client.request("/fixture") as JSONObject).getString("text") == "á 🦀")
         val image = runCatching { client.image("fixture", "x.svg", "image/svg+xml") }.exceptionOrNull()
         check(image is T3Exception && image.code == "invalid_image")

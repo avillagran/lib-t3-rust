@@ -358,7 +358,10 @@ All of this is additive to ABI v2; `capabilities` lists it in `operations`,
 {"op":"requestOk","method":"POST","path":"/api/auth/clients/revoke","body":{"sessionId":"s-1"},"protocol":false}
 ```
 
-`options` is optional on `connectBearer` and `connectRelay`. Unknown keys,
+`options` is optional on `connectBearer` and `connectRelay`; in Kotlin it is the
+last parameter of both (`client.connectBearer(baseUrl, token, JSONObject().put("requestTimeoutMs", 8000))`),
+and `connectRelay(relayUrl, cloudJwt, environmentId, clientId = "t3-mobile", options = null)`
+lets the host name its relay client. Unknown keys,
 non-numeric values, a zero timeout, a timeout over 300 s or `maxBytes` outside
 1 byte to 64 MiB fail with `invalid_connection_options`; `null` clears the
 connect or pool-idle timeout. Options govern HTTP. Streams and RPC keep their
