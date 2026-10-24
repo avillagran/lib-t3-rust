@@ -64,6 +64,7 @@ pub use options::ConnectionOptions;
 pub mod assets;
 pub use assets::{AssetBytes, AssetOptions};
 pub mod pairing;
+pub mod bounded_snapshot;
 pub use pairing::{
     fetch_descriptor, fetch_descriptor_with, pair_bearer, verify_environment, PairedBearer,
     PairingClient,
