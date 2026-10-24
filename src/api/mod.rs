@@ -19,6 +19,8 @@ pub mod server;
 pub mod vcs;
 // Tanda 2: the remaining unary RPCs.
 pub mod diagnostics;
+pub mod filesystem;
+pub mod project_clone;
 pub mod provider;
 
 pub mod streams;
@@ -330,6 +332,8 @@ const MODULES: &[&[Function]] = &[
     // Tanda 2.
     diagnostics::FUNCTIONS,
     provider::FUNCTIONS,
+    project_clone::FUNCTIONS,
+    filesystem::FUNCTIONS,
 
     streams::FUNCTIONS,
 ];
