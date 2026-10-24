@@ -289,7 +289,7 @@ fn native_image_callback_gets_validated_bytes_from_the_signed_grant() {
         let header = read_http(&mut stream).to_ascii_lowercase();
         assert!(header.starts_with("get /api/assets/signed-fixture "));
         assert!(!header.contains("authorization:"));
-        stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 8\r\nConnection: close\r\n\r\n\x89PNG\r\n\x1a\n").unwrap();
+        stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: 8\r\nConnection: close\r\n\r\n\x89PNG\r\n\x1a\n").unwrap();
     });
     let client = Client::new();
     client.call(json!({"op":"connectBearer","httpBaseUrl":base,"token":"fixture-token"}));
