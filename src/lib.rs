@@ -737,5 +737,6 @@ impl Connection {
 pub mod lifecycle;
 
 pub mod settings;
+pub mod device_hub;
 
 mod long_rpc;
