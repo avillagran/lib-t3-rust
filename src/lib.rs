@@ -48,8 +48,11 @@ pub mod message_text;
 pub mod storage_settings;
 pub mod diff_review;
 pub mod tool_inspector;
+pub mod git_controls;
 pub mod scoped_settings;
 pub mod native_settings;
+pub mod branch_picker;
+pub mod thread_details;
 pub mod failure_context;
 
 pub type Result<T> = std::result::Result<T, String>;
