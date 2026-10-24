@@ -18,13 +18,19 @@ pub mod review;
 pub mod server;
 pub mod vcs;
 // Tanda 2: the remaining unary RPCs.
+pub mod agent_sessions;
 pub mod device;
 pub mod diagnostics;
 pub mod filesystem;
+pub mod mcp_apps;
 pub mod project_clone;
 pub mod provider;
 pub mod pull_requests;
 pub mod scheduled_tasks;
+pub mod secrets;
+pub mod shell;
+pub mod terminal;
+pub mod worktree_setup;
 
 pub mod streams;
 
@@ -340,6 +346,12 @@ const MODULES: &[&[Function]] = &[
     pull_requests::FUNCTIONS,
     device::FUNCTIONS,
     scheduled_tasks::FUNCTIONS,
+    agent_sessions::FUNCTIONS,
+    mcp_apps::FUNCTIONS,
+    shell::FUNCTIONS,
+    secrets::FUNCTIONS,
+    worktree_setup::FUNCTIONS,
+    terminal::FUNCTIONS,
 
     streams::FUNCTIONS,
 ];
