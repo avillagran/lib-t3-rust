@@ -122,7 +122,7 @@
    "stream": false
   },
   "device.list": {
-   "dynamic": false,
+   "dynamic": true,
    "scope": "orchestration:read",
    "stream": false
   },
@@ -1046,5 +1046,23 @@
    "scope": "orchestration:operate",
    "stream": false
   }
- }
+ },
+ "scopes": [
+  "access:read",
+  "access:write",
+  "diagnostics:read",
+  "environment:maintain",
+  "filesystem:read",
+  "filesystem:write",
+  "orchestration:operate",
+  "orchestration:read",
+  "preview:operate",
+  "providers:manage",
+  "relay:read",
+  "relay:write",
+  "settings:write",
+  "source-control:write",
+  "terminal:operate",
+  "terminal:read"
+ ]
 }
