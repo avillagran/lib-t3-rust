@@ -366,3 +366,59 @@ fn capabilities_list_the_stream_ops_and_limits_without_a_new_abi_version() {
     // Wake needs no connection and probes nothing on an empty handle.
     assert_eq!(client.call(json!({"op":"wakeSubscriptions"})), json!({"ok":true,"data":{"probed":0}}));
 }
+
+#[test]
+fn overflow_ends_the_stream_and_keeps_every_queued_item_in_order() {
+    let (sent_tx, sent_rx) = std::sync::mpsc::channel();
+    let (base, server) = serve(move |_, ws| {
+        let values: Vec<Value> = (0..70).map(|n| json!({"kind":"event","sequence":n})).collect();
+        assert!(chunk(ws, json!(values)));
+        sent_tx.send(()).unwrap();
+        // No Ack follows: the client gives up on the chunk it could not queue.
+        drain_until_interrupt(ws)
+    });
+    let client = Client::connected(&base);
+    let id = client.subscribe("orchestration.subscribeThread", json!({"threadId":"t"}));
+    sent_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    // Nobody polls while the 70 items arrive, so the 64-item queue overflows.
+    thread::sleep(Duration::from_millis(300));
+    let batches = client.poll_until(&id, |_| false);
+    let last = batches.last().unwrap();
+    assert_eq!((last["closed"].clone(), last["error"].clone()), (json!(true), json!("stream_backpressure")));
+    let received = items(&batches);
+    assert_eq!(received, (0..64).map(|n| json!({"kind":"event","sequence":n})).collect::<Vec<_>>());
+    // The chunk never completed, so no boundary claims it did.
+    assert!(batches.iter().all(|b| b["boundaries"] == json!([])), "{batches:?}");
+    assert!(!server.join().unwrap().contains(&"Ack".to_owned()));
+}
+
+#[test]
+fn cancel_sends_interrupt_and_the_payload_reaches_the_server_intact() {
+    // Past 2^53: a float round trip anywhere would change it.
+    let payload = json!({"threadId":"thread-á","afterSequence":9_007_199_254_740_993u64,"requestCompletionMarker":true,"acceptCompactTurnItems":true});
+    let expected = payload.clone();
+    let (base, server) = serve(move |request, ws| {
+        assert_eq!(request["tag"], "orchestration.subscribeThread");
+        assert_eq!(request["payload"], expected);
+        assert_eq!(request["payload"]["afterSequence"].as_u64(), Some(9_007_199_254_740_993));
+        assert!(chunk(ws, json!([{"kind":"event","sequence":9_007_199_254_740_994u64,"event":{}}])));
+        let mut frames = vec![];
+        while let Some(frame) = read(ws) {
+            frames.push(frame.clone());
+            if frame["_tag"] == "Interrupt" {
+                break;
+            }
+        }
+        frames
+    });
+    let client = Client::connected(&base);
+    let id = client.subscribe("orchestration.subscribeThread", payload);
+    let batches = client.poll_until(&id, |b| !b["items"].as_array().unwrap().is_empty());
+    assert_eq!(items(&batches)[0]["sequence"].as_u64(), Some(9_007_199_254_740_994));
+    assert_eq!(client.call(json!({"op":"cancelSubscription","subscriptionId":id}))["data"]["cancelled"], true);
+    let frames = server.join().unwrap();
+    assert_eq!(frames.first().unwrap(), &json!({"_tag":"Ack","requestId":"1"}));
+    assert_eq!(frames.last().unwrap(), &json!({"_tag":"Interrupt","requestId":"1"}));
+    // A cancelled id is gone.
+    assert_eq!(client.call(json!({"op":"pollSubscription","subscriptionId":id}))["error"], "unknown_subscription");
+}
