@@ -116,8 +116,10 @@ take the whole variant as one `JSONObject`. `cargo test --test api_describe` che
 `T3Api.kt` against `describe.json` byte for byte; `tools/test-kotlin-jni` compiles
 it, which needs a JDK and `kotlinc`.
 
-Functions in this release (99; the README's Typed API section has each one's
-Rust signature, kind, scope, deadline and arguments):
+Unary functions in this release (99; the README's Typed API section has each
+one's Rust signature, kind, scope, deadline and arguments; streams follow in
+[Typed streams](#typed-streams)). Kotlin method names camelCase the part after
+the module, so `provider.auth.start` is `T3Api(client).provider.authStart(…)`:
 
 | Kotlin (`T3Api(client).…`) | Functions |
 | --- | --- |

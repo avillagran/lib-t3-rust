@@ -234,27 +234,27 @@ class T3Api(client: T3Client) {
         /** `server.updateProvider` · mutation · replay never · scope providers:manage · 300000 ms */
         fun updateProvider(provider: String, targetVersion: String? = null, instanceId: String? = null): Any? =
             client.call("server.updateProvider", JSONObject().put("provider", provider).put("targetVersion", targetVersion).put("instanceId", instanceId))
-        /** `provider.authStart` · mutation · replay never · scope providers:manage · 20000 ms */
+        /** `provider.auth.start` · mutation · replay never · scope providers:manage · 20000 ms */
         fun authStart(instanceId: String, methodId: String? = null, returnUrl: String? = null, callbackMode: String? = null): Any? =
-            client.call("provider.authStart", JSONObject().put("instanceId", instanceId).put("methodId", methodId).put("returnUrl", returnUrl).put("callbackMode", callbackMode))
-        /** `provider.authRespond` · mutation · replay never · scope providers:manage · 20000 ms */
+            client.call("provider.auth.start", JSONObject().put("instanceId", instanceId).put("methodId", methodId).put("returnUrl", returnUrl).put("callbackMode", callbackMode))
+        /** `provider.auth.respond` · mutation · replay never · scope providers:manage · 20000 ms */
         fun authRespond(instanceId: String, flowId: String, interactionId: String, response: JSONObject): Any? =
-            client.call("provider.authRespond", JSONObject().put("instanceId", instanceId).put("flowId", flowId).put("interactionId", interactionId).put("response", response))
-        /** `provider.authCancel` · mutation · replay set · scope providers:manage · 20000 ms */
+            client.call("provider.auth.respond", JSONObject().put("instanceId", instanceId).put("flowId", flowId).put("interactionId", interactionId).put("response", response))
+        /** `provider.auth.cancel` · mutation · replay set · scope providers:manage · 20000 ms */
         fun authCancel(instanceId: String, flowId: String): Any? =
-            client.call("provider.authCancel", JSONObject().put("instanceId", instanceId).put("flowId", flowId))
-        /** `provider.authLogout` · mutation · replay set · scope providers:manage · 20000 ms */
+            client.call("provider.auth.cancel", JSONObject().put("instanceId", instanceId).put("flowId", flowId))
+        /** `provider.auth.logout` · mutation · replay set · scope providers:manage · 20000 ms */
         fun authLogout(instanceId: String): Any? =
-            client.call("provider.authLogout", JSONObject().put("instanceId", instanceId))
-        /** `provider.installStart` · mutation · replay never · scope providers:manage · 20000 ms */
+            client.call("provider.auth.logout", JSONObject().put("instanceId", instanceId))
+        /** `provider.install.start` · mutation · replay never · scope providers:manage · 20000 ms */
         fun installStart(instanceId: String): Any? =
-            client.call("provider.installStart", JSONObject().put("instanceId", instanceId))
-        /** `provider.installCancel` · mutation · replay set · scope providers:manage · 20000 ms */
+            client.call("provider.install.start", JSONObject().put("instanceId", instanceId))
+        /** `provider.install.cancel` · mutation · replay set · scope providers:manage · 20000 ms */
         fun installCancel(instanceId: String, operationId: String): Any? =
-            client.call("provider.installCancel", JSONObject().put("instanceId", instanceId).put("operationId", operationId))
-        /** `provider.installRemove` · mutation · replay set · scope providers:manage · 20000 ms */
+            client.call("provider.install.cancel", JSONObject().put("instanceId", instanceId).put("operationId", operationId))
+        /** `provider.install.remove` · mutation · replay set · scope providers:manage · 20000 ms */
         fun installRemove(instanceId: String): Any? =
-            client.call("provider.installRemove", JSONObject().put("instanceId", instanceId))
+            client.call("provider.install.remove", JSONObject().put("instanceId", instanceId))
         /** `provider.install.subscribe` · stream · read · replay free · scope orchestration:read */
         fun installSubscribe(instanceId: String): T3Subscription =
             client.subscribeFn("provider.install.subscribe", JSONObject().put("instanceId", instanceId))

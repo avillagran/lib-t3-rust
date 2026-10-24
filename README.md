@@ -172,12 +172,14 @@ missing scope reads `write_not_authorized: [settings:write] <message>`;
 
 The registry has 99 unary functions in 20 modules: every unary T3 RPC that ot3
 calls, plus `pullRequests.list` and `terminal.resize`, which the library already
-built payloads for. Streams are not in it yet. A function's `fn` is its wire tag,
-except for the three-part `provider.auth.*` and `provider.install.*` tags, which
-become `provider.authStart`, `provider.installCancel` and so on, so every name is
-`module.identifier` in Kotlin. `module` is the Rust module in camelCase
-(`api::pull_requests` → `pullRequests`). A deadline other than 20 s is ot3's own
-(`rpc_with_timeout`) and a caller's `timeoutMs` overrides it.
+built payloads for. The 13 streams and 4 composed reads are in
+[Typed streams](#typed-streams). A function's `fn` is its wire tag, so
+`provider.auth.start` keeps its three parts; the generated Kotlin method is
+`provider.authStart`. `module` is the Rust module in camelCase
+(`api::pull_requests` → `pullRequests`); a few tags live in another module
+(`server.getHostResources` in `diagnostics`, `attachments.delete` in `assets`).
+A deadline other than 20 s is ot3's own (`rpc_with_timeout`), and a caller's
+`timeoutMs` overrides it.
 
 Four functions take a union through `openArgs`: `orchestration.dispatchCommand`
 (`type`), `projects.mutate` (`project.create`/`update`/`delete`), `device.action`
@@ -291,13 +293,13 @@ thread adds `orchestration:operate`) and `device::list_scope` (`updateTool` or
 | --- | --- | --- | --- | --- | --- | --- |
 | `server.refreshProviders` | same | `provider::refresh(conn, instance_id?, cwd?, fresh?, refresh_models?)` | read · free | `orchestration:read` | 20 s | `instanceId`?, `cwd`?, `fresh`?, `refreshModels`? |
 | `server.updateProvider` | same | `provider::update(conn, provider, target_version?, instance_id?)` | mutation · never | `providers:manage` | 300 s | `provider`, `targetVersion`?, `instanceId`? |
-| `provider.authStart` | `provider.auth.start` | `provider::auth_start(conn, instance_id, method_id?, return_url?, callback_mode?)` | mutation · never | `providers:manage` | 20 s | `instanceId`, `methodId`?, `returnUrl`?, `callbackMode`? |
-| `provider.authRespond` | `provider.auth.respond` | `provider::auth_respond(conn, instance_id, flow_id, interaction_id, &AuthResponse)` | mutation · never | `providers:manage` | 20 s | `instanceId`, `flowId`, `interactionId`, `response` |
-| `provider.authCancel` | `provider.auth.cancel` | `provider::auth_cancel(conn, instance_id, flow_id)` | mutation · set | `providers:manage` | 20 s | `instanceId`, `flowId` |
-| `provider.authLogout` | `provider.auth.logout` | `provider::auth_logout(conn, instance_id)` | mutation · set | `providers:manage` | 20 s | `instanceId` |
-| `provider.installStart` | `provider.install.start` | `provider::install_start(conn, instance_id)` | mutation · never | `providers:manage` | 20 s | `instanceId` |
-| `provider.installCancel` | `provider.install.cancel` | `provider::install_cancel(conn, instance_id, operation_id)` | mutation · set | `providers:manage` | 20 s | `instanceId`, `operationId` |
-| `provider.installRemove` | `provider.install.remove` | `provider::install_remove(conn, instance_id)` | mutation · set | `providers:manage` | 20 s | `instanceId` |
+| `provider.auth.start` | same | `provider::auth_start(conn, instance_id, method_id?, return_url?, callback_mode?)` | mutation · never | `providers:manage` | 20 s | `instanceId`, `methodId`?, `returnUrl`?, `callbackMode`? |
+| `provider.auth.respond` | same | `provider::auth_respond(conn, instance_id, flow_id, interaction_id, &AuthResponse)` | mutation · never | `providers:manage` | 20 s | `instanceId`, `flowId`, `interactionId`, `response` |
+| `provider.auth.cancel` | same | `provider::auth_cancel(conn, instance_id, flow_id)` | mutation · set | `providers:manage` | 20 s | `instanceId`, `flowId` |
+| `provider.auth.logout` | same | `provider::auth_logout(conn, instance_id)` | mutation · set | `providers:manage` | 20 s | `instanceId` |
+| `provider.install.start` | same | `provider::install_start(conn, instance_id)` | mutation · never | `providers:manage` | 20 s | `instanceId` |
+| `provider.install.cancel` | same | `provider::install_cancel(conn, instance_id, operation_id)` | mutation · set | `providers:manage` | 20 s | `instanceId`, `operationId` |
+| `provider.install.remove` | same | `provider::install_remove(conn, instance_id)` | mutation · set | `providers:manage` | 20 s | `instanceId` |
 
 **`projectClone`** (1)
 

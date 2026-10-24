@@ -28,43 +28,43 @@ pub const UPDATE_PROVIDER: Function = api_fn! {
     timeout_ms: 300_000,
 };
 pub const AUTH_START: Function = api_fn! {
-    name: "provider.authStart", module: "provider", tag: Some("provider.auth.start"),
+    name: "provider.auth.start", module: "provider", tag: Some("provider.auth.start"),
     kind: UnrepeatableMutation, scope: Fixed("providers:manage"),
     args: [(instanceId, Slug, required), (methodId, Token, optional), (returnUrl, Text, optional), (callbackMode, Enum(CALLBACK_MODES), optional)],
     payload: |a| auth_start_payload(a.req("instanceId")?, a.str("methodId")?, a.str("returnUrl")?, a.str("callbackMode")?),
 };
 pub const AUTH_RESPOND: Function = api_fn! {
-    name: "provider.authRespond", module: "provider", tag: Some("provider.auth.respond"),
+    name: "provider.auth.respond", module: "provider", tag: Some("provider.auth.respond"),
     kind: UnrepeatableMutation, scope: Fixed("providers:manage"),
     args: [(instanceId, Slug, required), (flowId, Token, required), (interactionId, Token, required), (response, Object, required)],
     payload: |a| auth_respond_payload(a.req("instanceId")?, a.req("flowId")?, a.req("interactionId")?, &AuthResponse::from_json(a.req_object("response")?)?),
 };
 pub const AUTH_CANCEL: Function = api_fn! {
-    name: "provider.authCancel", module: "provider", tag: Some("provider.auth.cancel"),
+    name: "provider.auth.cancel", module: "provider", tag: Some("provider.auth.cancel"),
     kind: IdempotentMutation, scope: Fixed("providers:manage"),
     args: [(instanceId, Slug, required), (flowId, Token, required)],
     payload: |a| auth_cancel_payload(a.req("instanceId")?, a.req("flowId")?),
 };
 pub const AUTH_LOGOUT: Function = api_fn! {
-    name: "provider.authLogout", module: "provider", tag: Some("provider.auth.logout"),
+    name: "provider.auth.logout", module: "provider", tag: Some("provider.auth.logout"),
     kind: IdempotentMutation, scope: Fixed("providers:manage"),
     args: [(instanceId, Slug, required)],
     payload: |a| instance_payload(a.req("instanceId")?),
 };
 pub const INSTALL_START: Function = api_fn! {
-    name: "provider.installStart", module: "provider", tag: Some("provider.install.start"),
+    name: "provider.install.start", module: "provider", tag: Some("provider.install.start"),
     kind: UnrepeatableMutation, scope: Fixed("providers:manage"),
     args: [(instanceId, Slug, required)],
     payload: |a| instance_payload(a.req("instanceId")?),
 };
 pub const INSTALL_CANCEL: Function = api_fn! {
-    name: "provider.installCancel", module: "provider", tag: Some("provider.install.cancel"),
+    name: "provider.install.cancel", module: "provider", tag: Some("provider.install.cancel"),
     kind: IdempotentMutation, scope: Fixed("providers:manage"),
     args: [(instanceId, Slug, required), (operationId, Token, required)],
     payload: |a| install_cancel_payload(a.req("instanceId")?, a.req("operationId")?),
 };
 pub const INSTALL_REMOVE: Function = api_fn! {
-    name: "provider.installRemove", module: "provider", tag: Some("provider.install.remove"),
+    name: "provider.install.remove", module: "provider", tag: Some("provider.install.remove"),
     kind: IdempotentMutation, scope: Fixed("providers:manage"),
     args: [(instanceId, Slug, required)],
     payload: |a| instance_payload(a.req("instanceId")?),
