@@ -28,15 +28,17 @@ pub extern "C" fn t3_client_new() -> *mut std::ffi::c_void {
 }
 fn call(handle: &Mutex<Handle>, request: Value) -> Result<Value> {
     match field(&request, "op")? {
-        "capabilities" => Ok(
-            json!({"abiVersion":2,"libraryVersion":env!("CARGO_PKG_VERSION"),
+        "capabilities" => Ok(crate::ffi_call::capabilities(
+            json!({"abiVersion":3,"libraryVersion":env!("CARGO_PKG_VERSION"),
             "operations":["connectBearer","connectRelay","request","requestOk","rpc","rpcWithTimeout","disconnect","subscribe","pollSubscription","cancelSubscription","fetchDescriptor","pairBearer","boundedThread","assetBytes","projectFavicon"],
             "binaryOperations":["image","assetBytes","projectFavicon"],
             "connectionOptions":["requestTimeoutMs","connectTimeoutMs","poolIdleTimeoutMs","maxBytes"],
             "nativeAttachmentUpload":true,"nativeImageDownload":true,"maxSubscriptions":4,
             "queueMaxItems":64,"queueMaxBytes":MAX_BYTES,"maxPollMs":1000,
             "maxAssetBytes":assets::MAX_ASSET_BYTES}),
-        ),
+        )),
+        "call" => crate::ffi_call::call(&request, || connection(handle)),
+        "describe" => Ok(crate::ffi_call::describe()),
         "connectBearer" => {
             let options = options(&request)?;
             let mut h = handle.lock().map_err(|_| "internal_error")?;
@@ -268,13 +270,7 @@ fn response(result: Result<Value>) -> *mut c_char {
     let response = match result {
         Ok(data) => json!({"ok":true,"data":data}),
         // `error` stays a stable code; a server's reason travels separately.
-        Err(error) => {
-            let code = error_code(&error);
-            match error.get(code.len() + 2..).filter(|_| code.len() < error.len()) {
-                Some(reason) => json!({"ok":false,"error":code,"message":reason}),
-                None => json!({"ok":false,"error":code}),
-            }
-        }
+        Err(error) => crate::ffi_call::error_envelope(&error),
     };
     CString::new(response.to_string()).unwrap().into_raw()
 }
