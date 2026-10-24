@@ -123,6 +123,48 @@ for the synchronous callback duration. Callbacks must not throw/unwind. Existing
 JNI adapters can keep their four original C symbols and use the new JSON stream
 operations; attachment callbacks require adapting their JNI marshaling.
 
+## Transport options, pairing and assets
+
+All of this is additive to ABI v2; `capabilities` lists it in `operations`,
+`binaryOperations`, `connectionOptions` and `maxAssetBytes`.
+
+```json
+{"op":"connectBearer","httpBaseUrl":"https://environment.example","token":"stored-token","options":{"requestTimeoutMs":8000,"connectTimeoutMs":3000,"poolIdleTimeoutMs":90000,"maxBytes":8388608}}
+{"op":"fetchDescriptor","httpBaseUrl":"https://environment.example"}
+{"op":"pairBearer","httpBaseUrl":"https://environment.example","pairingCode":"from-the-link","environmentId":"optional-expected-id","client":{"label":"Omi","deviceType":"mobile","os":"android"},"connect":true}
+{"op":"boundedThread","threadId":"selected"}
+{"op":"requestOk","method":"POST","path":"/api/auth/clients/revoke","body":{"sessionId":"s-1"},"protocol":false}
+```
+
+`options` is optional on `connectBearer` and `connectRelay`. Unknown keys,
+non-numeric values, a zero timeout, a timeout over 300 s or `maxBytes` outside
+1 byte to 64 MiB fail with `invalid_connection_options`; `null` clears the
+connect or pool-idle timeout. Options govern HTTP. Streams and RPC keep their
+own deadlines (see above).
+
+`fetchDescriptor` and `pairBearer` need no connection and send no credential
+until the descriptor is checked. `pairBearer` returns `{accessToken,
+tokenType, environmentId, descriptor, scope, expiresIn, connected}`. Store
+`accessToken` in the Android Keystore-backed store and clear the response buffer.
+With `"connect":true` the handle switches to the new session after the exchange
+succeeds, cancelling its streams; a failed pairing leaves the old one in place.
+`boundedThread` returns the restored bounded snapshot (up to 64 MiB).
+
+Signed assets use the binary path, never Base64 JSON. Pass the metadata to the
+JNI `image` native (`t3_client_image`), which forwards it unchanged:
+
+```json
+{"op":"assetBytes","resource":{"_tag":"attachment","attachmentId":"a","fileName":"clip.mp4","mimeType":"video/mp4","disposition":"inline"},"maxBytes":52428800,"timeoutMs":120000}
+{"op":"projectFavicon","cwd":"/repo","path":"favicon.svg"}
+```
+
+The status is `{sizeBytes, mimeType}`, or `{found:false, sizeBytes:0}` with no
+bytes for a project without a favicon. Errors are `asset_*`,
+`invalid_asset_url`, `invalid_asset_limit` and `invalid_asset_timeout`; through
+`t3_client_call` these two operations fail with `binary_operation`. The Kotlin
+`T3Client` has no typed wrapper for them yet. A wrapper is a one-line
+`T3Native.image` call with this metadata; the C++ adapter needs no change.
+
 ## Building from source
 
 On an x86_64 Linux build host, explicitly install Rust's four Android targets and
@@ -148,7 +190,9 @@ checksum in `dist/`; it does not sign or publish an Android application.
 ## Validation
 
 - `cargo test --locked`: local HTTP/WebSocket fixtures cover exact event delivery,
-  long-poll concurrency, cancellation/Interrupt, queue bounds and attachment grants.
+  long-poll concurrency, cancellation/Interrupt, queue bounds, attachment grants,
+  transport options and proxy bypass, signed asset bytes, descriptor/pairing and
+  bounded snapshots, through the Rust API and the JSON/binary ABI.
 - `tools/test-c-abi`: a real C caller links the static Rust archive.
 - `JAVA_HOME=... tools/test-jni`: real JNI/JVM calls, Unicode, error paths and ownership.
 - `tools/test-kotlin-jni`: canonical Kotlin adapter, typed errors and concurrent
