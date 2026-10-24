@@ -59,7 +59,57 @@ pub const LAUNCH_THREAD: Function = api_fn! {
     ],
     payload: |a| ThreadLaunch::from_json(a.all())?.payload(),
 };
-pub const FUNCTIONS: &[Function] = &[DISPATCH_COMMAND, LAUNCH_THREAD];
+pub const GET_THREAD_PROJECTION: Function = api_fn! {
+    name: "orchestration.getThreadProjection", module: "orchestration", tag: Some("orchestration.getThreadProjection"),
+    kind: Read, scope: Fixed("orchestration:read"),
+    args: [(threadId, Id, required)],
+    payload: |a| thread_payload(a.req("threadId")?),
+};
+pub const GET_TURN_ITEM: Function = api_fn! {
+    name: "orchestration.getTurnItem", module: "orchestration", tag: Some("orchestration.getTurnItem"),
+    kind: Read, scope: Fixed("orchestration:read"),
+    args: [(threadId, Id, required), (itemId, Id, required), (revision, Text, optional)],
+    payload: |a| turn_item_payload(a.req("threadId")?, a.req("itemId")?, a.str("revision")?),
+};
+pub const GET_TURN_DIFF: Function = api_fn! {
+    name: "orchestration.getTurnDiff", module: "orchestration", tag: Some("orchestration.getTurnDiff"),
+    kind: Read, scope: Fixed("orchestration:read"),
+    args: [(threadId, Id, required), (fromTurnCount, Integer, required), (toTurnCount, Integer, required), (ignoreWhitespace, Bool, optional)],
+    payload: |a| turn_diff_payload(a.req("threadId")?, a.req_u64("fromTurnCount")?, a.req_u64("toTurnCount")?, a.bool("ignoreWhitespace")?),
+};
+pub const GET_FULL_THREAD_DIFF: Function = api_fn! {
+    name: "orchestration.getFullThreadDiff", module: "orchestration", tag: Some("orchestration.getFullThreadDiff"),
+    kind: Read, scope: Fixed("orchestration:read"),
+    args: [(threadId, Id, required), (toTurnCount, Integer, required), (ignoreWhitespace, Bool, optional)],
+    payload: |a| full_thread_diff_payload(a.req("threadId")?, a.req_u64("toTurnCount")?, a.bool("ignoreWhitespace")?),
+};
+pub const GET_WORKFLOW_SCRIPT: Function = api_fn! {
+    name: "orchestration.getWorkflowScript", module: "orchestration", tag: Some("orchestration.getWorkflowScript"),
+    kind: Read, scope: Fixed("orchestration:read"),
+    args: [(threadId, Id, required), (scriptPath, Path, required)],
+    payload: |a| workflow_script_payload(a.req("threadId")?, a.req("scriptPath")?),
+};
+pub const STOP_WORKFLOW: Function = api_fn! {
+    name: "orchestration.stopWorkflow", module: "orchestration", tag: Some("orchestration.stopWorkflow"),
+    kind: IdempotentMutation, scope: Fixed("orchestration:operate"),
+    args: [(threadId, Id, required), (subagentId, Id, required)],
+    payload: |a| stop_workflow_payload(a.req("threadId")?, a.req("subagentId")?),
+};
+pub const SEARCH_THREADS: Function = api_fn! {
+    name: "orchestration.searchThreads", module: "orchestration", tag: Some("orchestration.searchThreads"),
+    kind: Read, scope: Fixed("orchestration:read"),
+    args: [(query, Text, required), (limit, Integer, optional)],
+    payload: |a| search_threads_payload(a.req("query")?, a.u64("limit")?),
+};
+pub const GET_ARCHIVED_SHELL_SNAPSHOT: Function = api_fn! {
+    name: "orchestration.getArchivedShellSnapshot", module: "orchestration", tag: Some("orchestration.getArchivedShellSnapshot"),
+    kind: Read, scope: Fixed("orchestration:read"),
+    args: [], payload: |_| Ok(json!({})),
+};
+pub const FUNCTIONS: &[Function] = &[
+    DISPATCH_COMMAND, LAUNCH_THREAD, GET_THREAD_PROJECTION, GET_TURN_ITEM, GET_TURN_DIFF, GET_FULL_THREAD_DIFF,
+    GET_WORKFLOW_SCRIPT, STOP_WORKFLOW, SEARCH_THREADS, GET_ARCHIVED_SHELL_SNAPSHOT,
+];
 
 /// `orchestration.dispatchCommand`: `{sequence}`. The server deduplicates by
 /// `commandId`; after `rpc_outcome_unknown`, resend the same command.
@@ -69,6 +119,81 @@ pub fn dispatch(conn: &Connection, command: &Command) -> Result<Value> {
 /// `orchestration.launchThread`: `{threadId, projection, resumed}`. Deduplicated by `commandId`.
 pub fn launch_thread(conn: &Connection, launch: &ThreadLaunch) -> Result<Value> {
     send(conn, &LAUNCH_THREAD, launch.payload()?)
+}
+
+fn thread_payload(thread_id: &str) -> Result<Value> {
+    Ok(json!({"threadId":ids::id("threadId", thread_id)?}))
+}
+/// `orchestration.getThreadProjection`: `ThreadProjection{thread, runs, …, updatedAt}`;
+/// `projection::apply` reduces live events onto it.
+pub fn thread_projection(conn: &Connection, thread_id: &str) -> Result<Value> {
+    send(conn, &GET_THREAD_PROJECTION, thread_payload(thread_id)?)
+}
+/// `orchestration.getTurnItem`: `{item}` (`null` when gone). `tool_inspector::request`
+/// builds the same payload from an inspector row.
+pub fn turn_item(conn: &Connection, thread_id: &str, item_id: &str, revision: Option<&str>) -> Result<Value> {
+    send(conn, &GET_TURN_ITEM, turn_item_payload(thread_id, item_id, revision)?)
+}
+fn turn_item_payload(thread_id: &str, item_id: &str, revision: Option<&str>) -> Result<Value> {
+    let mut v = json!({"threadId":ids::id("threadId", thread_id)?,"itemId":ids::id("itemId", item_id)?});
+    put(&mut v, "revision", revision.map(|r| ids::token("revision", r, 256)).transpose()?);
+    Ok(v)
+}
+/// `orchestration.getTurnDiff`: `{threadId, fromTurnCount, toTurnCount, diff}`.
+/// `from_turn_count` ≤ `to_turn_count`; for `from == 0` use `full_thread_diff`.
+pub fn turn_diff(conn: &Connection, thread_id: &str, from_turn_count: u64, to_turn_count: u64, ignore_whitespace: Option<bool>) -> Result<Value> {
+    send(conn, &GET_TURN_DIFF, turn_diff_payload(thread_id, from_turn_count, to_turn_count, ignore_whitespace)?)
+}
+fn turn_diff_payload(thread_id: &str, from: u64, to: u64, ignore_whitespace: Option<bool>) -> Result<Value> {
+    if from > to {
+        return Err(ids::invalid("fromTurnCount"));
+    }
+    let mut v = json!({"threadId":ids::id("threadId", thread_id)?,"fromTurnCount":from,"toTurnCount":to});
+    put(&mut v, "ignoreWhitespace", ignore_whitespace);
+    Ok(v)
+}
+/// `orchestration.getFullThreadDiff`: `{threadId, fromTurnCount, toTurnCount, diff}` from the first turn.
+pub fn full_thread_diff(conn: &Connection, thread_id: &str, to_turn_count: u64, ignore_whitespace: Option<bool>) -> Result<Value> {
+    send(conn, &GET_FULL_THREAD_DIFF, full_thread_diff_payload(thread_id, to_turn_count, ignore_whitespace)?)
+}
+fn full_thread_diff_payload(thread_id: &str, to: u64, ignore_whitespace: Option<bool>) -> Result<Value> {
+    let mut v = json!({"threadId":ids::id("threadId", thread_id)?,"toTurnCount":to});
+    put(&mut v, "ignoreWhitespace", ignore_whitespace);
+    Ok(v)
+}
+/// `orchestration.getWorkflowScript`: `{scriptPath, contents, truncated}`. The server
+/// only serves absolute `.js` paths under its workflow scripts root.
+pub fn workflow_script(conn: &Connection, thread_id: &str, script_path: &str) -> Result<Value> {
+    send(conn, &GET_WORKFLOW_SCRIPT, workflow_script_payload(thread_id, script_path)?)
+}
+fn workflow_script_payload(thread_id: &str, script_path: &str) -> Result<Value> {
+    Ok(json!({"threadId":ids::id("threadId", thread_id)?,"scriptPath":ids::path("scriptPath", script_path)?.trim()}))
+}
+/// `orchestration.stopWorkflow`: `null`. Stopping a stopped workflow fails with
+/// `not-running`, which leaves the same state.
+pub fn stop_workflow(conn: &Connection, thread_id: &str, subagent_id: &str) -> Result<Value> {
+    send(conn, &STOP_WORKFLOW, stop_workflow_payload(thread_id, subagent_id)?)
+}
+fn stop_workflow_payload(thread_id: &str, subagent_id: &str) -> Result<Value> {
+    Ok(json!({"threadId":ids::id("threadId", thread_id)?,"subagentId":ids::id("subagentId", subagent_id)?}))
+}
+/// `orchestration.searchThreads`: `{matches[{threadId, projectId, source, snippet, messageCreatedAt}]}`.
+/// `query` is 2..=200 characters once trimmed; `limit` 1..=50.
+pub fn search_threads(conn: &Connection, query: &str, limit: Option<u64>) -> Result<Value> {
+    send(conn, &SEARCH_THREADS, search_threads_payload(query, limit)?)
+}
+fn search_threads_payload(query: &str, limit: Option<u64>) -> Result<Value> {
+    let query = ids::text("query", query, 200)?;
+    if query.chars().count() < 2 {
+        return Err(ids::invalid("query"));
+    }
+    let mut v = json!({"query":query});
+    put(&mut v, "limit", limit.map(|l| super::reader::int("limit", l, 1, 50)).transpose()?);
+    Ok(v)
+}
+/// `orchestration.getArchivedShellSnapshot`: `{schemaVersion, snapshotSequence, projects[], threads[]}`.
+pub fn archived_shell(conn: &Connection) -> Result<Value> {
+    send(conn, &GET_ARCHIVED_SHELL_SNAPSHOT, json!({}))
 }
 
 /// Where a launched or deferred thread runs.
