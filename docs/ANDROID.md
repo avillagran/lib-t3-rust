@@ -332,6 +332,12 @@ path. There is no full-file byte-array copy. A nonresponsive provider read has a
 bounded native deadline. Limits follow the core: 50 MiB/file, 10 MiB/image; the
 host must also honor any stricter current provider/server policy.
 
+Every adapter failure with a stable code is a `T3Exception`, including the ones the
+JNI layer raises before Rust runs: `host_file_unavailable` (a descriptor it cannot
+duplicate, e.g. `-1` or one already closed), `invalid_input` (a request over 8 MiB),
+`native_error` and `native_allocation_failed`. `IllegalStateException` remains only
+for misuse of the Kotlin objects (`client_closed`, `subscription_closed`).
+
 `T3Client.image(id, name, mimeType)` returns validated image bytes through
 `assets.createUrl` and its signed same-origin GET, with a 10 MiB bound. Kotlin
 owns the returned byte array and supplies decoding/cache/UI. Images do not pass

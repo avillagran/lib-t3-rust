@@ -46,6 +46,9 @@ fun main() {
             val error = runCatching { call() }.exceptionOrNull()
             check(error is T3Exception && error.code == "not_connected") { error.toString() }
         }
+        // JNI's own failures arrive as T3Exception too, before Rust or a connection.
+        val badFd = runCatching { client.upload(-1, "x.bin", "application/octet-stream", 1) }.exceptionOrNull()
+        check(badFd is T3Exception && badFd.code == "host_file_unavailable") { badFd.toString() }
         // Signed assets and favicons go through the binary native path, not call().
         for (call in listOf<() -> T3Asset>({ client.assetBytes(attachment) }, { client.projectFavicon("/repo") })) {
             val error = runCatching { call() }.exceptionOrNull()
@@ -80,6 +83,6 @@ fun main() {
         check(!worker.isAlive && !closing.isAlive && failure.get() == null) { failure.get().toString() }
         client.close() // idempotent
         check(runCatching { client.request("/fixture") }.exceptionOrNull() is IllegalStateException)
-        println("KOTLIN_JNI_PASS: canonical wrapper, capabilities, typed API call/describe, asset wrappers, Unicode, stable errors and concurrent close ownership")
+        println("KOTLIN_JNI_PASS: canonical wrapper, capabilities, typed API call/describe, asset wrappers, connection options, Unicode, stable and JNI errors and concurrent close ownership")
     } finally { finish.countDown(); client.close(); server.stop(0) }
 }
