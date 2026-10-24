@@ -61,6 +61,8 @@ pub mod server_updates;
 pub mod reconnect;
 mod options;
 pub use options::ConnectionOptions;
+pub mod assets;
+pub use assets::{AssetBytes, AssetOptions};
 use options::valid_limit;
 
 pub type Result<T> = std::result::Result<T, String>;
@@ -850,13 +852,9 @@ impl Connection {
   self.image_resource(json!({"_tag":"media-file","threadId":thread,"path":path}),None)
  }
  fn image_resource(&self,resource:Value,expected:Option<&str>)->Result<(Vec<u8>,String)>{
-  let grant=self.rpc("assets.createUrl",json!({"resource":resource}))?;
-  let url=endpoint(&self.base,field(&grant,"relativeUrl")?)?;if !url.path().starts_with("/api/assets/"){return Err("invalid_asset_url".into())}
-  let response=self.http.get(url).timeout(Duration::from_secs(30)).send().map_err(|_|"image_unreachable")?;if !response.status().is_success(){return Err("image_unavailable".into())}
-  let mime=response.headers().get("content-type").and_then(|v|v.to_str().ok()).unwrap_or("").split(';').next().unwrap_or("").trim().to_string();
+  let url=self.asset_url(resource)?;
+  let assets::AssetBytes{bytes,mime}=self.signed_get(url,&assets::AssetOptions::new(10*1024*1024),&assets::IMAGE)?;
   if expected.is_some_and(|m|m!=mime){return Err("invalid_image".into())}
-  let mut bytes=vec![];response.take(10*1024*1024+1).read_to_end(&mut bytes).map_err(|_|"image_unavailable")?;
-  if bytes.len()>10*1024*1024{return Err("image_limit_10MiB".into())}
   let valid=match mime.as_str(){"image/png"=>bytes.starts_with(b"\x89PNG\r\n\x1a\n"),"image/jpeg"=>bytes.starts_with(b"\xff\xd8\xff"),"image/gif"=>bytes.starts_with(b"GIF87a")||bytes.starts_with(b"GIF89a"),"image/webp"=>bytes.starts_with(b"RIFF")&&bytes.get(8..12)==Some(b"WEBP"),"image/heic"|"image/heif"|"image/avif"=>bytes.get(4..8)==Some(b"ftyp"),_=>false};
   if !valid{return Err("invalid_image".into())}Ok((bytes,mime))
  }
