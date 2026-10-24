@@ -1,6 +1,7 @@
 package dev.avillagran.t3
 
 import com.sun.net.httpserver.HttpServer
+import java.io.File
 import java.net.InetSocketAddress
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -30,7 +31,9 @@ fun main() {
         check(disconnected is T3Exception && disconnected.code == "not_connected")
         // Typed API: describe is offline, validation runs before the connection
         // check, and one generated wrapper per module reaches Rust through JNI.
-        check(client.describe().getJSONArray("functions").length() == 27)
+        val saved = JSONObject(File("bindings/android/describe.json").readText()).getJSONArray("functions").length()
+        val described = client.describe().getJSONArray("functions").length()
+        check(described == saved && described > 100) { "describe lists $described functions, describe.json $saved" }
         val api = T3Api(client)
         val invalid = runCatching { api.vcs.refreshStatus("") }.exceptionOrNull()
         check(invalid is T3Exception && invalid.code == "invalid_cwd")
