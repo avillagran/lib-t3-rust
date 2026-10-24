@@ -34,6 +34,15 @@ int main(void) {
         && strstr(response, "\"pairBearer\"") && strstr(response, "\"fetchDescriptor\"")
         && strstr(response, "\"boundedThread\""));
     t3_string_free(response);
+    response = t3_client_call(client, (const uint8_t *)capabilities, strlen(capabilities));
+    assert(response && strstr(response, "\"wakeSubscriptions\"") && strstr(response, "\"maxSubscriptions\":8")
+        && strstr(response, "\"maxLargeSubscriptions\":2") && strstr(response, "\"largeItemMaxBytes\":67108864")
+        && strstr(response, "\"boundaries\"") && strstr(response, "\"completionMarker\""));
+    t3_string_free(response);
+    const char *wake = "{\"op\":\"wakeSubscriptions\"}";
+    response = t3_client_call(client, (const uint8_t *)wake, strlen(wake));
+    assert(response && strstr(response, "\"probed\":0"));
+    t3_string_free(response);
     const char *bad_options = "{\"op\":\"connectBearer\",\"httpBaseUrl\":\"http://127.0.0.1:9\",\"token\":\"fixture-secret\",\"options\":{\"requestTimeoutMs\":0}}";
     response = t3_client_call(client, (const uint8_t *)bad_options, strlen(bad_options));
     assert(response && strstr(response, "\"error\":\"invalid_connection_options\""));

@@ -12,6 +12,9 @@ mkdir -p "$output/jni-host/kotlin"
   -no-stdlib -no-reflect -jvm-target 17 -classpath "$JSON_JAR:$KOTLIN_STDLIB" \
   -d "$output/jni-host/kotlin" bindings/android/kotlin/dev/avillagran/t3/T3Client.kt \
   bindings/android/tests/dev/avillagran/t3/KotlinFixture.kt \
-  bindings/android/tests/dev/avillagran/t3/T3Api.kt
+  bindings/android/tests/dev/avillagran/t3/T3Api.kt \
+  bindings/android/tests/dev/avillagran/t3/StreamFixture.kt
 "$JAVA_HOME/bin/java" --add-modules jdk.httpserver -Djava.library.path="$output/jni-host" \
   -cp "$output/jni-host/kotlin:$JSON_JAR:$KOTLIN_STDLIB" dev.avillagran.t3.KotlinFixtureKt
+"$JAVA_HOME/bin/java" -Djava.library.path="$output/jni-host" \
+  -cp "$output/jni-host/kotlin:$JSON_JAR:$KOTLIN_STDLIB" dev.avillagran.t3.StreamFixture
