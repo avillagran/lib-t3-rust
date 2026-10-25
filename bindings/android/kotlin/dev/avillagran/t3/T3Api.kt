@@ -440,6 +440,7 @@ class T3Api(client: T3Client) {
     class Domain internal constructor(client: T3Client) {
         val activity = Activity(client)
         val approvals = Approvals(client)
+        val branchPicker = BranchPicker(client)
         val changes = Changes(client)
         val codeBlocks = CodeBlocks(client)
         val composer = Composer(client)
@@ -472,6 +473,27 @@ class T3Api(client: T3Client) {
             /** `approvals.command` · command runtime-request.respond, only for a pending live request and an offered decision */
             fun command(thread: String, runtimeRequestId: String, decision: String, projection: JSONObject): Any? =
                 client.domain("approvals.command", JSONObject().put("thread", thread).put("runtimeRequestId", runtimeRequestId).put("decision", decision).put("projection", projection))
+        }
+
+        class BranchPicker internal constructor(private val client: T3Client) {
+            /** `branchPicker.dedupe` · array: vcs.listRefs refs without the origin refs whose local branch is listed */
+            fun dedupe(refs: JSONArray): Any? =
+                client.domain("branchPicker.dedupe", JSONObject().put("refs", refs))
+            /** `branchPicker.deriveLocal` · string: the local branch name of a remote ref (origin/feature/x → feature/x) */
+            fun deriveLocal(name: String): Any? =
+                client.domain("branchPicker.deriveLocal", JSONObject().put("name", name))
+            /** `branchPicker.sanitize` · string: a new branch name with whitespace runs as single dashes */
+            fun sanitize(name: String): Any? =
+                client.domain("branchPicker.sanitize", JSONObject().put("name", name))
+            /** `branchPicker.selectionTarget` · object {checkoutCwd, nextWorktreePath, reuseExistingWorktree}: where to switch to the picked ref and the thread's next worktree */
+            fun selectionTarget(projectCwd: String, ref: JSONObject, worktreePath: String? = null): Any? =
+                client.domain("branchPicker.selectionTarget", JSONObject().put("projectCwd", projectCwd).put("worktreePath", worktreePath).put("ref", ref))
+            /** `branchPicker.mismatch` · object {threadBranch, currentBranch, canRestore} when the checkout is not on the thread's branch, else null */
+            fun mismatch(worktreePath: String? = null, threadBranch: String? = null, currentBranch: String? = null): Any? =
+                client.domain("branchPicker.mismatch", JSONObject().put("worktreePath", worktreePath).put("threadBranch", threadBranch).put("currentBranch", currentBranch))
+            /** `branchPicker.temporaryBranch` · bool: a temporary worktree branch (t3-/t3/ or t3code-/t3code/ plus 8 hex, or t3code/ plus a UUID v4) */
+            fun temporaryBranch(name: String): Any? =
+                client.domain("branchPicker.temporaryBranch", JSONObject().put("name", name))
         }
 
         class Changes internal constructor(private val client: T3Client) {

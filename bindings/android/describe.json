@@ -1119,6 +1119,98 @@
       "fn": "pullRequests.threadCommand",
       "module": "pullRequests",
       "returns": "command thread.pull-request.link, unlink or watch for a reference {host, repository, number, url}; commandId only when given"
+    },
+    {
+      "args": [
+        {
+          "name": "refs",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "branchPicker.dedupe",
+      "module": "branchPicker",
+      "returns": "array: vcs.listRefs refs without the origin refs whose local branch is listed"
+    },
+    {
+      "args": [
+        {
+          "name": "name",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "branchPicker.deriveLocal",
+      "module": "branchPicker",
+      "returns": "string: the local branch name of a remote ref (origin/feature/x → feature/x)"
+    },
+    {
+      "args": [
+        {
+          "name": "name",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "branchPicker.sanitize",
+      "module": "branchPicker",
+      "returns": "string: a new branch name with whitespace runs as single dashes"
+    },
+    {
+      "args": [
+        {
+          "name": "projectCwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "worktreePath",
+          "required": false,
+          "type": "path"
+        },
+        {
+          "name": "ref",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "branchPicker.selectionTarget",
+      "module": "branchPicker",
+      "returns": "object {checkoutCwd, nextWorktreePath, reuseExistingWorktree}: where to switch to the picked ref and the thread's next worktree"
+    },
+    {
+      "args": [
+        {
+          "name": "worktreePath",
+          "required": false,
+          "type": "path"
+        },
+        {
+          "name": "threadBranch",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "currentBranch",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "branchPicker.mismatch",
+      "module": "branchPicker",
+      "returns": "object {threadBranch, currentBranch, canRestore} when the checkout is not on the thread's branch, else null"
+    },
+    {
+      "args": [
+        {
+          "name": "name",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "branchPicker.temporaryBranch",
+      "module": "branchPicker",
+      "returns": "bool: a temporary worktree branch (t3-/t3/ or t3code-/t3code/ plus 8 hex, or t3code/ plus a UUID v4)"
     }
   ],
   "functions": [
