@@ -559,6 +559,15 @@ class T3Api(client: T3Client) {
             /** `sidebar.threadAction` · command for the thread actions menu (without commandId) */
             fun threadAction(thread: String, action: String, title: String? = null, enabled: Boolean? = null, confirmed: Boolean? = null, working: Boolean? = null): Any? =
                 client.domain("sidebar.threadAction", JSONObject().put("thread", thread).put("action", action).put("title", title).put("enabled", enabled).put("confirmed", confirmed).put("working", working))
+            /** `sidebar.snapshot` · object {environments [{id, name, state}], stale, projects, threads, working, pending}: each environment {id, name?, shell?, state?} as ot3's rows, newest first */
+            fun snapshot(environments: JSONArray, now: Long): Any? =
+                client.domain("sidebar.snapshot", JSONObject().put("environments", environments).put("now", now))
+            /** `sidebar.view` · object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time */
+            fun view(environments: JSONArray, now: Long, filter: String? = null, project: String? = null, environmentId: String? = null, query: String? = null, grouped: Boolean? = null, subthreadsExpanded: JSONObject? = null, selectedKey: String? = null, returns: JSONObject? = null, groupingMode: String? = null, groupingOverrides: JSONObject? = null, nativeGrouping: JSONObject? = null): Any? =
+                client.domain("sidebar.view", JSONObject().put("environments", environments).put("now", now).put("filter", filter).put("project", project).put("environmentId", environmentId).put("query", query).put("grouped", grouped).put("subthreadsExpanded", subthreadsExpanded).put("selectedKey", selectedKey).put("returns", returns).put("groupingMode", groupingMode).put("groupingOverrides", groupingOverrides).put("nativeGrouping", nativeGrouping))
+            /** `sidebar.detail` · object {detail, state, statusLabel, statusRole, time} of one sidebar row */
+            fun detail(thread: JSONObject, now: Long? = null): Any? =
+                client.domain("sidebar.detail", JSONObject().put("thread", thread).put("now", now))
         }
     }
 }
