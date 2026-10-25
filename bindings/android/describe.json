@@ -835,6 +835,89 @@
     {
       "args": [
         {
+          "name": "row",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "toolInspector.compactReference",
+      "module": "toolInspector",
+      "returns": "object {sourceThreadId, sourceItemId, type, runId, providerTurnId, revision} of a turn item or projected row (revision live while it runs); timeline activity entries already carry it as inspector"
+    },
+    {
+      "args": [
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "environment",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "toolInspector.scope",
+      "module": "toolInspector",
+      "returns": "object {environment, threadId, sourceThreadId, sourceItemId, type, runId, providerTurnId, revision}: the inspector's local scope, to match the read's answer against"
+    },
+    {
+      "args": [
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "environment",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "toolInspector.request",
+      "module": "toolInspector",
+      "returns": "object {method: orchestration.getTurnItem, payload {threadId, itemId, revision}}: the typed call that reads the item"
+    },
+    {
+      "args": [
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "environment",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "response",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "toolInspector.parse",
+      "module": "toolInspector",
+      "returns": "object {scope, available, title, status, failed, exitCode, sections [{key, label, text, truncated}], metadata, metadataTruncated, raw, rawTruncated, outputOmitted, emptyOutput} from orchestration.getTurnItem's {item}; {scope, available: false, sections: [], raw: \"\", rawTruncated: false} when the item is gone"
+    },
+    {
+      "args": [
+        {
           "name": "period",
           "required": true,
           "type": "enum",
