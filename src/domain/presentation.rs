@@ -1,7 +1,7 @@
 //! Presentation ported from ot3's QML and JavaScript: the conversation minimap,
 //! subagent cards, theme colours and the string catalog.
 use super::{domain_fn, DomainFn};
-use crate::subagents;
+use crate::{subagents, theme};
 use crate::timeline::minimap;
 use serde_json::json;
 
@@ -41,5 +41,11 @@ pub const FUNCTIONS: &[DomainFn] = &[
         args: [(thread, Object, required)],
         returns: "object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent",
         run: |a| Ok(subagents::from_thread(a.req_object("thread")?)),
+    },
+    domain_fn! {
+        name: "theme.tokens", module: "theme",
+        args: [(colors, Text, required), (id, Text, optional)],
+        returns: "object {id, name, appearance (light when the background's Rec.709 luminance > 0.5), luminance, mode, base, roles {dim, statusMuted, divider, surface, card, cardBorder, changesCard, rowSelected, rowPressed, rowDraft, field, fieldBorder, switchOff, inlineCode, composerBorder, composerFocus, working, done, waiting, failed, warning, input, onAccent}, layers {role: {color, alpha}}, statusColors {detail: colour}, projectPalette, projectFills, sky {lightSky, star, meteor, ink, header {brightness, nebula, meteorRate, base}, panel}, document {appearance, variables}, mcpTheme}: ot3's colours for an Omarchy colors.toml, each role the opaque #rrggbb ot3 draws",
+        run: |a| Ok(theme::tokens(a.req("colors")?, a.str("id")?)),
     },
 ];

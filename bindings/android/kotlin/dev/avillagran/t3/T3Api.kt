@@ -463,6 +463,7 @@ class T3Api(client: T3Client) {
         val scopedSettings = ScopedSettings(client)
         val sidebar = Sidebar(client)
         val subagents = Subagents(client)
+        val theme = Theme(client)
         val timeline = Timeline(client)
         val toolInspector = ToolInspector(client)
         val usageSummary = UsageSummary(client)
@@ -816,6 +817,12 @@ class T3Api(client: T3Client) {
             /** `subagents.fromThread` · object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent */
             fun fromThread(thread: JSONObject): Any? =
                 client.domain("subagents.fromThread", JSONObject().put("thread", thread))
+        }
+
+        class Theme internal constructor(private val client: T3Client) {
+            /** `theme.tokens` · object {id, name, appearance (light when the background's Rec.709 luminance > 0.5), luminance, mode, base, roles {dim, statusMuted, divider, surface, card, cardBorder, changesCard, rowSelected, rowPressed, rowDraft, field, fieldBorder, switchOff, inlineCode, composerBorder, composerFocus, working, done, waiting, failed, warning, input, onAccent}, layers {role: {color, alpha}}, statusColors {detail: colour}, projectPalette, projectFills, sky {lightSky, star, meteor, ink, header {brightness, nebula, meteorRate, base}, panel}, document {appearance, variables}, mcpTheme}: ot3's colours for an Omarchy colors.toml, each role the opaque #rrggbb ot3 draws */
+            fun tokens(colors: String, id: String? = null): Any? =
+                client.domain("theme.tokens", JSONObject().put("colors", colors).put("id", id))
         }
 
         class Timeline internal constructor(private val client: T3Client) {
