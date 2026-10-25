@@ -5,7 +5,7 @@
 //! The JSON ABI reaches them with `{"op":"domain","fn":"queue.derive","args":{…}}`
 //! and `describe` lists them under `domain`.
 use crate::api::{ids, Arg, ArgType, Args};
-use crate::{approvals, code_blocks, composer, connection_catalog, history, i18n, models, projection, projects, questions, queue, sidebar, timeline, Result};
+use crate::{activity, approvals, changes, code_blocks, composer, connection_catalog, history, i18n, models, projection, projects, questions, queue, sidebar, timeline, Result};
 use serde_json::{json, Value};
 
 /// One registry row. Built with `domain_fn!`.
@@ -229,6 +229,18 @@ pub const FUNCTIONS: &[DomainFn] = &[
         args: [(projection, Object, required)],
         returns: "array of the active run's in-flight activity {id, type, category, title, command, runId, status, failed, active, inspector}, newest first (at most 3)",
         run: |a| Ok(timeline::live_activity(a.req_object("projection")?)),
+    },
+    domain_fn! {
+        name: "activity.describe", module: "activity",
+        args: [(row, Object, required)],
+        returns: "object {id, type, category, title, command, runId, status, failed, active} of a turn item (or its projected row), or null for messages, checkpoints, plans and errors; never the tool's input or output",
+        run: |a| Ok(activity::describe(a.req_object("row")?).unwrap_or(Value::Null)),
+    },
+    domain_fn! {
+        name: "changes.summaries", module: "changes",
+        args: [(projection, Object, required)],
+        returns: "array of {id, runId, capturedAt, fromTurnCount, toTurnCount, files [{path, kind, additions, deletions}], additions, deletions}, one per run with ready checkpoint files",
+        run: |a| Ok(json!(changes::summaries(a.req_object("projection")?))),
     },
     domain_fn! {
         name: "queue.derive", module: "queue",
