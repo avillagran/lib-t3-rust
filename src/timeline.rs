@@ -10,6 +10,8 @@ use crate::{activity, approvals, changes, checkpoint_revert, code_blocks, compac
 use serde_json::{json, Value};
 use std::collections::HashSet;
 
+pub mod minimap;
+
 /// A host's rich-text renderer for one message: its display text, its code
 /// blocks (`code_blocks::parse`) and whether math is on (ot3: Qt rich text).
 pub type MessageRenderer = dyn Fn(&str, &[Value], bool) -> String;

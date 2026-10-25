@@ -2002,6 +2002,50 @@
       "fn": "scopedSettings.projectCatalogConfig",
       "module": "scopedSettings",
       "returns": "object: server.getConfig with the project's provider enable overrides applied (for models.catalog)"
+    },
+    {
+      "args": [
+        {
+          "name": "rows",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "visibleRowIds",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "atEnd",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "timeline.minimap",
+      "module": "timeline",
+      "returns": "object {items [{id, rowIndex, userText, assistantText, userPreview, assistantPreview}], visible (two items or more), currentIndex, visibleIds}: one marker per user row of timeline.view's timeline, paired with the last assistant reply before the next user row; currentIndex and visibleIds follow the rows on screen"
+    },
+    {
+      "args": [
+        {
+          "name": "y",
+          "required": true,
+          "type": "number"
+        },
+        {
+          "name": "height",
+          "required": true,
+          "type": "number"
+        },
+        {
+          "name": "count",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "timeline.minimapIndex",
+      "module": "timeline",
+      "returns": "integer: the marker under y on a rail height tall with count markers, or -1"
     }
   ],
   "functions": [
