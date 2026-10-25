@@ -1532,6 +1532,345 @@
       "fn": "gitControls.buildVerifiedAction",
       "module": "gitControls",
       "returns": "gitControls.buildAction's plan, only when a fresh read right before dispatch has the same revision (git_stale_result otherwise)"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "nativeSettings.snapshot",
+      "module": "nativeSettings",
+      "returns": "object {fields [{key, label, section, kind: bool, choice, days, text or model, value, resetValue?, choices?, description?, …}]}: server.getSettings as the settings pages' fields; never credentials or provider configuration"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "config",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "nativeSettings.patch",
+      "module": "nativeSettings",
+      "returns": "object {patch} for server.updateSettings from {key, value} (value null clears a nullable model); with server.getConfig as config, models and storage settings are checked against the server"
+    },
+    {
+      "args": [
+        {
+          "name": "key",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "nativeSettings.description",
+      "module": "nativeSettings",
+      "returns": "string: a field's English description (empty when it has none)"
+    },
+    {
+      "args": [
+        {
+          "name": "selection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "nativeSettings.modelSelection",
+      "module": "nativeSettings",
+      "returns": "object {instanceId, model, options? [{id, value}]}: a checked model selection"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "instanceId",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "nativeSettings.idleCompaction",
+      "module": "nativeSettings",
+      "returns": "string: the idle compaction mode (onReturn, beforeCacheExpires or off), the provider instance's override first when instanceId is given; null when the server has none"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "patch",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "nativeSettings.idleCompactionPatch",
+      "module": "nativeSettings",
+      "returns": "object {patch}: an idleCompaction patch in the form this server reads (compactIdleThreads on older servers)"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "nativeSettings.threadDefaults",
+      "module": "nativeSettings",
+      "returns": "object {defaultModelSelection, modelDefaultConfigured, defaultRuntimeMode}: a new thread's defaults, the project's over the environment's"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "file",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "scopedSettings.effective",
+      "module": "scopedSettings",
+      "returns": "object {settings, sources {key: environment, project or t3.json}, overrides}: a project's effective settings over the environment's and its t3.json"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "key",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "patch",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "clear",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "scopedSettings.projectPatch",
+      "module": "scopedSettings",
+      "returns": "object {patch {projectSettingsOverrides {projectId: entry}}}: a project override that keeps its other keys (setting_environment_only for environment keys)"
+    },
+    {
+      "args": [
+        {
+          "name": "contents",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "scopedSettings.projectFile",
+      "module": "scopedSettings",
+      "returns": "object: a project's t3.json (comments and trailing commas allowed), or null when it is missing or invalid"
+    },
+    {
+      "args": [
+        {
+          "name": "scope",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "scopedSettings.validatedTargets",
+      "module": "scopedSettings",
+      "returns": "array of {environment, projectId}: the scope's targets, 1 to 64, all project-scoped or all not (settings_scope_unavailable otherwise)"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "config",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "writeAllowed",
+          "required": true,
+          "type": "bool"
+        }
+      ],
+      "fn": "scopedSettings.writePatch",
+      "module": "scopedSettings",
+      "returns": "object {patch} for one target's server.updateSettings from {key, action: update or clear, value}: project overrides for a project, environment patches otherwise"
+    },
+    {
+      "args": [
+        {
+          "name": "next",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "before",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "saved",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "scopedSettings.writeWasDropped",
+      "module": "scopedSettings",
+      "returns": "bool: the server accepted the patch but the read-back still has the old value"
+    },
+    {
+      "args": [
+        {
+          "name": "target",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "config",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "file",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "writeAllowed",
+          "required": true,
+          "type": "bool"
+        }
+      ],
+      "fn": "scopedSettings.targetView",
+      "module": "scopedSettings",
+      "returns": "object {target, fields (each with source, scopeWritable, overridden, projectScoped), writeAllowed, storageCapabilities, catalog}: one target's page"
+    },
+    {
+      "args": [
+        {
+          "name": "views",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "scopedSettings.aggregate",
+      "module": "scopedSettings",
+      "returns": "object {fields}: the fields every target has, with mixed, source (mixed when they differ), overridden and scopeWritable over all of them"
+    },
+    {
+      "args": [
+        {
+          "name": "scope",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "views",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "errors",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "saved",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "requested",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "scopedSettings.page",
+      "module": "scopedSettings",
+      "returns": "object {fields, storageScopes, scope, modelCatalog, targets, errors, savedTargets, complete, writable}: the settings page over every target"
+    },
+    {
+      "args": [
+        {
+          "name": "config",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "scopedSettings.projectCatalogConfig",
+      "module": "scopedSettings",
+      "returns": "object: server.getConfig with the project's provider enable overrides applied (for models.catalog)"
     }
   ],
   "functions": [
