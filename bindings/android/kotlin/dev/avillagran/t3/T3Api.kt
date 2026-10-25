@@ -446,6 +446,7 @@ class T3Api(client: T3Client) {
         val composer = Composer(client)
         val connectionCatalog = ConnectionCatalog(client)
         val diffReview = DiffReview(client)
+        val gitControls = GitControls(client)
         val history = History(client)
         val i18n = I18n(client)
         val markdown = Markdown(client)
@@ -538,6 +539,30 @@ class T3Api(client: T3Client) {
             /** `diffReview.scopedResult` · diffReview.present's object for a receipt of the still-open request, null for a late or other request; the receipt's error otherwise */
             fun scopedResult(expected: JSONObject, receipt: JSONObject, summary: JSONObject): Any? =
                 client.domain("diffReview.scopedResult", JSONObject().put("expected", expected).put("receipt", receipt).put("summary", summary))
+        }
+
+        class GitControls internal constructor(private val client: T3Client) {
+            /** `gitControls.scope` · object {environment, thread, requestId, projectId, cwd, projectRoot, worktreePath}: the thread's checkout resolved against the shell snapshot (project threads only; git_scope_changed when projectId or cwd moved) */
+            fun scope(shell: JSONObject, environment: String, thread: String, requestId: String, projectId: String, cwd: String): Any? =
+                client.domain("gitControls.scope", JSONObject().put("shell", shell).put("environment", environment).put("thread", thread).put("requestId", requestId).put("projectId", projectId).put("cwd", cwd))
+            /** `gitControls.resolveScripts` · array of the project's scripts {id, name, command, icon, runOnWorktreeCreate, …} with T3's precedence (project override, defaults, legacy override, project scripts) */
+            fun resolveScripts(settings: JSONObject, project: JSONObject): Any? =
+                client.domain("gitControls.resolveScripts", JSONObject().put("settings", settings).put("project", project))
+            /** `gitControls.actions` · object {commit, push, pull, create_pr, commit_push, commit_push_pr} of bools: what the Git menu offers for a vcs.refreshStatus result */
+            fun actions(status: JSONObject): Any? =
+                client.domain("gitControls.actions", JSONObject().put("status", status))
+            /** `gitControls.present` · object {scope, status, scripts, actions, revision}: the Git & changes sheet; revision fingerprints checkout, status and scripts (not the requestId) */
+            fun present(scope: JSONObject, status: JSONObject, scripts: JSONArray): Any? =
+                client.domain("gitControls.present", JSONObject().put("scope", scope).put("status", status).put("scripts", scripts))
+            /** `gitControls.scopedResult` · the receipt's result for the sheet's still-open scope and request, null for a late or other checkout; the receipt's error otherwise */
+            fun scopedResult(expected: JSONObject, receipt: JSONObject): Any? =
+                client.domain("gitControls.scopedResult", JSONObject().put("expected", expected).put("receipt", receipt))
+            /** `gitControls.buildAction` · object {scope, revision, actionId, operation, steps [{tag, payload}], retryAutomatically: false}: a confirmed action (intent {scope, revision, confirmed, actionId (UUID), operation, defaultBranchConfirmed?, commitMessage?, filePaths?, scriptId?}) as git.runStackedAction, vcs.pull or terminal.open + terminal.write steps */
+            fun buildAction(current: JSONObject, intent: JSONObject): Any? =
+                client.domain("gitControls.buildAction", JSONObject().put("current", current).put("intent", intent))
+            /** `gitControls.buildVerifiedAction` · gitControls.buildAction's plan, only when a fresh read right before dispatch has the same revision (git_stale_result otherwise) */
+            fun buildVerifiedAction(current: JSONObject, fresh: JSONObject, intent: JSONObject): Any? =
+                client.domain("gitControls.buildVerifiedAction", JSONObject().put("current", current).put("fresh", fresh).put("intent", intent))
         }
 
         class History internal constructor(private val client: T3Client) {
