@@ -53,3 +53,42 @@ fn diff_review_scoped_result_drops_late_receipts_and_keeps_errors() {
     other["result"]["threadId"] = json!("u");
     assert_eq!(call("diffReview.scopedResult", &json!({"expected":expected,"receipt":other,"summary":summary})).unwrap_err(), "invalid_diff_thread");
 }
+
+fn command_item(status: &str) -> Value {
+    json!({"id":"item:1","threadId":"thread:source","runId":"run:1","nodeId":null,"providerThreadId":"p","providerTurnId":"turn:1",
+        "nativeItemRef":null,"parentItemId":null,"ordinal":3,"status":status,"title":null,"startedAt":"2026-10-17T12:00:00.000Z",
+        "completedAt":"2026-10-17T12:00:01.000Z","updatedAt":"2026-10-17T12:00:01.000Z","type":"command_execution",
+        "input":"printf fixture","output":"fixture\n","exitCode":1})
+}
+
+#[test]
+fn tool_inspector_reference_request_and_parse() {
+    let item = command_item("failed");
+    let reference = call("toolInspector.compactReference", &json!({"row":{"sourceThreadId":"thread:source","sourceItemId":"item:1","item":item}})).unwrap();
+    assert_eq!(keys(&reference), ["providerTurnId", "revision", "runId", "sourceItemId", "sourceThreadId", "type"]);
+    assert!(!reference.to_string().contains("printf"));
+    assert_eq!(call("toolInspector.compactReference", &json!({"row":command_item("running")})).unwrap()["revision"], "live");
+    let viewer = json!({"reference":reference,"environment":"laptop","threadId":"thread:viewer"});
+    let scope = call("toolInspector.scope", &viewer).unwrap();
+    assert_eq!((scope["environment"].as_str(), scope["threadId"].as_str(), scope["sourceThreadId"].as_str()), (Some("laptop"), Some("thread:viewer"), Some("thread:source")));
+    let request = call("toolInspector.request", &viewer).unwrap();
+    assert_eq!(request, json!({"method":"orchestration.getTurnItem","payload":{"threadId":"thread:source","itemId":"item:1","revision":"2026-10-17T12:00:01.000Z"}}));
+    let typed = t3_protocol::api::function("orchestration.getTurnItem").unwrap();
+    assert_eq!(typed.payload(&request["payload"]).unwrap(), request["payload"]);
+
+    let mut args = viewer.clone();
+    args["response"] = json!({"item":item});
+    let view = call("toolInspector.parse", &args).unwrap();
+    assert_eq!(keys(&view), ["available", "emptyOutput", "exitCode", "failed", "metadata", "metadataTruncated", "outputOmitted", "raw", "rawTruncated", "scope", "sections", "status", "title"]);
+    assert_eq!((view["available"].as_bool(), view["failed"].as_bool(), view["exitCode"].as_i64()), (Some(true), Some(true), Some(1)));
+    let sections = view["sections"].as_array().unwrap().iter().map(|s| s["key"].as_str().unwrap()).collect::<Vec<_>>();
+    assert_eq!(sections, ["input", "output"]);
+    assert_eq!(keys(&view["sections"][0]), ["key", "label", "text", "truncated"]);
+    args["response"] = json!({"item":null});
+    assert_eq!(call("toolInspector.parse", &args).unwrap()["available"], false);
+    args["response"] = json!({"item":{"id":"other"}});
+    assert_eq!(call("toolInspector.parse", &args).unwrap_err(), "tool_scope_mismatch");
+    let mut bad = viewer;
+    bad["reference"]["revision"] = json!("");
+    assert_eq!(call("toolInspector.request", &bad).unwrap_err(), "invalid_tool_reference");
+}

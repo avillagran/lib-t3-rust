@@ -458,6 +458,7 @@ class T3Api(client: T3Client) {
         val quotaSources = QuotaSources(client)
         val sidebar = Sidebar(client)
         val timeline = Timeline(client)
+        val toolInspector = ToolInspector(client)
         val usageSummary = UsageSummary(client)
 
         class Activity internal constructor(private val client: T3Client) {
@@ -677,6 +678,21 @@ class T3Api(client: T3Client) {
             /** `timeline.liveActivity` · array of the active run's in-flight activity {id, type, category, title, command, runId, status, failed, active, inspector}, newest first (at most 3) */
             fun liveActivity(projection: JSONObject): Any? =
                 client.domain("timeline.liveActivity", JSONObject().put("projection", projection))
+        }
+
+        class ToolInspector internal constructor(private val client: T3Client) {
+            /** `toolInspector.compactReference` · object {sourceThreadId, sourceItemId, type, runId, providerTurnId, revision} of a turn item or projected row (revision live while it runs); timeline activity entries already carry it as inspector */
+            fun compactReference(row: JSONObject): Any? =
+                client.domain("toolInspector.compactReference", JSONObject().put("row", row))
+            /** `toolInspector.scope` · object {environment, threadId, sourceThreadId, sourceItemId, type, runId, providerTurnId, revision}: the inspector's local scope, to match the read's answer against */
+            fun scope(reference: JSONObject, environment: String, threadId: String): Any? =
+                client.domain("toolInspector.scope", JSONObject().put("reference", reference).put("environment", environment).put("threadId", threadId))
+            /** `toolInspector.request` · object {method: orchestration.getTurnItem, payload {threadId, itemId, revision}}: the typed call that reads the item */
+            fun request(reference: JSONObject, environment: String, threadId: String): Any? =
+                client.domain("toolInspector.request", JSONObject().put("reference", reference).put("environment", environment).put("threadId", threadId))
+            /** `toolInspector.parse` · object {scope, available, title, status, failed, exitCode, sections [{key, label, text, truncated}], metadata, metadataTruncated, raw, rawTruncated, outputOmitted, emptyOutput} from orchestration.getTurnItem's {item}; {scope, available: false, sections: [], raw: "", rawTruncated: false} when the item is gone */
+            fun parse(reference: JSONObject, environment: String, threadId: String, response: JSONObject): Any? =
+                client.domain("toolInspector.parse", JSONObject().put("reference", reference).put("environment", environment).put("threadId", threadId).put("response", response))
         }
 
         class UsageSummary internal constructor(private val client: T3Client) {
