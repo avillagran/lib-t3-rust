@@ -1,0 +1,996 @@
+[
+ {
+  "name": "subagents-and-errors",
+  "projection": {
+   "thread": {
+    "id": "root"
+   },
+   "runs": [
+    {
+     "id": "r1",
+     "status": "failed"
+    }
+   ],
+   "subagents": [
+    {
+     "id": "n1",
+     "runId": "r1",
+     "title": "Subagent: Review tests",
+     "prompt": "Check the\n tests",
+     "status": "running",
+     "childThreadId": "c1",
+     "origin": "app_owned",
+     "model": "m",
+     "progress": "Reading **files**",
+     "startedAt": "2026-10-21T10:00:00Z"
+    }
+   ],
+   "turnItems": [
+    {
+     "item": {
+      "id": "i1",
+      "type": "subagent",
+      "runId": "r1",
+      "subagentId": "n1",
+      "status": "running",
+      "startedAt": "2026-10-21T10:00:00Z",
+      "childThreadId": "c1"
+     }
+    },
+    {
+     "item": {
+      "id": "i2",
+      "type": "subagent",
+      "runId": "r1",
+      "subagentId": "n2",
+      "title": "/root/agents/fix-lint",
+      "status": "completed",
+      "result": "Child task ended with status completed",
+      "startedAt": "2026-10-21T10:00:01Z",
+      "childThreadId": "c2"
+     }
+    },
+    {
+     "item": {
+      "id": "i3",
+      "type": "error",
+      "runId": "r1",
+      "failure": {
+       "class": "provider_error",
+       "message": "  The model refused: context too long.  ",
+       "code": "context_length",
+       "retryable": false
+      },
+      "startedAt": "2026-10-21T10:00:02Z"
+     }
+    },
+    {
+     "item": {
+      "id": "i4",
+      "type": "error",
+      "runId": "r1",
+      "failure": {
+       "class": "provider_error",
+       "message": "   "
+      },
+      "startedAt": "2026-10-21T10:00:03Z"
+     }
+    }
+   ],
+   "messages": []
+  }
+ },
+ {
+  "name": "live-completion",
+  "projection": {
+   "thread": {
+    "createdAt": 1700000000000,
+    "updatedAt": 1700000000000
+   },
+   "runs": [
+    {
+     "id": "r",
+     "status": "completed",
+     "createdAt": 1700000000100,
+     "completedAt": 1700000009000
+    }
+   ],
+   "messages": [],
+   "turnItems": []
+  }
+ },
+ {
+  "name": "settlement-live-activity",
+  "projection": {
+   "thread": {
+    "activeRunId": "run-one"
+   },
+   "messages": [],
+   "turnItems": [
+    {
+     "id": "old",
+     "runId": "run-old",
+     "type": "command_execution",
+     "status": "running"
+    },
+    {
+     "id": "finished",
+     "runId": "run-one",
+     "type": "command_execution",
+     "status": "completed"
+    },
+    {
+     "id": "live",
+     "runId": "run-one",
+     "type": "command_execution",
+     "status": "running",
+     "input": "private command must not be exposed",
+     "title": "Build"
+    }
+   ]
+  }
+ },
+ {
+  "name": "contextual-activity",
+  "projection": {
+   "thread": {
+    "activeRunId": "run"
+   },
+   "messages": [
+    {
+     "id": "u",
+     "role": "user",
+     "text": "Look",
+     "createdAt": 1792036800000
+    },
+    {
+     "id": "a",
+     "role": "assistant",
+     "text": "Done",
+     "createdAt": 1792036804000
+    }
+   ],
+   "turnItems": [
+    {
+     "id": "read",
+     "runId": "run",
+     "type": "command_execution",
+     "status": "running",
+     "startedAt": 1792036801000,
+     "input": "cat secret.txt"
+    },
+    {
+     "id": "done",
+     "runId": "run",
+     "type": "command_execution",
+     "status": "completed",
+     "startedAt": 1792036802000,
+     "output": "private output"
+    }
+   ]
+  }
+ },
+ {
+  "name": "grouped-inherited-activity",
+  "projection": {
+   "messages": [],
+   "turnItems": [
+    {
+     "sourceThreadId": "ancestor",
+     "sourceItemId": "item0",
+     "item": {
+      "id": "item0",
+      "threadId": "ancestor",
+      "runId": "r",
+      "providerTurnId": "p",
+      "type": "command_execution",
+      "status": "completed",
+      "startedAt": "2026-10-17T12:00:00Z",
+      "updatedAt": "2026-10-17T12:00:01Z",
+      "input": "printf private-input",
+      "output": "private-output"
+     }
+    },
+    {
+     "sourceThreadId": "ancestor",
+     "sourceItemId": "item1",
+     "item": {
+      "id": "item1",
+      "threadId": "ancestor",
+      "runId": "r",
+      "providerTurnId": "p",
+      "type": "command_execution",
+      "status": "completed",
+      "startedAt": "2026-10-17T12:00:00Z",
+      "updatedAt": "2026-10-17T12:00:01Z",
+      "input": "printf private-input",
+      "output": "private-output"
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "context-window-turns",
+  "projection": {
+   "thread": {
+    "activeProviderThreadId": "pt"
+   },
+   "messages": [],
+   "providerTurns": [
+    {
+     "tokenUsage": {
+      "usedTokens": 10,
+      "maxTokens": 100,
+      "updatedAt": "2026-01-02T00:00:00Z"
+     }
+    },
+    {
+     "tokenUsage": {
+      "usedTokens": 50,
+      "maxTokens": 200,
+      "updatedAt": "2026-01-01T00:00:00Z"
+     }
+    }
+   ],
+   "providerThreads": [
+    {
+     "id": "pt",
+     "contextUsage": {
+      "usedTokens": 7,
+      "maxTokens": 70
+     }
+    }
+   ]
+  }
+ },
+ {
+  "name": "context-window-compaction",
+  "projection": {
+   "thread": {},
+   "messages": [],
+   "turnItems": [
+    {
+     "type": "compaction",
+     "afterTokenCount": 1200,
+     "beforeTokenCount": 90000
+    }
+   ]
+  }
+ },
+ {
+  "name": "plans",
+  "projection": {
+   "thread": {
+    "id": "thread-1",
+    "interactionMode": "plan"
+   },
+   "updatedAt": "2026-10-17T10:00:00Z",
+   "messages": [],
+   "runs": [
+    {
+     "id": "run-older",
+     "ordinal": 1,
+     "status": "completed"
+    },
+    {
+     "id": "run-latest",
+     "ordinal": 2,
+     "status": "completed"
+    }
+   ],
+   "turnItems": [
+    {
+     "item": {
+      "type": "proposed_plan",
+      "planId": "plan-1"
+     },
+     "updatedAt": "2026-10-17T10:01:00Z"
+    },
+    {
+     "item": {
+      "type": "proposed_plan",
+      "planId": "plan-2"
+     },
+     "updatedAt": "2026-10-17T10:02:00Z"
+    }
+   ],
+   "plans": [
+    {
+     "id": "plan-1",
+     "threadId": "thread-1",
+     "runId": "run-older",
+     "nodeId": "node-1",
+     "status": "active",
+     "kind": "proposed_plan",
+     "markdown": "# Old\nOld"
+    },
+    {
+     "id": "plan-2",
+     "threadId": "thread-1",
+     "runId": "run-latest",
+     "nodeId": "node-2",
+     "status": "active",
+     "kind": "proposed_plan",
+     "markdown": "# Native Plan\n\n## Summary\nOne\n\n## Steps\nTwo"
+    },
+    {
+     "id": "list-1",
+     "threadId": "thread-1",
+     "runId": "run-latest",
+     "nodeId": "node-3",
+     "status": "active",
+     "kind": "todo_list",
+     "steps": []
+    }
+   ]
+  }
+ },
+ {
+  "name": "checkpoint-rewind",
+  "projection": {
+   "thread": {
+    "id": "thread:one",
+    "activeProviderThreadId": "provider:one",
+    "providerInstanceId": "codex",
+    "modelSelection": {
+     "instanceId": "codex",
+     "model": "m"
+    },
+    "worktreePath": "/synthetic/tree",
+    "rollbackRequestId": null
+   },
+   "checkpointScopes": [
+    {
+     "id": "scope",
+     "threadId": "thread:one"
+    }
+   ],
+   "providerThreads": [
+    {
+     "id": "provider:one",
+     "providerInstanceId": "codex",
+     "providerSessionId": "session"
+    }
+   ],
+   "checkpoints": [
+    {
+     "id": "initial",
+     "threadId": "thread:one",
+     "scopeId": "scope",
+     "runId": null,
+     "ordinalWithinScope": 0,
+     "appRunOrdinal": null,
+     "status": "ready"
+    },
+    {
+     "id": "end",
+     "threadId": "thread:one",
+     "scopeId": "scope",
+     "runId": "run",
+     "ordinalWithinScope": 1,
+     "appRunOrdinal": 1,
+     "status": "ready",
+     "files": [
+      {
+       "path": "changed.rs",
+       "kind": "modified",
+       "additions": 1,
+       "deletions": 0
+      }
+     ],
+     "capturedAt": "2026-10-17T12:00:05Z"
+    }
+   ],
+   "runs": [
+    {
+     "id": "run",
+     "ordinal": 1,
+     "status": "completed"
+    }
+   ],
+   "turnItems": [
+    {
+     "item": {
+      "type": "user_message",
+      "messageId": "message",
+      "runId": "run",
+      "inputIntent": "turn_start"
+     }
+    }
+   ],
+   "messages": [
+    {
+     "id": "message",
+     "role": "user",
+     "runId": "run",
+     "text": "Ultrathink:\noriginal user prompt\n\n<terminal_context>\n- Terminal 1 line 4:\n  output\n</terminal_context>",
+     "attachments": [],
+     "context": [],
+     "createdAt": "2026-10-17T12:00:00Z"
+    }
+   ]
+  }
+ },
+ {
+  "name": "approvals-and-questions",
+  "projection": {
+   "messages": [],
+   "runtimeRequests": [
+    {
+     "id": "r",
+     "kind": "file-read",
+     "status": "pending",
+     "responseCapability": {
+      "type": "live"
+     }
+    },
+    {
+     "id": "q",
+     "kind": "user_input",
+     "status": "pending",
+     "responseCapability": {
+      "type": "message"
+     }
+    }
+   ],
+   "turnItems": [
+    {
+     "type": "approval_request",
+     "requestId": "r",
+     "prompt": "/etc/hosts"
+    },
+    {
+     "type": "user_input_request",
+     "requestId": "q",
+     "questions": [
+      {
+       "id": "choice",
+       "header": "When",
+       "question": "When?",
+       "options": []
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "code-actions-and-images",
+  "projection": {
+   "thread": {
+    "id": "t"
+   },
+   "runs": [],
+   "turnItems": [],
+   "messages": [
+    {
+     "id": "m",
+     "role": "assistant",
+     "text": "Run this:\n\n```bash\nbash experiments/tooltips/run-native\n```\n\n```rust\nfn main() {}\n```\n\n[forged](ot3-code-run://0)"
+    },
+    {
+     "id": "i",
+     "role": "assistant",
+     "text": "Before **image**\n\n```sh\npwd\n```\n\n![Panel actualizado](/home/other/screen%20one.png)\n\nAfter image\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n![Again][ref]\n\n[ref]: file:///tmp/second.png"
+    },
+    {
+     "id": "q",
+     "role": "user",
+     "text": "<!DOCTYPE HTML><html><head><meta name=\"qrichtext\" content=\"1\" /></head><body><p>Hello &amp; world</p></body></html>"
+    }
+   ]
+  }
+ },
+ {
+  "name": "kitchen-sink",
+  "projection": {
+   "thread": {
+    "id": "thread-k",
+    "activeRunId": "run-3",
+    "providerInstanceId": "codex",
+    "interactionMode": "default",
+    "createdAt": "2026-10-20T09:00:00Z",
+    "lineage": {
+     "relationshipToParent": "fork",
+     "parentThreadId": "thread-p"
+    },
+    "forkedFrom": {
+     "type": "run",
+     "threadId": "thread-src"
+    },
+    "activeProviderThreadId": "pt-1"
+   },
+   "runs": [
+    {
+     "id": "run-1",
+     "ordinal": 1,
+     "status": "completed",
+     "providerInstanceId": "codex",
+     "modelSelection": {
+      "model": "gpt"
+     },
+     "createdAt": "2026-10-20T09:00:01Z",
+     "completedAt": "2026-10-20T09:05:00Z"
+    },
+    {
+     "id": "run-x",
+     "ordinal": 2,
+     "status": "rolled_back",
+     "createdAt": "2026-10-20T09:06:00Z"
+    },
+    {
+     "id": "run-q",
+     "ordinal": 4,
+     "status": "queued",
+     "userMessageId": "m-queued",
+     "queuePosition": 1
+    },
+    {
+     "id": "run-3",
+     "ordinal": 3,
+     "status": "running",
+     "providerInstanceId": "agent-b",
+     "activeAttemptId": "att",
+     "createdAt": "2026-10-20T09:10:00Z",
+     "startedAt": "2026-10-20T09:10:02Z"
+    }
+   ],
+   "messages": [
+    {
+     "id": "m-1",
+     "role": "user",
+     "runId": "run-1",
+     "text": "Fix the **build** in `src/lib.rs:12`",
+     "createdAt": "2026-10-20T09:00:00Z",
+     "attachments": [
+      {
+       "type": "image",
+       "id": "img-1",
+       "name": "shot.png"
+      }
+     ]
+    },
+    {
+     "id": "m-2",
+     "role": "assistant",
+     "runId": "run-1",
+     "text": "Checking [README](./README.md) and [repo](https://github.com/example/app)",
+     "createdAt": "2026-10-20T09:01:00Z"
+    },
+    {
+     "id": "m-3",
+     "role": "assistant",
+     "runId": "run-1",
+     "text": "Done.\n\n```bash\ncargo test\n```",
+     "createdAt": "2026-10-20T09:04:00Z"
+    },
+    {
+     "id": "m-x",
+     "role": "user",
+     "runId": "run-x",
+     "text": "rolled back",
+     "createdAt": "2026-10-20T09:06:00Z"
+    },
+    {
+     "id": "m-queued",
+     "role": "user",
+     "text": "later please",
+     "createdAt": "2026-10-20T09:12:00Z"
+    },
+    {
+     "id": "m-auto",
+     "role": "user",
+     "runId": "run-3",
+     "scheduledTaskId": "task-1",
+     "text": "Nightly check",
+     "createdAt": "2026-10-20T09:09:59Z"
+    },
+    {
+     "id": "m-agent",
+     "role": "user",
+     "runId": "run-3",
+     "senderThreadId": "thread-other",
+     "text": "[Message from agent thread-other]\nPlease review",
+     "createdAt": "2026-10-20T09:10:01Z"
+    },
+    {
+     "id": "m-4",
+     "role": "assistant",
+     "runId": "run-3",
+     "streaming": true,
+     "text": "Working on it",
+     "createdAt": "2026-10-20T09:11:00Z"
+    }
+   ],
+   "turnItems": [
+    {
+     "item": {
+      "id": "ti-1",
+      "type": "command_execution",
+      "runId": "run-1",
+      "threadId": "thread-k",
+      "status": "completed",
+      "startedAt": "2026-10-20T09:02:00Z",
+      "updatedAt": "2026-10-20T09:02:01Z",
+      "input": {
+       "command": "cargo build"
+      }
+     }
+    },
+    {
+     "item": {
+      "id": "ti-2",
+      "type": "file_change",
+      "runId": "run-1",
+      "threadId": "thread-k",
+      "status": "completed",
+      "fileName": "src/lib.rs",
+      "startedAt": "2026-10-20T09:02:30Z",
+      "updatedAt": "2026-10-20T09:02:31Z"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-3",
+      "type": "reasoning",
+      "runId": "run-1",
+      "threadId": "thread-k",
+      "status": "completed",
+      "startedAt": "2026-10-20T09:02:40Z",
+      "updatedAt": "2026-10-20T09:02:41Z"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-x",
+      "type": "command_execution",
+      "runId": "run-x",
+      "threadId": "thread-k",
+      "status": "completed",
+      "startedAt": "2026-10-20T09:06:30Z",
+      "updatedAt": "2026-10-20T09:06:31Z"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-c",
+      "type": "compaction",
+      "runId": "run-1",
+      "threadId": "thread-k",
+      "status": "completed",
+      "startedAt": "2026-10-20T09:07:00Z",
+      "afterTokenCount": 3000,
+      "beforeTokenCount": 120000
+     }
+    },
+    {
+     "item": {
+      "id": "ti-h",
+      "type": "handoff",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "status": "completed",
+      "startedAt": "2026-10-20T09:10:00Z",
+      "fromProviderInstanceIds": [
+       "codex"
+      ],
+      "toProviderInstanceId": "agent-b"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-html",
+      "type": "dynamic_tool",
+      "toolName": "mcp__t3-code__html_render",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "status": "completed",
+      "startedAt": "2026-10-20T09:10:30Z",
+      "updatedAt": "2026-10-20T09:10:31Z",
+      "output": {
+       "htmlRender": {
+        "attachmentId": "att-html",
+        "title": "Ideas"
+       }
+      }
+     }
+    },
+    {
+     "item": {
+      "id": "ti-app",
+      "type": "dynamic_tool",
+      "toolName": "weather.forecast",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "status": "completed",
+      "startedAt": "2026-10-20T09:10:40Z",
+      "output": {
+       "structuredContent": {
+        "t3McpApp": {
+         "attachmentId": "att-app",
+         "server": "weather",
+         "tool": "forecast",
+         "resourceUri": "ui://weather/forecast"
+        }
+       }
+      }
+     }
+    },
+    {
+     "item": {
+      "id": "ti-secret",
+      "type": "secret_request",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "label": "API key",
+      "reason": "deploy",
+      "placeholder": "sk-\u2026",
+      "secretStatus": "pending",
+      "startedAt": "2026-10-20T09:10:50Z"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-plan",
+      "type": "proposed_plan",
+      "planId": "plan-k",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "startedAt": "2026-10-20T09:10:55Z",
+      "updatedAt": "2026-10-20T09:10:56Z"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-err",
+      "type": "error",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "status": "failed",
+      "title": "Provider error",
+      "failure": {
+       "class": "usage_limit",
+       "message": "Limit reached",
+       "code": "429",
+       "retryable": true,
+       "resetAt": "2026-10-20T12:00:00Z"
+      },
+      "retry": {
+       "attempt": 1,
+       "max": 3
+      },
+      "startedAt": "2026-10-20T09:11:10Z"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-nested",
+      "type": "error",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "parentItemId": "ti-1",
+      "failure": {
+       "message": "nested"
+      },
+      "startedAt": "2026-10-20T09:11:11Z"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-sub",
+      "type": "subagent",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "subagentId": "sa-1",
+      "status": "running",
+      "startedAt": "2026-10-20T09:11:20Z"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-sub2",
+      "type": "subagent",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "subagentId": "sa-2",
+      "status": "completed",
+      "title": "Subagent: Lint",
+      "startedAt": "2026-10-20T09:11:21Z"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-live",
+      "type": "command_execution",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "status": "running",
+      "startedAt": "2026-10-20T09:11:30Z",
+      "input": "bash -lc 'rg secret'"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-live2",
+      "type": "dynamic_tool",
+      "toolName": "read_file",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "status": "in_progress",
+      "startedAt": "2026-10-20T09:11:31Z",
+      "input": {
+       "title": "Read config"
+      }
+     }
+    },
+    {
+     "item": {
+      "id": "ti-todo",
+      "type": "todo_list",
+      "planId": "todo-k",
+      "runId": "run-3",
+      "threadId": "thread-k",
+      "startedAt": "2026-10-20T09:11:32Z"
+     }
+    },
+    {
+     "item": {
+      "id": "ti-early",
+      "type": "command_execution",
+      "runId": "run-0",
+      "threadId": "thread-k",
+      "status": "completed",
+      "startedAt": "2026-10-19T09:00:00Z"
+     }
+    }
+   ],
+   "plans": [
+    {
+     "id": "plan-k",
+     "threadId": "thread-k",
+     "runId": "run-3",
+     "nodeId": "n",
+     "status": "active",
+     "kind": "proposed_plan",
+     "markdown": "# Ship it\n\n- step one\n- step two"
+    },
+    {
+     "id": "todo-k",
+     "threadId": "thread-k",
+     "runId": "run-3",
+     "kind": "todo_list",
+     "status": "active",
+     "steps": [
+      {
+       "id": "s1",
+       "text": "Build",
+       "status": "completed",
+       "durationMs": 3000
+      },
+      {
+       "id": "s2",
+       "text": "Test",
+       "status": "running"
+      }
+     ]
+    }
+   ],
+   "checkpoints": [
+    {
+     "id": "cp-1",
+     "status": "ready",
+     "runId": "run-1",
+     "appRunOrdinal": 1,
+     "capturedAt": "2026-10-20T09:05:00Z",
+     "files": [
+      {
+       "path": "src/lib.rs",
+       "kind": "modified",
+       "additions": 4,
+       "deletions": 2
+      },
+      {
+       "path": "README.md",
+       "kind": "added",
+       "additions": 10,
+       "deletions": 0
+      }
+     ]
+    },
+    {
+     "id": "cp-x",
+     "status": "ready",
+     "runId": "run-x",
+     "appRunOrdinal": 2,
+     "capturedAt": "2026-10-20T09:06:40Z",
+     "files": [
+      {
+       "path": "x.rs",
+       "kind": "modified",
+       "additions": 1,
+       "deletions": 1
+      }
+     ]
+    }
+   ],
+   "subagents": [
+    {
+     "id": "sa-1",
+     "runId": "run-3",
+     "title": "Review tests",
+     "prompt": "Check every test",
+     "status": "running",
+     "childThreadId": "child-1",
+     "origin": "app_owned",
+     "progress": "Reading files",
+     "startedAt": "2026-10-20T09:11:20Z",
+     "workflow": {
+      "name": "/agents/reviewer",
+      "phases": [
+       {}
+      ],
+      "agents": [
+       {
+        "index": 0,
+        "label": "r1",
+        "state": "running"
+       }
+      ],
+      "runHandles": {
+       "scriptPath": "/tmp/x.js"
+      }
+     }
+    }
+   ],
+   "providerTurns": [
+    {
+     "id": "pturn",
+     "status": "running",
+     "runAttemptId": "att",
+     "tokenUsage": {
+      "usedTokens": 4000,
+      "maxTokens": 200000,
+      "inputTokens": 3000,
+      "outputTokens": 1000,
+      "updatedAt": "2026-10-20T09:11:00Z"
+     }
+    }
+   ],
+   "providerThreads": [
+    {
+     "id": "pt-1",
+     "contextUsage": {
+      "usedTokens": 5,
+      "maxTokens": 10
+     }
+    }
+   ],
+   "providerSessions": [
+    {
+     "id": "ps",
+     "status": "ready",
+     "capabilities": {
+      "turns": {
+       "supportsQueuedMessages": true,
+       "supportsActiveSteering": true
+      }
+     }
+    }
+   ],
+   "runtimeRequests": [
+    {
+     "id": "rq",
+     "kind": "command",
+     "status": "pending",
+     "createdAt": "2026-10-20T09:11:40Z",
+     "responseCapability": {
+      "type": "live"
+     }
+    }
+   ]
+  },
+  "historyCursor": "cursor-1",
+  "hasMoreHistory": true
+ }
+]
