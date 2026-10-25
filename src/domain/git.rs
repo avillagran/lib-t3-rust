@@ -1,7 +1,7 @@
 //! Git and pull requests: the row badge and the pull request page, the branch
 //! picker and the Git & changes sheet.
 use super::{domain_fn, DomainFn};
-use crate::pull_requests;
+use crate::{branch_picker, pull_requests};
 use serde_json::{json, Value};
 
 const PR_READS: &[&str] = &["list", "detail", "checks", "activity", "diff"];
@@ -53,5 +53,44 @@ pub const FUNCTIONS: &[DomainFn] = &[
             }
             Ok(command)
         },
+    },
+    domain_fn! {
+        name: "branchPicker.dedupe", module: "branchPicker",
+        args: [(refs, Array, required)],
+        returns: "array: vcs.listRefs refs without the origin refs whose local branch is listed",
+        run: |a| Ok(json!(branch_picker::dedupe(a.req_array("refs")?))),
+    },
+    domain_fn! {
+        name: "branchPicker.deriveLocal", module: "branchPicker",
+        args: [(name, Text, required)],
+        returns: "string: the local branch name of a remote ref (origin/feature/x → feature/x)",
+        run: |a| Ok(json!(branch_picker::derive_local(a.req("name")?))),
+    },
+    domain_fn! {
+        name: "branchPicker.sanitize", module: "branchPicker",
+        args: [(name, Text, required)],
+        returns: "string: a new branch name with whitespace runs as single dashes",
+        run: |a| Ok(json!(branch_picker::sanitize(a.req("name")?))),
+    },
+    domain_fn! {
+        name: "branchPicker.selectionTarget", module: "branchPicker",
+        args: [(projectCwd, Path, required), (worktreePath, Path, optional), (ref, Object, required)],
+        returns: "object {checkoutCwd, nextWorktreePath, reuseExistingWorktree}: where to switch to the picked ref and the thread's next worktree",
+        run: |a| {
+            let (cwd, next, reuse) = branch_picker::selection_target(a.req("projectCwd")?, a.str("worktreePath")?, a.req_object("ref")?);
+            Ok(json!({"checkoutCwd":cwd,"nextWorktreePath":next,"reuseExistingWorktree":reuse}))
+        },
+    },
+    domain_fn! {
+        name: "branchPicker.mismatch", module: "branchPicker",
+        args: [(worktreePath, Path, optional), (threadBranch, Text, optional), (currentBranch, Text, optional)],
+        returns: "object {threadBranch, currentBranch, canRestore} when the checkout is not on the thread's branch, else null",
+        run: |a| Ok(branch_picker::mismatch(a.str("worktreePath")?, a.str("threadBranch")?, a.str("currentBranch")?)),
+    },
+    domain_fn! {
+        name: "branchPicker.temporaryBranch", module: "branchPicker",
+        args: [(name, Text, required)],
+        returns: "bool: a temporary worktree branch (t3-/t3/ or t3code-/t3code/ plus 8 hex, or t3code/ plus a UUID v4)",
+        run: |a| Ok(json!(branch_picker::temporary_branch(a.req("name")?))),
     },
 ];

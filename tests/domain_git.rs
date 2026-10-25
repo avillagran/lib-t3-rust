@@ -82,3 +82,27 @@ fn pull_request_page_writes_and_thread_links() {
     assert_eq!(call("pullRequests.threadCommand", &json!({"thread":"t","link":"unwatch","reference":pr})).unwrap()["watching"], false);
     assert_eq!(call("pullRequests.threadCommand", &json!({"thread":"t","link":"link","reference":{"host":"github.com","repository":"o/r","number":5,"url":"javascript:x"}})).unwrap_err(), "invalid_pull_request");
 }
+
+#[test]
+fn branch_picker_rules() {
+    let refs = json!([
+        {"name":"main","current":true,"isDefault":true},
+        {"name":"origin/main","isRemote":true,"remoteName":"origin"},
+        {"name":"origin/feat","isRemote":true,"remoteName":"origin"},
+        {"name":"upstream/main","isRemote":true,"remoteName":"upstream"},
+    ]);
+    let names = call("branchPicker.dedupe", &json!({"refs":refs})).unwrap().as_array().unwrap().iter().map(|r| r["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+    assert_eq!(names, ["main", "origin/feat", "upstream/main"]);
+    assert_eq!(call("branchPicker.deriveLocal", &json!({"name":"origin/feature/x"})).unwrap(), "feature/x");
+    assert_eq!(call("branchPicker.sanitize", &json!({"name":"  my new\tbranch "})).unwrap(), "my-new-branch");
+    let target = call("branchPicker.selectionTarget", &json!({"projectCwd":"/p","ref":{"name":"feat","worktreePath":"/w"}})).unwrap();
+    assert_eq!(target, json!({"checkoutCwd":"/w","nextWorktreePath":"/w","reuseExistingWorktree":true}));
+    let default = call("branchPicker.selectionTarget", &json!({"projectCwd":"/p","worktreePath":"/w","ref":{"name":"main","isDefault":true}})).unwrap();
+    assert_eq!(default, json!({"checkoutCwd":"/p","nextWorktreePath":null,"reuseExistingWorktree":false}));
+    assert_eq!(call("branchPicker.mismatch", &json!({"threadBranch":"main","currentBranch":"dev"})).unwrap(), json!({"threadBranch":"main","currentBranch":"dev","canRestore":true}));
+    assert_eq!(call("branchPicker.mismatch", &json!({"worktreePath":"/w","threadBranch":"fix","currentBranch":"dev"})).unwrap()["canRestore"], false);
+    assert!(call("branchPicker.mismatch", &json!({"worktreePath":"/w","threadBranch":"fix","currentBranch":"t3code/1a2b3c4d"})).unwrap().is_null());
+    assert!(call("branchPicker.mismatch", &json!({"currentBranch":"dev"})).unwrap().is_null());
+    assert_eq!(call("branchPicker.temporaryBranch", &json!({"name":"t3/1a2b3c4d"})).unwrap(), true);
+    assert_eq!(call("branchPicker.temporaryBranch", &json!({"name":"feature/x"})).unwrap(), false);
+}
