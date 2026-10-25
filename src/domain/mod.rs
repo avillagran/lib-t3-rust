@@ -5,7 +5,7 @@
 //! The JSON ABI reaches them with `{"op":"domain","fn":"queue.derive","args":{…}}`
 //! and `describe` lists them under `domain`.
 use crate::api::{ids, Arg, ArgType, Args};
-use crate::{approvals, code_blocks, composer, connection_catalog, history, i18n, models, projection, questions, queue, sidebar, Result};
+use crate::{approvals, code_blocks, composer, connection_catalog, history, i18n, models, projection, projects, questions, queue, sidebar, Result};
 use serde_json::{json, Value};
 
 /// One registry row. Built with `domain_fn!`.
@@ -115,7 +115,10 @@ fn sidebar_view(a: &Args) -> Result<Value> {
             native: a.get("nativeGrouping").unwrap_or(&NULL),
         },
     };
-    Ok(sidebar::view::view(&snapshot, &state, now))
+    let mut view = sidebar::view::view(&snapshot, &state, now);
+    let identities = projects::identities(snapshot["projects"].as_array().map(Vec::as_slice).unwrap_or(&[]), a.get("colors").unwrap_or(&NULL), a.str("accent")?);
+    view["projectIdentities"] = json!(identities.into_iter().map(|i| (i["key"].as_str().unwrap_or("").to_string(), i)).collect::<serde_json::Map<_, _>>());
+    Ok(view)
 }
 
 pub const FUNCTIONS: &[DomainFn] = &[
@@ -179,8 +182,9 @@ pub const FUNCTIONS: &[DomainFn] = &[
             (project, Text, optional), (environmentId, Text, optional), (query, Text, optional), (grouped, Bool, optional),
             (subthreadsExpanded, Object, optional), (selectedKey, Text, optional), (returns, Object, optional),
             (groupingMode, Enum(GROUPING_MODES), optional), (groupingOverrides, Object, optional), (nativeGrouping, Object, optional),
+            (colors, Object, optional), (accent, Text, optional),
         ],
-        returns: "object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time",
+        returns: "object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, projectIdentities {key: identity}, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time",
         run: sidebar_view,
     },
     domain_fn! {
@@ -193,6 +197,18 @@ pub const FUNCTIONS: &[DomainFn] = &[
             Ok(json!({"detail":detail,"state":sidebar::view::state(t),"statusLabel":sidebar::view::label(detail),
                 "statusRole":sidebar::view::role(detail),"time":sidebar::view::time(t, a.i64("now")?.unwrap_or(0))}))
         },
+    },
+    domain_fn! {
+        name: "projects.identity", module: "projects",
+        args: [(projects, Array, required), (colors, Object, optional), (accent, Text, optional)],
+        returns: "array of {key, monogram, label, kind, icon, colorSlot, colorKey, color, fill}, one per project, slots over all of them",
+        run: |a| Ok(json!(projects::identities(a.req_array("projects")?, a.get("colors").unwrap_or(&NULL), a.str("accent")?))),
+    },
+    domain_fn! {
+        name: "projects.monogram", module: "projects",
+        args: [(name, Text, required)],
+        returns: "string: the two-letter monogram of a project title",
+        run: |a| Ok(json!(projects::monogram(a.req("name")?))),
     },
     domain_fn! {
         name: "queue.derive", module: "queue",
