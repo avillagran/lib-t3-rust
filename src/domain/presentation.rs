@@ -1,6 +1,7 @@
 //! Presentation ported from ot3's QML and JavaScript: the conversation minimap,
 //! subagent cards, theme colours and the string catalog.
 use super::{domain_fn, DomainFn};
+use crate::subagents;
 use crate::timeline::minimap;
 use serde_json::json;
 
@@ -16,5 +17,29 @@ pub const FUNCTIONS: &[DomainFn] = &[
         args: [(y, Number, required), (height, Number, required), (count, Integer, required)],
         returns: "integer: the marker under y on a rail height tall with count markers, or -1",
         run: |a| Ok(json!(minimap::index_at(a.f64("y")?.unwrap_or(0.0), a.f64("height")?.unwrap_or(0.0), a.i64("count")?.unwrap_or(0)))),
+    },
+    domain_fn! {
+        name: "subagents.buckets", module: "subagents",
+        args: [(subagents, Array, required)],
+        returns: "object {working, done, failed, stopped, idle}: status counts (queued, running and waiting are working)",
+        run: |a| Ok(subagents::buckets(a.req_array("subagents")?)),
+    },
+    domain_fn! {
+        name: "subagents.describe", module: "subagents",
+        args: [(subagent, Object, required), (now, Integer, required)],
+        returns: "object {live, settled, label, tone, detail, elapsed}: one subagent row; label is an English source string (Queued, Running, Waiting, Idle · resumable, Completed, Failed, Stopped or Unknown), tone the colour's state (working, waiting, done, failed or idle), elapsed like 4m 09s",
+        run: |a| Ok(subagents::describe(a.req_object("subagent")?, a.i64("now")?.unwrap_or(0))),
+    },
+    domain_fn! {
+        name: "subagents.cards", module: "subagents",
+        args: [(cards, Array, required), (threadSubagents, Array, optional), (now, Integer, required)],
+        returns: "object {subagents [{subagent, view}], group, anyLive, expanded, counts, header {source, args}, summary [{source, args}]}: a timeline subagents row's cards overlaid with threadState.subagents; header and summary parts are catalog sources ({n} subagents; {n} working, done, failed, stopped, idle) joined with \" · \"",
+        run: |a| Ok(subagents::cards(a.req_array("cards")?, a.array("threadSubagents")?.map(Vec::as_slice).unwrap_or(&[]), a.i64("now")?.unwrap_or(0))),
+    },
+    domain_fn! {
+        name: "subagents.fromThread", module: "subagents",
+        args: [(thread, Object, required)],
+        returns: "object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent",
+        run: |a| Ok(subagents::from_thread(a.req_object("thread")?)),
     },
 ];

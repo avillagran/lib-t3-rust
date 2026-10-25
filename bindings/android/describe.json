@@ -2046,6 +2046,69 @@
       "fn": "timeline.minimapIndex",
       "module": "timeline",
       "returns": "integer: the marker under y on a rail height tall with count markers, or -1"
+    },
+    {
+      "args": [
+        {
+          "name": "subagents",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "subagents.buckets",
+      "module": "subagents",
+      "returns": "object {working, done, failed, stopped, idle}: status counts (queued, running and waiting are working)"
+    },
+    {
+      "args": [
+        {
+          "name": "subagent",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "now",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "subagents.describe",
+      "module": "subagents",
+      "returns": "object {live, settled, label, tone, detail, elapsed}: one subagent row; label is an English source string (Queued, Running, Waiting, Idle · resumable, Completed, Failed, Stopped or Unknown), tone the colour's state (working, waiting, done, failed or idle), elapsed like 4m 09s"
+    },
+    {
+      "args": [
+        {
+          "name": "cards",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "threadSubagents",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "now",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "subagents.cards",
+      "module": "subagents",
+      "returns": "object {subagents [{subagent, view}], group, anyLive, expanded, counts, header {source, args}, summary [{source, args}]}: a timeline subagents row's cards overlaid with threadState.subagents; header and summary parts are catalog sources ({n} subagents; {n} working, done, failed, stopped, idle) joined with \" · \""
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "subagents.fromThread",
+      "module": "subagents",
+      "returns": "object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent"
     }
   ],
   "functions": [
