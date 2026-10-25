@@ -450,6 +450,7 @@ class T3Api(client: T3Client) {
         val questions = Questions(client)
         val queue = Queue(client)
         val sidebar = Sidebar(client)
+        val timeline = Timeline(client)
 
         class Approvals internal constructor(private val client: T3Client) {
             /** `approvals.pending` · array of {requestId, requestKind, createdAt, responseCapability, detail?, appName?, options}, oldest first */
@@ -578,6 +579,15 @@ class T3Api(client: T3Client) {
             /** `sidebar.detail` · object {detail, state, statusLabel, statusRole, time} of one sidebar row */
             fun detail(thread: JSONObject, now: Long? = null): Any? =
                 client.domain("sidebar.detail", JSONObject().put("thread", thread).put("now", now))
+        }
+
+        class Timeline internal constructor(private val client: T3Client) {
+            /** `timeline.view` · object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded} */
+            fun view(projection: JSONObject, historyCursor: String? = null, hasMoreHistory: Boolean? = null, payloadBudgetExceeded: Boolean? = null, mathRenderingEnabled: Boolean? = null): Any? =
+                client.domain("timeline.view", JSONObject().put("projection", projection).put("historyCursor", historyCursor).put("hasMoreHistory", hasMoreHistory).put("payloadBudgetExceeded", payloadBudgetExceeded).put("mathRenderingEnabled", mathRenderingEnabled))
+            /** `timeline.liveActivity` · array of the active run's in-flight activity {id, type, category, title, command, runId, status, failed, active, inspector}, newest first (at most 3) */
+            fun liveActivity(projection: JSONObject): Any? =
+                client.domain("timeline.liveActivity", JSONObject().put("projection", projection))
         }
     }
 }

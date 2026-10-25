@@ -5,7 +5,7 @@
 //! The JSON ABI reaches them with `{"op":"domain","fn":"queue.derive","args":{…}}`
 //! and `describe` lists them under `domain`.
 use crate::api::{ids, Arg, ArgType, Args};
-use crate::{approvals, code_blocks, composer, connection_catalog, history, i18n, models, projection, projects, questions, queue, sidebar, Result};
+use crate::{approvals, code_blocks, composer, connection_catalog, history, i18n, models, projection, projects, questions, queue, sidebar, timeline, Result};
 use serde_json::{json, Value};
 
 /// One registry row. Built with `domain_fn!`.
@@ -209,6 +209,26 @@ pub const FUNCTIONS: &[DomainFn] = &[
         args: [(name, Text, required)],
         returns: "string: the two-letter monogram of a project title",
         run: |a| Ok(json!(projects::monogram(a.req("name")?))),
+    },
+    domain_fn! {
+        name: "timeline.view", module: "timeline",
+        args: [
+            (projection, Object, required), (historyCursor, Opaque, optional), (hasMoreHistory, Bool, optional),
+            (payloadBudgetExceeded, Bool, optional), (mathRenderingEnabled, Bool, optional),
+        ],
+        returns: "object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded}",
+        run: |a| {
+            let mut view = timeline::view(a.req_object("projection")?, a.all(), &timeline::Render::plain(a.bool("mathRenderingEnabled")?.unwrap_or(false)))?;
+            // The message rows are the timeline's user and assistant rows.
+            view.as_object_mut().unwrap().remove("messages");
+            Ok(view)
+        },
+    },
+    domain_fn! {
+        name: "timeline.liveActivity", module: "timeline",
+        args: [(projection, Object, required)],
+        returns: "array of the active run's in-flight activity {id, type, category, title, command, runId, status, failed, active, inspector}, newest first (at most 3)",
+        run: |a| Ok(timeline::live_activity(a.req_object("projection")?)),
     },
     domain_fn! {
         name: "queue.derive", module: "queue",

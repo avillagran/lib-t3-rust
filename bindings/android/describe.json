@@ -309,6 +309,50 @@
           "name": "projection",
           "required": true,
           "type": "object"
+        },
+        {
+          "name": "historyCursor",
+          "required": false,
+          "type": "opaque"
+        },
+        {
+          "name": "hasMoreHistory",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "payloadBudgetExceeded",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "mathRenderingEnabled",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "timeline.view",
+      "module": "timeline",
+      "returns": "object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded}"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "timeline.liveActivity",
+      "module": "timeline",
+      "returns": "array of the active run's in-flight activity {id, type, category, title, command, runId, status, failed, active, inspector}, newest first (at most 3)"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
         }
       ],
       "fn": "queue.derive",
