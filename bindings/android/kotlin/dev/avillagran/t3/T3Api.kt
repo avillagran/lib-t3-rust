@@ -451,6 +451,7 @@ class T3Api(client: T3Client) {
         val i18n = I18n(client)
         val markdown = Markdown(client)
         val models = Models(client)
+        val nativeSettings = NativeSettings(client)
         val planWorkflow = PlanWorkflow(client)
         val projection = Projection(client)
         val projects = Projects(client)
@@ -458,6 +459,7 @@ class T3Api(client: T3Client) {
         val questions = Questions(client)
         val queue = Queue(client)
         val quotaSources = QuotaSources(client)
+        val scopedSettings = ScopedSettings(client)
         val sidebar = Sidebar(client)
         val timeline = Timeline(client)
         val toolInspector = ToolInspector(client)
@@ -607,6 +609,30 @@ class T3Api(client: T3Client) {
                 client.domain("models.runtimeModeCommand", JSONObject().put("threadId", threadId).put("commandId", commandId).put("runtimeMode", runtimeMode))
         }
 
+        class NativeSettings internal constructor(private val client: T3Client) {
+            /** `nativeSettings.snapshot` · object {fields [{key, label, section, kind: bool, choice, days, text or model, value, resetValue?, choices?, description?, …}]}: server.getSettings as the settings pages' fields; never credentials or provider configuration */
+            fun snapshot(settings: JSONObject): Any? =
+                client.domain("nativeSettings.snapshot", JSONObject().put("settings", settings))
+            /** `nativeSettings.patch` · object {patch} for server.updateSettings from {key, value} (value null clears a nullable model); with server.getConfig as config, models and storage settings are checked against the server */
+            fun patch(input: JSONObject, config: JSONObject? = null): Any? =
+                client.domain("nativeSettings.patch", JSONObject().put("input", input).put("config", config))
+            /** `nativeSettings.description` · string: a field's English description (empty when it has none) */
+            fun description(key: String): Any? =
+                client.domain("nativeSettings.description", JSONObject().put("key", key))
+            /** `nativeSettings.modelSelection` · object {instanceId, model, options? [{id, value}]}: a checked model selection */
+            fun modelSelection(selection: JSONObject): Any? =
+                client.domain("nativeSettings.modelSelection", JSONObject().put("selection", selection))
+            /** `nativeSettings.idleCompaction` · string: the idle compaction mode (onReturn, beforeCacheExpires or off), the provider instance's override first when instanceId is given; null when the server has none */
+            fun idleCompaction(settings: JSONObject, instanceId: String? = null): Any? =
+                client.domain("nativeSettings.idleCompaction", JSONObject().put("settings", settings).put("instanceId", instanceId))
+            /** `nativeSettings.idleCompactionPatch` · object {patch}: an idleCompaction patch in the form this server reads (compactIdleThreads on older servers) */
+            fun idleCompactionPatch(settings: JSONObject, patch: JSONObject): Any? =
+                client.domain("nativeSettings.idleCompactionPatch", JSONObject().put("settings", settings).put("patch", patch))
+            /** `nativeSettings.threadDefaults` · object {defaultModelSelection, modelDefaultConfigured, defaultRuntimeMode}: a new thread's defaults, the project's over the environment's */
+            fun threadDefaults(settings: JSONObject, projectId: String): Any? =
+                client.domain("nativeSettings.threadDefaults", JSONObject().put("settings", settings).put("projectId", projectId))
+        }
+
         class PlanWorkflow internal constructor(private val client: T3Client) {
             /** `planWorkflow.view` · object {plans [{id, threadId, runId, status, markdown, title, displayMarkdown, blocks, updatedAt}], ready (the plan the banner offers to implement, or null), error?}: the projection's proposed plans with markdown.blocks of their display Markdown */
             fun view(projection: JSONObject, mathRenderingEnabled: Boolean? = null): Any? =
@@ -686,6 +712,39 @@ class T3Api(client: T3Client) {
             /** `quotaSources.apply` · object {state {providers, usageLimitSources, connected}, changed}: one server.subscribeServerConfig event (version 1) applied to the quota strip's state */
             fun apply(event: JSONObject, state: JSONObject? = null): Any? =
                 client.domain("quotaSources.apply", JSONObject().put("state", state).put("event", event))
+        }
+
+        class ScopedSettings internal constructor(private val client: T3Client) {
+            /** `scopedSettings.effective` · object {settings, sources {key: environment, project or t3.json}, overrides}: a project's effective settings over the environment's and its t3.json */
+            fun effective(settings: JSONObject, project: JSONObject? = null, file: JSONObject? = null): Any? =
+                client.domain("scopedSettings.effective", JSONObject().put("settings", settings).put("project", project).put("file", file))
+            /** `scopedSettings.projectPatch` · object {patch {projectSettingsOverrides {projectId: entry}}}: a project override that keeps its other keys (setting_environment_only for environment keys) */
+            fun projectPatch(settings: JSONObject, project: JSONObject, key: String, patch: JSONObject, clear: Boolean? = null): Any? =
+                client.domain("scopedSettings.projectPatch", JSONObject().put("settings", settings).put("project", project).put("key", key).put("patch", patch).put("clear", clear))
+            /** `scopedSettings.projectFile` · object: a project's t3.json (comments and trailing commas allowed), or null when it is missing or invalid */
+            fun projectFile(contents: String): Any? =
+                client.domain("scopedSettings.projectFile", JSONObject().put("contents", contents))
+            /** `scopedSettings.validatedTargets` · array of {environment, projectId}: the scope's targets, 1 to 64, all project-scoped or all not (settings_scope_unavailable otherwise) */
+            fun validatedTargets(scope: JSONObject): Any? =
+                client.domain("scopedSettings.validatedTargets", JSONObject().put("scope", scope))
+            /** `scopedSettings.writePatch` · object {patch} for one target's server.updateSettings from {key, action: update or clear, value}: project overrides for a project, environment patches otherwise */
+            fun writePatch(input: JSONObject, config: JSONObject, settings: JSONObject, writeAllowed: Boolean, project: JSONObject? = null): Any? =
+                client.domain("scopedSettings.writePatch", JSONObject().put("input", input).put("config", config).put("settings", settings).put("project", project).put("writeAllowed", writeAllowed))
+            /** `scopedSettings.writeWasDropped` · bool: the server accepted the patch but the read-back still has the old value */
+            fun writeWasDropped(next: JSONObject, before: JSONObject, saved: JSONObject): Any? =
+                client.domain("scopedSettings.writeWasDropped", JSONObject().put("next", next).put("before", before).put("saved", saved))
+            /** `scopedSettings.targetView` · object {target, fields (each with source, scopeWritable, overridden, projectScoped), writeAllowed, storageCapabilities, catalog}: one target's page */
+            fun targetView(target: JSONObject, config: JSONObject, settings: JSONObject, writeAllowed: Boolean, project: JSONObject? = null, file: JSONObject? = null): Any? =
+                client.domain("scopedSettings.targetView", JSONObject().put("target", target).put("config", config).put("settings", settings).put("project", project).put("file", file).put("writeAllowed", writeAllowed))
+            /** `scopedSettings.aggregate` · object {fields}: the fields every target has, with mixed, source (mixed when they differ), overridden and scopeWritable over all of them */
+            fun aggregate(views: JSONArray): Any? =
+                client.domain("scopedSettings.aggregate", JSONObject().put("views", views))
+            /** `scopedSettings.page` · object {fields, storageScopes, scope, modelCatalog, targets, errors, savedTargets, complete, writable}: the settings page over every target */
+            fun page(scope: JSONObject, views: JSONArray, requested: Long, errors: JSONArray? = null, saved: JSONArray? = null): Any? =
+                client.domain("scopedSettings.page", JSONObject().put("scope", scope).put("views", views).put("errors", errors).put("saved", saved).put("requested", requested))
+            /** `scopedSettings.projectCatalogConfig` · object: server.getConfig with the project's provider enable overrides applied (for models.catalog) */
+            fun projectCatalogConfig(config: JSONObject, settings: JSONObject, project: JSONObject? = null): Any? =
+                client.domain("scopedSettings.projectCatalogConfig", JSONObject().put("config", config).put("settings", settings).put("project", project))
         }
 
         class Sidebar internal constructor(private val client: T3Client) {
