@@ -1,6 +1,799 @@
 {
   "apiVersion": 1,
   "contract": "t3code@680152e27",
+  "domain": [
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "event",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "events",
+          "required": false,
+          "type": "array"
+        }
+      ],
+      "fn": "projection.apply",
+      "module": "projection",
+      "returns": "object {projection, changed, applied}: `event` then each of `events` applied in order"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "sidebar.status",
+      "module": "sidebar",
+      "returns": "string: approval, input, waiting, working, goal, limited, failed or ready"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "now",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "sidebar.metadata",
+      "module": "sidebar",
+      "returns": "object {sidebarStatus, woke, wokeAt, snoozed, canSnooze, snoozedUntil, hasRuntimeError, runtimeErrorClass, providerHistory, pullRequests, linkedPullRequest, branchPullRequest, pullRequestBadge}"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "sidebar.sortTimestamps",
+      "module": "sidebar",
+      "returns": "object {inboxAt, activeAnchorAt, lastSentAt, settledSortAt} (ms)"
+    },
+    {
+      "args": [
+        {
+          "name": "action",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "settle",
+            "unsettle",
+            "snooze",
+            "unsnooze"
+          ]
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "snoozedUntil",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "sidebar.command",
+      "module": "sidebar",
+      "returns": "command: thread.settle, thread.unsettle, thread.snooze or thread.unsnooze (without commandId)"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "action",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "thread-rename",
+            "regenerate-title",
+            "pin",
+            "unpin",
+            "mark-unread",
+            "auto-settle",
+            "archive",
+            "delete-thread"
+          ]
+        },
+        {
+          "name": "title",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "enabled",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "confirmed",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "working",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "sidebar.threadAction",
+      "module": "sidebar",
+      "returns": "command for the thread actions menu (without commandId)"
+    },
+    {
+      "args": [
+        {
+          "name": "environments",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "now",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "sidebar.snapshot",
+      "module": "sidebar",
+      "returns": "object {environments [{id, name, state}], stale, projects, threads, working, pending}: each environment {id, name?, shell?, state?} as ot3's rows, newest first"
+    },
+    {
+      "args": [
+        {
+          "name": "environments",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "now",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "filter",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "all",
+            "working",
+            "done",
+            "failed",
+            "pending",
+            "settled"
+          ]
+        },
+        {
+          "name": "project",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "environmentId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "query",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "grouped",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "subthreadsExpanded",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "selectedKey",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "returns",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "groupingMode",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "repository",
+            "repository_path",
+            "separate"
+          ]
+        },
+        {
+          "name": "groupingOverrides",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "nativeGrouping",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "colors",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "accent",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "sidebar.view",
+      "module": "sidebar",
+      "returns": "object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, projectIdentities {key: identity}, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "now",
+          "required": false,
+          "type": "integer"
+        }
+      ],
+      "fn": "sidebar.detail",
+      "module": "sidebar",
+      "returns": "object {detail, state, statusLabel, statusRole, time} of one sidebar row"
+    },
+    {
+      "args": [
+        {
+          "name": "projects",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "colors",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "accent",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "projects.identity",
+      "module": "projects",
+      "returns": "array of {key, monogram, label, kind, icon, colorSlot, colorKey, color, fill}, one per project, slots over all of them"
+    },
+    {
+      "args": [
+        {
+          "name": "name",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "projects.monogram",
+      "module": "projects",
+      "returns": "string: the two-letter monogram of a project title"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "historyCursor",
+          "required": false,
+          "type": "opaque"
+        },
+        {
+          "name": "hasMoreHistory",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "payloadBudgetExceeded",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "mathRenderingEnabled",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "timeline.view",
+      "module": "timeline",
+      "returns": "object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev; assistant rows and plans carry markdown.blocks], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded}"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "timeline.liveActivity",
+      "module": "timeline",
+      "returns": "array of the active run's in-flight activity {id, type, category, title, command, runId, status, failed, active, inspector}, newest first (at most 3)"
+    },
+    {
+      "args": [
+        {
+          "name": "row",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "activity.describe",
+      "module": "activity",
+      "returns": "object {id, type, category, title, command, runId, status, failed, active} of a turn item (or its projected row), or null for messages, checkpoints, plans and errors; never the tool's input or output"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "changes.summaries",
+      "module": "changes",
+      "returns": "array of {id, runId, capturedAt, fromTurnCount, toTurnCount, files [{path, kind, additions, deletions}], additions, deletions}, one per run with ready checkpoint files"
+    },
+    {
+      "args": [
+        {
+          "name": "markdown",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "mathRenderingEnabled",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "markdown.blocks",
+      "module": "markdown",
+      "returns": "array of blocks {type: paragraph, heading, list, quote, code, table, image, math or rule} with flat inline spans (text with strong/emphasis/strikethrough/link, code, break, image, math); links classified github, web, thread, file or anchor; unsafe links dropped"
+    },
+    {
+      "args": [
+        {
+          "name": "href",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "markdown.link",
+      "module": "markdown",
+      "returns": "object {href, kind: github, web, thread, file or anchor, fileType?} or null when ot3 would not follow the link"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "queue.derive",
+      "module": "queue",
+      "returns": "object {items, hiddenMessageIds, acknowledgedMessageIds, held, activeRunId, canReorder, canSteer}"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "action",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "cancel",
+            "reorder",
+            "steer",
+            "resume",
+            "edit"
+          ]
+        },
+        {
+          "name": "runId",
+          "required": false,
+          "type": "id"
+        },
+        {
+          "name": "beforeRunId",
+          "required": false,
+          "type": "id"
+        },
+        {
+          "name": "targetRunId",
+          "required": false,
+          "type": "id"
+        },
+        {
+          "name": "text",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "attachments",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "context",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "queue.command",
+      "module": "queue",
+      "returns": "command: queued-run.cancel/reorder/edit, queued-message.promote-to-steer or queue.resume (without commandId)"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "approvals.pending",
+      "module": "approvals",
+      "returns": "array of {requestId, requestKind, createdAt, responseCapability, detail?, appName?, options}, oldest first"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "runtimeRequestId",
+          "required": true,
+          "type": "opaque"
+        },
+        {
+          "name": "decision",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "accept",
+            "acceptForSession",
+            "acceptAlways",
+            "decline",
+            "cancel"
+          ]
+        },
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "approvals.command",
+      "module": "approvals",
+      "returns": "command runtime-request.respond, only for a pending live request and an offered decision"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "questions.pending",
+      "module": "questions",
+      "returns": "array of {requestId, createdAt, questions, responseCapability, dismissible}, oldest first"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "runtimeRequestId",
+          "required": true,
+          "type": "opaque"
+        },
+        {
+          "name": "action",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "respond",
+            "dismiss"
+          ]
+        },
+        {
+          "name": "answers",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "questions.command",
+      "module": "questions",
+      "returns": "command runtime-request.respond (answers) or thread.user-input.dismiss"
+    },
+    {
+      "args": [
+        {
+          "name": "config",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "models.catalog",
+      "module": "models",
+      "returns": "object {models, providers, favorites, favoritesReady, capabilities, scratchWorkspaceRoot} from server.getConfig"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "models.preferences",
+      "module": "models",
+      "returns": "object {favorites, favoritesReady} from server.getSettings"
+    },
+    {
+      "args": [
+        {
+          "name": "provider",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "model",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "favorite",
+          "required": true,
+          "type": "bool"
+        }
+      ],
+      "fn": "models.favoritePayload",
+      "module": "models",
+      "returns": "object {patch} for server.updateSettings"
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "commandId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "runtimeMode",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "approval-required",
+            "auto-accept-edits",
+            "auto",
+            "full-access"
+          ]
+        }
+      ],
+      "fn": "models.runtimeModeCommand",
+      "module": "models",
+      "returns": "command thread.runtime-mode.set"
+    },
+    {
+      "args": [
+        {
+          "name": "result",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "composer.paths",
+      "module": "composer",
+      "returns": "array of {kind, label, description, insert, icon} (at most 40) from projects.searchEntries"
+    },
+    {
+      "args": [
+        {
+          "name": "provider",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "kind",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "skill",
+            "command"
+          ]
+        },
+        {
+          "name": "query",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "composer.catalog",
+      "module": "composer",
+      "returns": "array of {kind, label, description, insert, icon} (at most 40): skills and slash commands"
+    },
+    {
+      "args": [
+        {
+          "name": "path",
+          "required": true,
+          "type": "path"
+        }
+      ],
+      "fn": "composer.fileLink",
+      "module": "composer",
+      "returns": "string: the Markdown file link T3's composer inserts"
+    },
+    {
+      "args": [
+        {
+          "name": "attachment",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "composer.attachmentReference",
+      "module": "composer",
+      "returns": "string: the inline t3-context reference of an uploaded attachment"
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "cursor",
+          "required": true,
+          "type": "opaque"
+        }
+      ],
+      "fn": "history.path",
+      "module": "history",
+      "returns": "string: the history page path for request"
+    },
+    {
+      "args": [
+        {
+          "name": "page",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "history.envelope",
+      "module": "history",
+      "returns": "object {projection {thread, messages, turnItems}, historyCursor, hasMoreHistory}"
+    },
+    {
+      "args": [
+        {
+          "name": "link",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "pairingCode",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "connectionCatalog.pairingTarget",
+      "module": "connectionCatalog",
+      "returns": "object {httpBaseUrl, pairingCode}: a pairing link, QR payload or host plus code"
+    },
+    {
+      "args": [
+        {
+          "name": "markdown",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "codeBlocks.parse",
+      "module": "codeBlocks",
+      "returns": "array of {index, language, code, command}: command only for a complete single-line shell fence"
+    },
+    {
+      "args": [
+        {
+          "name": "catalog",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "locale",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "source",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "i18n.translate",
+      "module": "i18n",
+      "returns": "string: the translation, the English source as fallback"
+    },
+    {
+      "args": [
+        {
+          "name": "locale",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "i18n.normalize",
+      "module": "i18n",
+      "returns": "string: a POSIX or BCP 47 locale as lowercase BCP 47 (fr_CA.UTF-8 → fr-ca)"
+    }
+  ],
   "functions": [
     {
       "args": [],

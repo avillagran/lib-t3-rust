@@ -86,6 +86,7 @@ C ABI commands:
 {"op":"rpcWithTimeout","tag":"device.configure","payload":{},"timeoutMs":120000}
 {"op":"describe"}
 {"op":"call","fn":"vcs.refreshStatus","args":{"cwd":"/home/me/repo"}}
+{"op":"domain","fn":"queue.derive","args":{"projection":{"thread":{"id":"selected"},"runs":[]}}}
 {"op":"subscribe","tag":"orchestration.subscribeThread","payload":{"threadId":"selected"}}
 {"op":"pollSubscription","subscriptionId":"returned-id","timeoutMs":1000}
 {"op":"cancelSubscription","subscriptionId":"returned-id"}
@@ -496,6 +497,99 @@ unchanged. `call` on a stream function is `stream_function`. `describe` adds
 `cursor` (the payload's `afterSequence` advanced over every polled item) and
 `start`. All of this is additive; `abiVersion` stays 3.
 
+## Domain operations
+
+Pure functions of the library, reachable by name from any host: what a client
+derives from T3's JSON (the sidebar over several environments, the thread
+timeline, Markdown blocks, project chips, the queue, approvals, questions,
+models, composer suggestions, history pages) and the commands it builds. They
+need no connection and never touch the network, so they work before
+`connectBearer` and while offline; anything that depends on the clock takes `now`
+(milliseconds) as an argument. Through the JSON ABI:
+
+```json
+{"op":"domain","fn":"sidebar.view","args":{"environments":[{"id":"laptop","name":"Laptop","shell":{"threads":[],"projects":[]}}],"now":1792036800000}}
+{"op":"domain","fn":"timeline.view","args":{"projection":{"thread":{"id":"t"},"messages":[],"turnItems":[]}}}
+{"op":"domain","fn":"markdown.blocks","args":{"markdown":"**Done**: see `src/lib.rs`"}}
+```
+
+Arguments are checked like `call`'s, by name and JSON type, before the function
+runs: an unknown member is `invalid_input`, a missing or mistyped one
+`invalid_<field>`, an unregistered name `unknown_function`; the function's own
+rules follow (`invalid_history_cursor`, `confirmation_required`, …). The error
+envelope is the same. `describe` lists every function under `domain` with its
+`args` and a one-line `returns`, and `capabilities` adds `"domain"` to
+`operations` and `domainFunctions` with the count. A `domain` request may be up
+to 72 MiB, a bounded thread snapshot and its envelope; every other operation
+keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
+(`domain::call(name, &args)`), next to the modules themselves.
+
+- **`sidebar.view`** takes each environment as `{id, name?, shell?, state?}`
+  (`shell` is its shell snapshot or the live shell stream's state; `state` is the
+  host's connection state, so a cached shell stays listed while `unreachable`)
+  and the host's view state: `filter`, `project` (a project or group key),
+  `environmentId`, `query`, `grouped` (ot3's "Group working, snoozed and settled
+  threads"), `subthreadsExpanded`, `selectedKey`, the grouping settings and the
+  theme's `colors` for project chips. It returns ot3's sections (active,
+  Working, snoozed, settled; sub-threads nested under their parents), the count
+  pills, the filter counts and `returns`, which the host passes back on the next
+  call so a thread that leaves Working returns to the top of the inbox. Every row
+  carries `detail` (approval, input, plan, waiting, goal, working, limited,
+  failed, woke, done or empty), `state`, `statusLabel`, `statusRole` and `time`
+  (`{kind, at, label}`, to recompute the label between views).
+- **`timeline.view`** takes a projection (from a bounded snapshot or a thread
+  stream, kept current with `projection.apply`) and returns ot3's conversation:
+  user, assistant, activity, changes, context, plan, secret, subagents and error
+  rows in time order, each with a `rev` fingerprint so a list only redraws the
+  rows that changed, plus the thread state, the working pill's live activity,
+  approvals, questions, tasks, the queue and the plan view. Assistant rows and
+  plans carry `markdown.blocks`.
+- **`markdown.blocks`** returns paragraphs, headings, lists, quotes, tables
+  (with their Markdown and CSV copies), code blocks (language and ot3's run
+  command), images, display math and rules, with flat inline spans. Links keep
+  ot3's rule (http, https, file and t3-thread only) and its classes: github,
+  web, thread, file (with a file type) and anchor.
+
+| Function | Arguments (`?` optional) | Returns |
+| --- | --- | --- |
+| `projection.apply` | `projection`, `event`?, `events`? | object {projection, changed, applied}: `event` then each of `events` applied in order |
+| `sidebar.status` | `thread` | string: approval, input, waiting, working, goal, limited, failed or ready |
+| `sidebar.metadata` | `thread`, `now` | object {sidebarStatus, woke, wokeAt, snoozed, canSnooze, snoozedUntil, hasRuntimeError, runtimeErrorClass, providerHistory, pullRequests, linkedPullRequest, branchPullRequest, pullRequestBadge} |
+| `sidebar.sortTimestamps` | `thread` | object {inboxAt, activeAnchorAt, lastSentAt, settledSortAt} (ms) |
+| `sidebar.command` | `action`, `threadId`, `snoozedUntil`? | command: thread.settle, thread.unsettle, thread.snooze or thread.unsnooze (without commandId) |
+| `sidebar.threadAction` | `thread`, `action`, `title`?, `enabled`?, `confirmed`?, `working`? | command for the thread actions menu (without commandId) |
+| `sidebar.snapshot` | `environments`, `now` | object {environments [{id, name, state}], stale, projects, threads, working, pending}: each environment {id, name?, shell?, state?} as ot3's rows, newest first |
+| `sidebar.view` | `environments`, `now`, `filter`?, `project`?, `environmentId`?, `query`?, `grouped`?, `subthreadsExpanded`?, `selectedKey`?, `returns`?, `groupingMode`?, `groupingOverrides`?, `nativeGrouping`?, `colors`?, `accent`? | object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, projectIdentities {key: identity}, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time |
+| `sidebar.detail` | `thread`, `now`? | object {detail, state, statusLabel, statusRole, time} of one sidebar row |
+| `projects.identity` | `projects`, `colors`?, `accent`? | array of {key, monogram, label, kind, icon, colorSlot, colorKey, color, fill}, one per project, slots over all of them |
+| `projects.monogram` | `name` | string: the two-letter monogram of a project title |
+| `timeline.view` | `projection`, `historyCursor`?, `hasMoreHistory`?, `payloadBudgetExceeded`?, `mathRenderingEnabled`? | object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev; assistant rows and plans carry markdown.blocks], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded} |
+| `timeline.liveActivity` | `projection` | array of the active run's in-flight activity {id, type, category, title, command, runId, status, failed, active, inspector}, newest first (at most 3) |
+| `activity.describe` | `row` | object {id, type, category, title, command, runId, status, failed, active} of a turn item (or its projected row), or null for messages, checkpoints, plans and errors; never the tool's input or output |
+| `changes.summaries` | `projection` | array of {id, runId, capturedAt, fromTurnCount, toTurnCount, files [{path, kind, additions, deletions}], additions, deletions}, one per run with ready checkpoint files |
+| `markdown.blocks` | `markdown`, `mathRenderingEnabled`? | array of blocks {type: paragraph, heading, list, quote, code, table, image, math or rule} with flat inline spans (text with strong/emphasis/strikethrough/link, code, break, image, math); links classified github, web, thread, file or anchor; unsafe links dropped |
+| `markdown.link` | `href` | object {href, kind: github, web, thread, file or anchor, fileType?} or null when ot3 would not follow the link |
+| `queue.derive` | `projection` | object {items, hiddenMessageIds, acknowledgedMessageIds, held, activeRunId, canReorder, canSteer} |
+| `queue.command` | `thread`, `action`, `runId`?, `beforeRunId`?, `targetRunId`?, `text`?, `attachments`?, `context`? | command: queued-run.cancel/reorder/edit, queued-message.promote-to-steer or queue.resume (without commandId) |
+| `approvals.pending` | `projection` | array of {requestId, requestKind, createdAt, responseCapability, detail?, appName?, options}, oldest first |
+| `approvals.command` | `thread`, `runtimeRequestId`, `decision`, `projection` | command runtime-request.respond, only for a pending live request and an offered decision |
+| `questions.pending` | `projection` | array of {requestId, createdAt, questions, responseCapability, dismissible}, oldest first |
+| `questions.command` | `thread`, `runtimeRequestId`, `action`, `answers`? | command runtime-request.respond (answers) or thread.user-input.dismiss |
+| `models.catalog` | `config` | object {models, providers, favorites, favoritesReady, capabilities, scratchWorkspaceRoot} from server.getConfig |
+| `models.preferences` | `settings` | object {favorites, favoritesReady} from server.getSettings |
+| `models.favoritePayload` | `provider`, `model`, `favorite` | object {patch} for server.updateSettings |
+| `models.runtimeModeCommand` | `threadId`, `commandId`, `runtimeMode` | command thread.runtime-mode.set |
+| `composer.paths` | `result` | array of {kind, label, description, insert, icon} (at most 40) from projects.searchEntries |
+| `composer.catalog` | `provider`, `cwd`, `kind`, `query`? | array of {kind, label, description, insert, icon} (at most 40): skills and slash commands |
+| `composer.fileLink` | `path` | string: the Markdown file link T3's composer inserts |
+| `composer.attachmentReference` | `attachment` | string: the inline t3-context reference of an uploaded attachment |
+| `history.path` | `threadId`, `cursor` | string: the history page path for request |
+| `history.envelope` | `page`, `threadId` | object {projection {thread, messages, turnItems}, historyCursor, hasMoreHistory} |
+| `connectionCatalog.pairingTarget` | `link`, `pairingCode`? | object {httpBaseUrl, pairingCode}: a pairing link, QR payload or host plus code |
+| `codeBlocks.parse` | `markdown` | array of {index, language, code, command}: command only for a complete single-line shell fence |
+| `i18n.translate` | `catalog`, `locale`, `source` | string: the translation, the English source as fallback |
+| `i18n.normalize` | `locale` | string: a POSIX or BCP 47 locale as lowercase BCP 47 (fr_CA.UTF-8 → fr-ca) |
+
 ## Validation
 
 ```sh
@@ -516,7 +610,8 @@ or real conversations are created by these tests.
 | Native state | `projection`, `history`, `lifecycle`, `stream` |
 | Transport | `ConnectionOptions`, `Connection::rpc`, `Connection::rpc_with_timeout`, `stream` (`subscribe`, `subscribe_probed`), `assets`, `pairing`, `bounded_snapshot` |
 | Chat operations | `composer`, `queue`, `questions`, `approvals`, `tasks` |
-| Presentation | `activity`, `changes`, `documents`, `sidebar`, `models`, `i18n` |
+| Presentation | `activity`, `changes`, `documents`, `sidebar` (and `sidebar::view`), `timeline`, `markdown`, `projects` (identity), `models`, `i18n` |
+| Domain operations | `domain` (the registry behind `{"op":"domain"}`) |
 | Devices | `device_hub` |
 | Configuration | `connection_catalog`, `projects`, `settings` |
 | Cache policy | `compaction` |
@@ -598,15 +693,36 @@ environment, an RPC, the filesystem or a process.
   an automatic update may run, and `reconnect` holds the backoff and the
   transient-error rule. The host reports resume or network changes with
   `reconnect::notify()`; `Waiter::default()` follows that process-wide counter.
+- **Sidebar, thread and project chips (0.3.3).** `sidebar::view` is ot3's
+  sidebar: its shell rows (`normalize` and the enrichment of `snapshot`, now
+  over several environments) and its `SidebarModel.js` and `ProjectModel.js`
+  (details, shelves, nesting, order, groups and counts). `timeline` is ot3's
+  `normalize_messages` and `conversation_timeline` with their helpers, the
+  renderers passed in through `timeline::Render`. `projects::monogram` and
+  `projects::identities` are ot3's `project_identity` and its palette slot.
+  `markdown` holds the Markdown facts ot3 derives (tables, search text, file
+  references, image descriptors, inline-code paths) and the neutral `blocks`.
 
-### Rich text is Qt's for now
+### Rich text
 
 `latex::to_rich_text` and the Markdown that ot3 renders around it emit Qt's rich
 text subset (`<sup>`, `<sub>`, inline styles, `<p align="center">`), not general
 HTML. `latex::render(tex, display, Surface::Qt)` is the same output behind an
-explicit surface. An Android surface gets its own variant once its renderer is
-designed; until then, Kotlin should treat this output as Qt-specific.
-`plan_workflow` takes the renderer as a parameter, so it is not tied to Qt.
+explicit surface; Kotlin should treat it as Qt-specific. Hosts without Qt use
+`markdown::blocks` (`markdown.blocks`, and the blocks `timeline.view` attaches):
+renderer-neutral blocks and spans with ot3's link rule, math kept as TeX.
+`plan_workflow` and `timeline` take the renderer as a parameter, so neither is
+tied to Qt.
+
+### Added in 0.3.3
+
+- **Domain operations.** `{"op":"domain"}` and `t3_protocol::domain`: 37 pure
+  functions by name, offline, listed in `describe` (see Domain operations).
+  `T3Client.domain(fn, args)` and `T3Api(client).domain.<module>` in Kotlin.
+- **New presentation modules.** `sidebar::view`, `timeline`, `markdown` (with
+  `markdown::blocks`) and project identity in `projects`, ported from ot3.
+- **Input limit.** A `domain` request may be up to 72 MiB; every other
+  operation keeps 8 MiB.
 
 ### Unreleased (transport, lote 2)
 

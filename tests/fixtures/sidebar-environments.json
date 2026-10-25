@@ -1,0 +1,264 @@
+{
+ "nowMs": 1792036800000,
+ "environments": [
+  {
+   "id": "laptop",
+   "name": "Laptop",
+   "shell": {
+    "projects": [
+     {
+      "id": "p-app",
+      "title": "app",
+      "workspaceRoot": "/work/app",
+      "repositoryIdentity": {
+       "canonicalKey": "github.com/example/app",
+       "rootPath": "/work/app"
+      }
+     },
+     {
+      "id": "p-docs",
+      "title": "docs site",
+      "workspaceRoot": "/work/docs"
+     }
+    ],
+    "threads": [
+     {
+      "id": "l-working",
+      "title": "Synthetic work",
+      "status": "running",
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "projectId": "p-app",
+      "latestUserAuthoredMessageAt": "2026-10-15T03:59:00Z",
+      "latestRunId": "run-w",
+      "activityRunStartedAt": "2026-10-15T03:57:55Z"
+     },
+     {
+      "id": "l-request",
+      "title": "Synthetic work",
+      "status": "running",
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "pendingRuntimeRequest": {
+       "id": "req-1",
+       "kind": "command_approval"
+      },
+      "projectId": "p-app",
+      "latestRunId": "run-r"
+     },
+     {
+      "id": "l-failed",
+      "title": "Synthetic work",
+      "status": "failed",
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "projectId": "p-docs",
+      "latestRunId": "run-f",
+      "lastError": "  Provider crashed  "
+     },
+     {
+      "id": "l-review",
+      "title": "Synthetic work",
+      "status": "completed",
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "latestRunCompletedAt": "2026-10-15T04:00:00Z",
+      "projectId": "p-docs",
+      "latestRunId": "run-v"
+     },
+     {
+      "id": "l-plan",
+      "title": "Synthetic work",
+      "status": "completed",
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "hasActionableProposedPlan": true,
+      "projectId": "p-app",
+      "pinnedAt": "2026-10-14T00:00:00Z",
+      "pinOrderKey": "m"
+     },
+     {
+      "id": "l-settled",
+      "title": "Synthetic work",
+      "status": "failed",
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "settledAt": "2026-10-15T04:00:01Z",
+      "projectId": "p-docs"
+     },
+     {
+      "id": "l-snoozed",
+      "title": "Synthetic work",
+      "status": "waiting",
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "snoozedUntil": "2099-01-01T00:00:00Z",
+      "projectId": "p-app"
+     },
+     {
+      "id": "l-child",
+      "title": "Review tests",
+      "status": "running",
+      "projectId": "p-app",
+      "updatedAt": "2026-10-15T03:58:00Z",
+      "creationSource": "provider",
+      "lineage": {
+       "parentThreadId": "l-request",
+       "relationshipToParent": "subagent"
+      },
+      "latestRunId": "run-c"
+     },
+     {
+      "id": "l-grandchild",
+      "title": "Lint",
+      "status": "completed",
+      "projectId": "p-app",
+      "updatedAt": "2026-10-15T03:57:00Z",
+      "lineage": {
+       "parentThreadId": "l-child",
+       "relationshipToParent": "subagent"
+      }
+     },
+     {
+      "id": "l-fork",
+      "title": "Fork of review",
+      "status": "completed",
+      "projectId": "p-docs",
+      "updatedAt": "2026-10-15T03:00:00Z",
+      "lineage": {
+       "parentThreadId": "l-review",
+       "relationshipToParent": "fork"
+      }
+     },
+     {
+      "id": "l-archived",
+      "title": "Gone",
+      "archivedAt": "2026-10-01T00:00:00Z",
+      "updatedAt": "2026-10-01T00:00:00Z"
+     },
+     {
+      "id": "l-question",
+      "title": "Which database?",
+      "status": "running",
+      "latestRunId": "run-q",
+      "projectId": "p-docs",
+      "updatedAt": "2026-10-15T03:50:00Z",
+      "pendingRuntimeRequest": {
+       "id": "q-1",
+       "kind": "user_input"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "desktop",
+   "name": "Desktop",
+   "shell": {
+    "projects": [
+     {
+      "id": "p-app",
+      "title": "app",
+      "workspaceRoot": "/srv/app/",
+      "repositoryIdentity": {
+       "origin": {
+        "canonicalKey": "github.com/example/app"
+       },
+       "rootPath": "/srv/app"
+      }
+     },
+     {
+      "id": "p-api",
+      "title": "api",
+      "workspaceRoot": "/srv/app/api",
+      "repositoryIdentity": {
+       "canonicalKey": "github.com/example/app",
+       "rootPath": "/srv/app"
+      }
+     }
+    ],
+    "threads": [
+     {
+      "id": "d-waiting",
+      "title": "Synthetic work",
+      "status": "waiting",
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "projectId": "p-api"
+     },
+     {
+      "id": "d-background",
+      "title": "Synthetic work",
+      "status": "completed",
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "pendingBackgroundTasks": [
+       {
+        "id": "bg"
+       }
+      ],
+      "projectId": "p-app"
+     },
+     {
+      "id": "d-seen",
+      "title": "Synthetic work",
+      "status": "completed",
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "latestRunCompletedAt": "2026-10-15T04:00:00Z",
+      "lastVisitedAt": "2026-10-15T04:00:01Z",
+      "projectId": "p-app"
+     },
+     {
+      "id": "d-settled",
+      "title": "Settlement override",
+      "status": "completed",
+      "latestRunCompletedAt": "2026-10-15T04:00:00Z",
+      "lastVisitedAt": null,
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "settledOverride": "settled",
+      "settledAt": null,
+      "projectId": "p-api"
+     },
+     {
+      "id": "d-active",
+      "title": "Settlement override",
+      "status": "completed",
+      "latestRunCompletedAt": "2026-10-15T04:00:00Z",
+      "lastVisitedAt": null,
+      "updatedAt": "2026-10-15T04:00:00Z",
+      "settledOverride": "active",
+      "settledAt": "2026-10-14T04:00:00Z",
+      "projectId": "p-api"
+     },
+     {
+      "id": "d-undated",
+      "title": "Synthetic work",
+      "status": "running",
+      "updatedAt": "broken",
+      "projectId": "p-app"
+     },
+     {
+      "id": "d-goal",
+      "title": "Reach the goal",
+      "status": "running",
+      "latestRunId": "run-g",
+      "goal": {
+       "status": "active"
+      },
+      "projectId": "p-app",
+      "updatedAt": "2026-10-15T03:40:00Z",
+      "latestUserAuthoredMessageAt": "2026-10-15T03:39:00Z"
+     },
+     {
+      "id": "d-child",
+      "title": "Desktop helper",
+      "status": "failed",
+      "latestRunId": "run-dc",
+      "projectId": "p-app",
+      "updatedAt": "2026-10-15T03:30:00Z",
+      "lineage": {
+       "parentThreadId": "d-goal",
+       "relationshipToParent": "subagent"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "offline",
+   "name": "Offline",
+   "state": "unreachable"
+  }
+ ]
+}
