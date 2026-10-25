@@ -451,6 +451,7 @@ class T3Api(client: T3Client) {
         val models = Models(client)
         val projection = Projection(client)
         val projects = Projects(client)
+        val pullRequests = PullRequests(client)
         val questions = Questions(client)
         val queue = Queue(client)
         val quotaSources = QuotaSources(client)
@@ -570,6 +571,21 @@ class T3Api(client: T3Client) {
             /** `projects.monogram` · string: the two-letter monogram of a project title */
             fun monogram(name: String): Any? =
                 client.domain("projects.monogram", JSONObject().put("name", name))
+        }
+
+        class PullRequests internal constructor(private val client: T3Client) {
+            /** `pullRequests.sidebarBadge` · object {kind: single, multiple or stack, text, state: open, draft, merged, closed or unknown, current, links} of a thread's linked pull requests, or null */
+            fun sidebarBadge(thread: JSONObject): Any? =
+                client.domain("pullRequests.sidebarBadge", JSONObject().put("thread", thread))
+            /** `pullRequests.request` · object {method, payload}: the typed pullRequests.list, detail, checks or activity call and its args (list: 50 per page, state open and involvement all by default), or method diff with the /api/pull-requests/diff query; reference is {projectId, repository, host, number} */
+            fun request(action: String, state: String? = null, involvement: String? = null, query: String? = null, cursors: JSONObject? = null, reference: JSONObject? = null, cursor: String? = null): Any? =
+                client.domain("pullRequests.request", JSONObject().put("action", action).put("state", state).put("involvement", involvement).put("query", query).put("cursors", cursors).put("reference", reference).put("cursor", cursor))
+            /** `pullRequests.payload` · object {method, payload}: the typed pullRequests.comment, submitReview, runAction, reviewerCandidates, labelCandidates, requestReviewers or setLabels call and its args, after the page's rules (a comment needs words; only the page's actions) */
+            fun payload(kind: String, reference: JSONObject, body: String? = null, verdict: String? = null, action: String? = null, mergeMethod: String? = null, reviewers: JSONArray? = null, requested: Boolean? = null, labels: JSONArray? = null, applied: Boolean? = null): Any? =
+                client.domain("pullRequests.payload", JSONObject().put("kind", kind).put("reference", reference).put("body", body).put("verdict", verdict).put("action", action).put("mergeMethod", mergeMethod).put("reviewers", reviewers).put("requested", requested).put("labels", labels).put("applied", applied))
+            /** `pullRequests.threadCommand` · command thread.pull-request.link, unlink or watch for a reference {host, repository, number, url}; commandId only when given */
+            fun threadCommand(thread: String, link: String, reference: JSONObject, commandId: String? = null): Any? =
+                client.domain("pullRequests.threadCommand", JSONObject().put("thread", thread).put("link", link).put("reference", reference).put("commandId", commandId))
         }
 
         class Questions internal constructor(private val client: T3Client) {
