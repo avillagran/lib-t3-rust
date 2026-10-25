@@ -442,6 +442,7 @@ class T3Api(client: T3Client) {
         val approvals = Approvals(client)
         val branchPicker = BranchPicker(client)
         val changes = Changes(client)
+        val checkpointRevert = CheckpointRevert(client)
         val codeBlocks = CodeBlocks(client)
         val composer = Composer(client)
         val connectionCatalog = ConnectionCatalog(client)
@@ -505,6 +506,33 @@ class T3Api(client: T3Client) {
             /** `changes.summaries` · array of {id, runId, capturedAt, fromTurnCount, toTurnCount, files [{path, kind, additions, deletions}], additions, deletions}, one per run with ready checkpoint files */
             fun summaries(projection: JSONObject): Any? =
                 client.domain("changes.summaries", JSONObject().put("projection", projection))
+        }
+
+        class CheckpointRevert internal constructor(private val client: T3Client) {
+            /** `checkpointRevert.canPreview` · bool: offer "Edit from here" on this user message (a ready checkpoint for its run and a turn-start intent, when known) */
+            fun canPreview(projection: JSONObject, message: JSONObject): Any? =
+                client.domain("checkpointRevert.canPreview", JSONObject().put("projection", projection).put("message", message))
+            /** `checkpointRevert.reference` · object {threadId, messageId, messageRunId, messageCheckpointId, checkpointId, checkpointRunId, scopeId, providerThreadId, providerInstanceId, turnCount, priorRollbackRequestId}: the checkpoint just before the message, on the raw projection (revert_* when unknown or stale) */
+            fun reference(projection: JSONObject, messageId: String): Any? =
+                client.domain("checkpointRevert.reference", JSONObject().put("projection", projection).put("messageId", messageId))
+            /** `checkpointRevert.safety` · object {safety, allowed, error}: the live gate {canOperate, connected, supportsConversationRollback, working, sendBusy, connecting, pendingAttachments, rewinding} (anything but true is false) and the first reason a rewind is refused, or null */
+            fun safety(safety: JSONObject): Any? =
+                client.domain("checkpointRevert.safety", JSONObject().put("safety", safety))
+            /** `checkpointRevert.command` · command checkpoint.rollback {commandId omarchy-<requestId>, threadId, scopeId, checkpointId, restoreFiles} for first admission: input {confirmed, restoreFiles, requestId (UUID), environment, thread, reference} with the reference still fresh and the safety gate open */
+            fun command(input: JSONObject, projection: JSONObject, safety: JSONObject): Any? =
+                client.domain("checkpointRevert.command", JSONObject().put("input", input).put("projection", projection).put("safety", safety))
+            /** `checkpointRevert.confirmedCommand` · command checkpoint.rollback from the input alone, to compare with an already persisted outbox command on an explicit retry */
+            fun confirmedCommand(input: JSONObject): Any? =
+                client.domain("checkpointRevert.confirmedCommand", JSONObject().put("input", input))
+            /** `checkpointRevert.observation` · object {state: pending, complete, failed or superseded, error?}: the rewind as the thread's read-back shows it */
+            fun observation(input: JSONObject, projection: JSONObject): Any? =
+                client.domain("checkpointRevert.observation", JSONObject().put("input", input).put("projection", projection))
+            /** `checkpointRevert.recoveryMessage` · object {id, runId, text, attachments, context}: the message to restore to the composer, captured before dispatch */
+            fun recoveryMessage(projection: JSONObject, reference: JSONObject): Any? =
+                client.domain("checkpointRevert.recoveryMessage", JSONObject().put("projection", projection).put("reference", reference))
+            /** `checkpointRevert.appendPrompt` · string: the composer draft with the restored prompt after it (a blank line between) */
+            fun appendPrompt(current: String, restored: String): Any? =
+                client.domain("checkpointRevert.appendPrompt", JSONObject().put("current", current).put("restored", restored))
         }
 
         class CodeBlocks internal constructor(private val client: T3Client) {

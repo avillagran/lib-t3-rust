@@ -133,3 +133,60 @@ fn plan_workflow_view_follow_up_and_titles() {
     assert_eq!(call("planWorkflow.mode", &json!({"planModeEnabled":true,"provider":{"showInteractionModeToggle":true},"requested":"plan"})).unwrap(), json!({"enabled":true,"interactionMode":"plan"}));
     assert_eq!(call("planWorkflow.mode", &json!({"planModeEnabled":true,"requested":"plan"})).unwrap()["interactionMode"], "default");
 }
+
+fn revert_projection() -> Value {
+    json!({
+        "thread":{"id":"thread:one","activeProviderThreadId":"provider:one","modelSelection":{"instanceId":"codex"},"worktreePath":"/w"},
+        "providerThreads":[{"id":"provider:one","providerInstanceId":"codex","providerSessionId":"session:one"}],
+        "checkpointScopes":[{"id":"scope:one","threadId":"thread:one","cwd":"/w","providerThreadId":"provider:one"}],
+        "checkpoints":[
+            {"id":"checkpoint:initial","threadId":"thread:one","scopeId":"scope:one","runId":null,"ordinalWithinScope":0,"appRunOrdinal":null,"status":"ready"},
+            {"id":"checkpoint:1","threadId":"thread:one","scopeId":"scope:one","runId":"run:one","ordinalWithinScope":1,"appRunOrdinal":1,"status":"ready"},
+            {"id":"checkpoint:2","threadId":"thread:one","scopeId":"scope:one","runId":"run:two","ordinalWithinScope":2,"appRunOrdinal":2,"status":"ready"}],
+        "runs":[{"id":"run:one","ordinal":1,"status":"completed"},{"id":"run:two","ordinal":2,"status":"completed"}],
+        "turnItems":[{"item":{"type":"user_message","messageId":"message:one","runId":"run:one","inputIntent":"turn_start"}},{"item":{"type":"user_message","messageId":"message:two","runId":"run:two","inputIntent":"queued_turn"}}],
+        "messages":[
+            {"id":"message:one","role":"user","runId":"run:one","text":"first","attachments":[],"context":[]},
+            {"id":"message:two","role":"user","runId":"run:two","text":"second","attachments":[],"context":[]}]
+    })
+}
+
+#[test]
+fn checkpoint_revert_reference_safety_command_and_observation() {
+    let p = revert_projection();
+    assert_eq!(call("checkpointRevert.canPreview", &json!({"projection":p,"message":p["messages"][1]})).unwrap(), true);
+    assert_eq!(call("checkpointRevert.canPreview", &json!({"projection":p,"message":{"role":"assistant","runId":"run:two"}})).unwrap(), false);
+    let reference = call("checkpointRevert.reference", &json!({"projection":p,"messageId":"message:two"})).unwrap();
+    assert_eq!(keys(&reference), ["checkpointId", "checkpointRunId", "messageCheckpointId", "messageId", "messageRunId", "priorRollbackRequestId", "providerInstanceId", "providerThreadId", "scopeId", "threadId", "turnCount"]);
+    assert_eq!((reference["checkpointId"].as_str(), reference["turnCount"].as_u64()), (Some("checkpoint:1"), Some(1)));
+    assert_eq!(call("checkpointRevert.reference", &json!({"projection":p,"messageId":"message:none"})).unwrap_err(), "revert_message_unavailable");
+
+    let open = json!({"canOperate":true,"connected":true,"supportsConversationRollback":true});
+    let gate = call("checkpointRevert.safety", &json!({"safety":open})).unwrap();
+    assert_eq!(keys(&gate), ["allowed", "error", "safety"]);
+    assert_eq!((gate["allowed"].as_bool(), gate["error"].is_null()), (Some(true), true));
+    assert_eq!(gate["safety"], json!({"canOperate":true,"connected":true,"supportsConversationRollback":true,"working":false,"sendBusy":false,"connecting":false,"pendingAttachments":false,"rewinding":false}));
+    let mut busy = open.clone();
+    busy["working"] = json!(true);
+    assert_eq!(call("checkpointRevert.safety", &json!({"safety":busy})).unwrap()["error"], "revert_interrupt_first");
+    // Unknown is false: a missing or non-boolean capability keeps the gate shut.
+    assert_eq!(call("checkpointRevert.safety", &json!({"safety":{"canOperate":true,"connected":"yes","supportsConversationRollback":true}})).unwrap()["error"], "revert_disconnected");
+
+    let input = json!({"requestId":"b3e86a43-744c-46ec-b5f8-65ae79316907","environment":"local","thread":"thread:one","confirmed":true,"restoreFiles":true,"reference":reference});
+    let command = call("checkpointRevert.command", &json!({"input":input,"projection":p,"safety":open})).unwrap();
+    assert_eq!(command, json!({"type":"checkpoint.rollback","commandId":"omarchy-b3e86a43-744c-46ec-b5f8-65ae79316907","threadId":"thread:one","scopeId":"scope:one","checkpointId":"checkpoint:1","restoreFiles":true}));
+    assert_eq!(call("checkpointRevert.confirmedCommand", &json!({"input":input})).unwrap(), command);
+    assert_eq!(call("checkpointRevert.command", &json!({"input":input,"projection":p,"safety":busy})).unwrap_err(), "revert_interrupt_first");
+    let mut no_worktree = p.clone();
+    no_worktree["thread"]["worktreePath"] = Value::Null;
+    assert_eq!(call("checkpointRevert.command", &json!({"input":input,"projection":no_worktree,"safety":open})).unwrap_err(), "revert_files_require_worktree");
+
+    let recovered = call("checkpointRevert.recoveryMessage", &json!({"projection":p,"reference":reference})).unwrap();
+    assert_eq!(recovered, json!({"id":"message:two","runId":"run:two","text":"second","attachments":[],"context":[]}));
+    assert_eq!(call("checkpointRevert.observation", &json!({"input":input,"projection":p})).unwrap(), json!({"state":"pending"}));
+    let mut done = p.clone();
+    done["thread"]["rollbackRequestId"] = command["commandId"].clone();
+    done["runs"][1]["status"] = json!("rolled_back");
+    assert_eq!(call("checkpointRevert.observation", &json!({"input":input,"projection":done})).unwrap(), json!({"state":"complete"}));
+    assert_eq!(call("checkpointRevert.appendPrompt", &json!({"current":"draft","restored":"second"})).unwrap(), "draft\n\nsecond");
+}
