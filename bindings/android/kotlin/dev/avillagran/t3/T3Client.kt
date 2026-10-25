@@ -12,11 +12,17 @@ import org.json.JSONObject
 class T3Client : Closeable {
     private val lifetime = ReentrantReadWriteLock()
     private val closing = AtomicBoolean(false)
-    private var handle: Long = T3Native.create().also { check(it != 0L) { "native_error" } }
+    private var handle: Long = jni { T3Native.create().also { check(it != 0L) { "native_error" } } }
 
     private fun <T> useHandle(block: (Long) -> T): T = lifetime.read {
         check(!closing.get() && handle != 0L) { "client_closed" }
         block(handle)
+    }
+    /** The JNI layer reports its own failures (bad input, a file descriptor it cannot duplicate,
+     *  allocation) as IllegalStateException with a stable code; surface them as [T3Exception]. */
+    private inline fun <T> jni(block: () -> T): T = try { block() } catch (error: IllegalStateException) {
+        val code = error.message
+        if (code != null && code in JNI_ERRORS) throw T3Exception(code) else throw error
     }
     private fun decode(bytes: ByteArray): Any? {
         val result = JSONObject(bytes.toString(Charsets.UTF_8))
@@ -27,14 +33,22 @@ class T3Client : Closeable {
     }
     fun execute(request: JSONObject): Any? = useHandle { native ->
         val input = request.toString().toByteArray(Charsets.UTF_8)
-        try { decode(T3Native.call(native, input)) } finally { input.fill(0) }
+        try { decode(jni { T3Native.call(native, input) }) } finally { input.fill(0) }
     }
-    fun connectBearer(baseUrl: String, token: String) {
-        execute(JSONObject().put("op", "connectBearer").put("httpBaseUrl", baseUrl).put("token", token))
+    /** [options] (ABI 3): `requestTimeoutMs`, `connectTimeoutMs`, `poolIdleTimeoutMs`, `maxBytes`;
+     *  absent keys keep the defaults, anything else fails with `invalid_connection_options`. */
+    fun connectBearer(baseUrl: String, token: String, options: JSONObject? = null) {
+        execute(JSONObject().put("op", "connectBearer").put("httpBaseUrl", baseUrl).put("token", token)
+            .put("options", options))
     }
-    fun connectRelay(relayUrl: String, cloudJwt: String, environmentId: String) {
+    /** Same [options] as [connectBearer]; [clientId] names this client to the relay. */
+    fun connectRelay(
+        relayUrl: String, cloudJwt: String, environmentId: String, clientId: String = "t3-mobile",
+        options: JSONObject? = null,
+    ) {
         execute(JSONObject().put("op", "connectRelay").put("relayUrl", relayUrl)
-            .put("cloudJwt", cloudJwt).put("environmentId", environmentId).put("clientId", "t3-mobile"))
+            .put("cloudJwt", cloudJwt).put("environmentId", environmentId).put("clientId", clientId)
+            .put("options", options))
     }
     fun request(path: String, protocol: Boolean = true): Any? = execute(
         JSONObject().put("op", "request").put("method", "GET").put("path", path).put("protocol", protocol)
@@ -70,17 +84,33 @@ class T3Client : Closeable {
      */
     fun wakeSubscriptions(): Int =
         (execute(JSONObject().put("op", "wakeSubscriptions")) as JSONObject).getInt("probed")
-    /** fd is borrowed for this call; JNI duplicates it and Rust streams without a full copy. */
+    /** fd is borrowed for this call; JNI duplicates it and Rust streams without a full copy.
+     *  A descriptor JNI cannot duplicate fails with `T3Exception("host_file_unavailable")`. */
     fun upload(fd: Int, name: String, mimeType: String, sizeBytes: Long): JSONObject = useHandle { native ->
         val metadata = JSONObject().put("name", name).put("mimeType", mimeType).put("sizeBytes", sizeBytes)
-        decode(T3Native.upload(native, metadata.toString().toByteArray(Charsets.UTF_8), fd)) as JSONObject
+        decode(jni { T3Native.upload(native, metadata.toString().toByteArray(Charsets.UTF_8), fd) }) as JSONObject
     }
-    fun image(id: String, name: String, mimeType: String): ByteArray = useHandle { native ->
-        val metadata = JSONObject().put("id", id).put("name", name).put("mimeType", mimeType)
-        val result = T3Native.image(native, metadata.toString().toByteArray(Charsets.UTF_8))
-        decode(requireNotNull(result[0]))
-        requireNotNull(result[1]) { "missing_image_bytes" }
+    /** Bytes through the binary native path (never Base64 JSON); null bytes when none came back. */
+    private fun binary(metadata: JSONObject): T3Asset = useHandle { native ->
+        val result = jni { T3Native.image(native, metadata.toString().toByteArray(Charsets.UTF_8)) }
+        T3Asset(decode(requireNotNull(result[0])) as JSONObject, result[1])
     }
+    fun image(id: String, name: String, mimeType: String): ByteArray {
+        val asset = binary(JSONObject().put("id", id).put("name", name).put("mimeType", mimeType))
+        return requireNotNull(asset.bytes) { "missing_image_bytes" }
+    }
+    /**
+     * A signed asset (an `assets.createUrl` resource, e.g. a video attachment) as bytes, bounded
+     * by [maxBytes] (1..64 MiB); [timeoutMs] overrides the 30 s default. [T3Asset.status] is
+     * `{sizeBytes, mimeType}`. Errors are `asset_*`, `invalid_asset_*` or `not_connected`.
+     */
+    fun assetBytes(resource: JSONObject, maxBytes: Long = MAX_ASSET_BYTES, timeoutMs: Int? = null): T3Asset =
+        binary(JSONObject().put("op", "assetBytes").put("resource", resource).put("maxBytes", maxBytes)
+            .put("timeoutMs", timeoutMs))
+    /** The project's favicon at [cwd] (optionally a known [path]); [T3Asset.bytes] is null and
+     *  `found` false in [T3Asset.status] when the project has none. */
+    fun projectFavicon(cwd: String, path: String? = null): T3Asset =
+        binary(JSONObject().put("op", "projectFavicon").put("cwd", cwd).put("path", path))
     override fun close() {
         if (!closing.compareAndSet(false, true)) return
         // Wake long-polls before waiting for the last in-flight native caller.
@@ -90,9 +120,23 @@ class T3Client : Closeable {
             }
         } finally { lifetime.write { if (handle != 0L) { T3Native.free(handle); handle = 0L } } }
     }
+
+    companion object {
+        /** The largest [assetBytes] limit the library accepts (64 MiB). */
+        const val MAX_ASSET_BYTES: Long = 64L * 1024 * 1024
+        private val JNI_ERRORS = setOf("invalid_input", "native_error", "host_file_unavailable", "native_allocation_failed")
+    }
+}
+/** A binary result: [status] is the operation's JSON data, [bytes] the payload (owned by the caller)
+ *  or null when there is none (a project without a favicon). */
+class T3Asset(val status: JSONObject, val bytes: ByteArray?) {
+    val found: Boolean get() = status.optBoolean("found", true)
+    val mimeType: String? get() = status.text("mimeType")
 }
 /** `code` is stable; `reason` is the server's one-line message; `requiredScope`
- *  names the scope a `write_not_authorized` token lacked (the host picks tokens). */
+ *  names the scope a `write_not_authorized` token lacked (the host picks tokens).
+ *  JNI marshaling failures use the same type: `invalid_input`, `native_error`,
+ *  `host_file_unavailable` and `native_allocation_failed`. */
 class T3Exception(val code: String, val reason: String? = null, val requiredScope: String? = null) :
     Exception(if (reason == null) code else "$code: $reason")
 private fun JSONObject.text(key: String): String? = optString(key).takeIf { !isNull(key) && it.isNotEmpty() }

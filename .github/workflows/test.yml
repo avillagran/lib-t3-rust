@@ -14,3 +14,13 @@ jobs:
       - run: cargo test --locked
       - run: tools/test-c-abi
       - run: JAVA_HOME=$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")") tools/test-jni
+  kotlin:
+    # The Kotlin adapter as shipped (against android.jar) and through the host JNI library.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update stable && rustup default stable
+      - uses: ./.github/actions/android-toolchain
+      - run: tools/compile-android-kotlin "$RUNNER_TEMP/android-classes"
+      - run: tools/test-jni
+      - run: tools/test-kotlin-jni
