@@ -438,7 +438,9 @@ class T3Api(client: T3Client) {
 
     /** Pure functions, offline: no connection is needed or used. */
     class Domain internal constructor(client: T3Client) {
+        val activity = Activity(client)
         val approvals = Approvals(client)
+        val changes = Changes(client)
         val codeBlocks = CodeBlocks(client)
         val composer = Composer(client)
         val connectionCatalog = ConnectionCatalog(client)
@@ -452,6 +454,12 @@ class T3Api(client: T3Client) {
         val sidebar = Sidebar(client)
         val timeline = Timeline(client)
 
+        class Activity internal constructor(private val client: T3Client) {
+            /** `activity.describe` · object {id, type, category, title, command, runId, status, failed, active} of a turn item (or its projected row), or null for messages, checkpoints, plans and errors; never the tool's input or output */
+            fun describe(row: JSONObject): Any? =
+                client.domain("activity.describe", JSONObject().put("row", row))
+        }
+
         class Approvals internal constructor(private val client: T3Client) {
             /** `approvals.pending` · array of {requestId, requestKind, createdAt, responseCapability, detail?, appName?, options}, oldest first */
             fun pending(projection: JSONObject): Any? =
@@ -459,6 +467,12 @@ class T3Api(client: T3Client) {
             /** `approvals.command` · command runtime-request.respond, only for a pending live request and an offered decision */
             fun command(thread: String, runtimeRequestId: String, decision: String, projection: JSONObject): Any? =
                 client.domain("approvals.command", JSONObject().put("thread", thread).put("runtimeRequestId", runtimeRequestId).put("decision", decision).put("projection", projection))
+        }
+
+        class Changes internal constructor(private val client: T3Client) {
+            /** `changes.summaries` · array of {id, runId, capturedAt, fromTurnCount, toTurnCount, files [{path, kind, additions, deletions}], additions, deletions}, one per run with ready checkpoint files */
+            fun summaries(projection: JSONObject): Any? =
+                client.domain("changes.summaries", JSONObject().put("projection", projection))
         }
 
         class CodeBlocks internal constructor(private val client: T3Client) {

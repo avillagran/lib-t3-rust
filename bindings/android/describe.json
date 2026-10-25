@@ -350,6 +350,30 @@
     {
       "args": [
         {
+          "name": "row",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "activity.describe",
+      "module": "activity",
+      "returns": "object {id, type, category, title, command, runId, status, failed, active} of a turn item (or its projected row), or null for messages, checkpoints, plans and errors; never the tool's input or output"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "changes.summaries",
+      "module": "changes",
+      "returns": "array of {id, runId, capturedAt, fromTurnCount, toTurnCount, files [{path, kind, additions, deletions}], additions, deletions}, one per run with ready checkpoint files"
+    },
+    {
+      "args": [
+        {
           "name": "projection",
           "required": true,
           "type": "object"
