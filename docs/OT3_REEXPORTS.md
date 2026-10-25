@@ -210,3 +210,35 @@ re-rendering unchanged messages), as do `markdown_render`, `rendered_markdown`,
 `SidebarModel.js`, `ProjectModel.js` and `T3Palette.projectColor` have Rust
 equivalents in `sidebar::view` and `projects::identities` for hosts without QML;
 ot3 can keep its JavaScript.
+
+## 7. Settings executor, minimap, subagents, theme and strings (0.3.4)
+
+Checked against ot3 `main` at `7b5b1de` with temporary harnesses outside both
+repos: ot3's JavaScript run in node, ot3's QML run under quickshell with Omarchy's
+`Color.qml` (pixels read back from Qt), ot3's Rust pasted next to the lib, all
+compared with the lib through `{"op":"domain"}`.
+
+The pure halves of `scoped_settings::execute_in` (`src/scoped_settings.rs`) are now
+`t3_protocol::scoped_settings::{write_patch, target_view, page}`: ot3 keeps the
+reads (session, `server.getConfig`, `server.getSettings`, the shell, `t3.json`)
+and the write, and calls them in the same order:
+
+```rust
+// For each target, after the permission check and the reads:
+if action != "read" {
+    let patch = write_patch(input, config, &raw, project.as_ref(), write_allowed)?;
+    // update_settings, re-read, write_was_dropped, as today
+}
+views.push(target_view(target, config, &raw, project.as_ref(), file.as_ref(), write_allowed));
+// After the loop:
+let result = page(&input["scope"], &views, &errors, &saved, requested.len());
+```
+
+The rest are ports for hosts without QML; ot3 keeps its JavaScript and QML:
+`timeline::minimap` (`ui/js/TimelineModel.js` and the marker rules of
+`T3TimelineMinimap.qml`), `subagents` (`ui/js/Subagents.js` and the header of
+`T3SubagentCards.qml`), `theme` (`T3Palette.qml`, the layers of `T3Panel.qml`,
+`T3ThreadRow.qml`, `T3Approvals.qml`, `T3Changes.qml`, `T3TextField.qml`,
+`T3Switch.qml` and `T3Composer.qml`, `DocumentTheme.js` and `T3Starfield.qml`)
+and `i18n::t` (`T3I18n.tr`). `data/i18n.json` is a copy of ot3's
+`translations/i18n.json`; when ot3's catalog changes, copy it again.

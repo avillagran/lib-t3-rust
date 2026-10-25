@@ -792,6 +792,1398 @@
       "fn": "i18n.normalize",
       "module": "i18n",
       "returns": "string: a POSIX or BCP 47 locale as lowercase BCP 47 (fr_CA.UTF-8 → fr-ca)"
+    },
+    {
+      "args": [
+        {
+          "name": "result",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "summary",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "diffReview.present",
+      "module": "diffReview",
+      "returns": "object {files [{path, oldPath, kind, binary, missing?, additions, deletions, summaryAdditions?, summaryDeletions?, rows [{kind: hunk, addition, deletion, context or meta, text, oldLine, newLine}], splitRows [{kind, left, right}]}], additions, deletions, fromTurnCount, toTurnCount} from a diff RPC result {diff}"
+    },
+    {
+      "args": [
+        {
+          "name": "expected",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "receipt",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "summary",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "diffReview.scopedResult",
+      "module": "diffReview",
+      "returns": "diffReview.present's object for a receipt of the still-open request, null for a late or other request; the receipt's error otherwise"
+    },
+    {
+      "args": [
+        {
+          "name": "row",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "toolInspector.compactReference",
+      "module": "toolInspector",
+      "returns": "object {sourceThreadId, sourceItemId, type, runId, providerTurnId, revision} of a turn item or projected row (revision live while it runs); timeline activity entries already carry it as inspector"
+    },
+    {
+      "args": [
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "environment",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "toolInspector.scope",
+      "module": "toolInspector",
+      "returns": "object {environment, threadId, sourceThreadId, sourceItemId, type, runId, providerTurnId, revision}: the inspector's local scope, to match the read's answer against"
+    },
+    {
+      "args": [
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "environment",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "toolInspector.request",
+      "module": "toolInspector",
+      "returns": "object {method: orchestration.getTurnItem, payload {threadId, itemId, revision}}: the typed call that reads the item"
+    },
+    {
+      "args": [
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "environment",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "response",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "toolInspector.parse",
+      "module": "toolInspector",
+      "returns": "object {scope, available, title, status, failed, exitCode, sections [{key, label, text, truncated}], metadata, metadataTruncated, raw, rawTruncated, outputOmitted, emptyOutput} from orchestration.getTurnItem's {item}; {scope, available: false, sections: [], raw: \"\", rawTruncated: false} when the item is gone"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "mathRenderingEnabled",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "planWorkflow.view",
+      "module": "planWorkflow",
+      "returns": "object {plans [{id, threadId, runId, status, markdown, title, displayMarkdown, blocks, updatedAt}], ready (the plan the banner offers to implement, or null), error?}: the projection's proposed plans with markdown.blocks of their display Markdown"
+    },
+    {
+      "args": [
+        {
+          "name": "plan",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "draft",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "planWorkflow.followUp",
+      "module": "planWorkflow",
+      "returns": "object {text, interactionMode, sourcePlanRef?}: an empty draft implements the plan (interactionMode default, sourcePlanRef {threadId, planId}); a non-empty one is feedback in plan mode"
+    },
+    {
+      "args": [
+        {
+          "name": "command",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "followUp",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "planWorkflow.attachSourceRef",
+      "module": "planWorkflow",
+      "returns": "command: the message.dispatch command with the follow-up's sourcePlanRef, also when it targets a new thread"
+    },
+    {
+      "args": [
+        {
+          "name": "markdown",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "planWorkflow.implementationTitle",
+      "module": "planWorkflow",
+      "returns": "string: the new thread's title for \"Implement in new thread\" (Implement <plan title>, else Implement plan; at most 255 characters)"
+    },
+    {
+      "args": [
+        {
+          "name": "planModeEnabled",
+          "required": true,
+          "type": "bool"
+        },
+        {
+          "name": "provider",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "requested",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "default",
+            "plan"
+          ]
+        }
+      ],
+      "fn": "planWorkflow.mode",
+      "module": "planWorkflow",
+      "returns": "object {enabled, interactionMode}: Plan / Build as the composer offers it for the thread's provider"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "message",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.canPreview",
+      "module": "checkpointRevert",
+      "returns": "bool: offer \"Edit from here\" on this user message (a ready checkpoint for its run and a turn-start intent, when known)"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "messageId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "checkpointRevert.reference",
+      "module": "checkpointRevert",
+      "returns": "object {threadId, messageId, messageRunId, messageCheckpointId, checkpointId, checkpointRunId, scopeId, providerThreadId, providerInstanceId, turnCount, priorRollbackRequestId}: the checkpoint just before the message, on the raw projection (revert_* when unknown or stale)"
+    },
+    {
+      "args": [
+        {
+          "name": "safety",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.safety",
+      "module": "checkpointRevert",
+      "returns": "object {safety, allowed, error}: the live gate {canOperate, connected, supportsConversationRollback, working, sendBusy, connecting, pendingAttachments, rewinding} (anything but true is false) and the first reason a rewind is refused, or null"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "safety",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.command",
+      "module": "checkpointRevert",
+      "returns": "command checkpoint.rollback {commandId omarchy-<requestId>, threadId, scopeId, checkpointId, restoreFiles} for first admission: input {confirmed, restoreFiles, requestId (UUID), environment, thread, reference} with the reference still fresh and the safety gate open"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.confirmedCommand",
+      "module": "checkpointRevert",
+      "returns": "command checkpoint.rollback from the input alone, to compare with an already persisted outbox command on an explicit retry"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.observation",
+      "module": "checkpointRevert",
+      "returns": "object {state: pending, complete, failed or superseded, error?}: the rewind as the thread's read-back shows it"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.recoveryMessage",
+      "module": "checkpointRevert",
+      "returns": "object {id, runId, text, attachments, context}: the message to restore to the composer, captured before dispatch"
+    },
+    {
+      "args": [
+        {
+          "name": "current",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "restored",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "checkpointRevert.appendPrompt",
+      "module": "checkpointRevert",
+      "returns": "string: the composer draft with the restored prompt after it (a blank line between)"
+    },
+    {
+      "args": [
+        {
+          "name": "period",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year"
+          ]
+        },
+        {
+          "name": "today",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "usageSummary.window",
+      "module": "usageSummary",
+      "returns": "object {sinceDay, untilDay}: the period's days ending `today` (YYYY-MM-DD, the device's local date)"
+    },
+    {
+      "args": [
+        {
+          "name": "period",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year"
+          ]
+        },
+        {
+          "name": "today",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "timeZone",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "usageSummary.request",
+      "module": "usageSummary",
+      "returns": "object {sinceDay, untilDay, payload}: payload is server.getUsageSummary's arguments, days bucketed in the IANA `timeZone`"
+    },
+    {
+      "args": [
+        {
+          "name": "summary",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "sinceDay",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "untilDay",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "usageSummary.aggregate",
+      "module": "usageSummary",
+      "returns": "object {sinceDay, untilDay, cost, tokens, sessions, cacheSavings, unpricedRecords, kinds {input, cached, cacheWrite, output, reasoning}, days [{day, cost, tokens}], models [{provider, model, cost, tokens, records}] (top 12), providers [{provider, cost, tokens}], sources [{provider, status, message, refreshing}], pricing, readAt}"
+    },
+    {
+      "args": [
+        {
+          "name": "usageLimits",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "quotaSources.limits",
+      "module": "quotaSources",
+      "returns": "object {checkedAt, windows [{id, label, kind: session, weekly, monthly or other, usedPercent, resetsAt?, windowDurationMins?}], credentialFingerprint?, unavailable? {reason}, resetCredits? {availableCount, nextExpiresAt?}, externalUsage? {label, url}}, or null when unreadable"
+    },
+    {
+      "args": [
+        {
+          "name": "providers",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "quotaSources.providers",
+      "module": "quotaSources",
+      "returns": "array of {instanceId, driver, enabled, installed, availability, auth {status, email?, workspaceId?, label?}, displayName?, accentColor?, usageLimits?}: public provider statuses, never their configuration"
+    },
+    {
+      "args": [
+        {
+          "name": "sources",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "quotaSources.sources",
+      "module": "quotaSources",
+      "returns": "array of {id, label, accounts [{id, driver, usageLimits, email?, workspaceId?, plan?}], error?}: usage-limit sources with readable accounts"
+    },
+    {
+      "args": [
+        {
+          "name": "state",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "event",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "quotaSources.apply",
+      "module": "quotaSources",
+      "returns": "object {state {providers, usageLimitSources, connected}, changed}: one server.subscribeServerConfig event (version 1) applied to the quota strip's state"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "pullRequests.sidebarBadge",
+      "module": "pullRequests",
+      "returns": "object {kind: single, multiple or stack, text, state: open, draft, merged, closed or unknown, current, links} of a thread's linked pull requests, or null"
+    },
+    {
+      "args": [
+        {
+          "name": "action",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "list",
+            "detail",
+            "checks",
+            "activity",
+            "diff"
+          ]
+        },
+        {
+          "name": "state",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "involvement",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "query",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "cursors",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "reference",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "cursor",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "pullRequests.request",
+      "module": "pullRequests",
+      "returns": "object {method, payload}: the typed pullRequests.list, detail, checks or activity call and its args (list: 50 per page, state open and involvement all by default), or method diff with the /api/pull-requests/diff query; reference is {projectId, repository, host, number}"
+    },
+    {
+      "args": [
+        {
+          "name": "kind",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "comment",
+            "review",
+            "action",
+            "reviewer-candidates",
+            "label-candidates",
+            "reviewers",
+            "labels"
+          ]
+        },
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "body",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "verdict",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "action",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "mergeMethod",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "reviewers",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "requested",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "labels",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "applied",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.payload",
+      "module": "pullRequests",
+      "returns": "object {method, payload}: the typed pullRequests.comment, submitReview, runAction, reviewerCandidates, labelCandidates, requestReviewers or setLabels call and its args, after the page's rules (a comment needs words; only the page's actions)"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "link",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "link",
+            "unlink",
+            "watch",
+            "unwatch"
+          ]
+        },
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "commandId",
+          "required": false,
+          "type": "id"
+        }
+      ],
+      "fn": "pullRequests.threadCommand",
+      "module": "pullRequests",
+      "returns": "command thread.pull-request.link, unlink or watch for a reference {host, repository, number, url}; commandId only when given"
+    },
+    {
+      "args": [
+        {
+          "name": "refs",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "branchPicker.dedupe",
+      "module": "branchPicker",
+      "returns": "array: vcs.listRefs refs without the origin refs whose local branch is listed"
+    },
+    {
+      "args": [
+        {
+          "name": "name",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "branchPicker.deriveLocal",
+      "module": "branchPicker",
+      "returns": "string: the local branch name of a remote ref (origin/feature/x → feature/x)"
+    },
+    {
+      "args": [
+        {
+          "name": "name",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "branchPicker.sanitize",
+      "module": "branchPicker",
+      "returns": "string: a new branch name with whitespace runs as single dashes"
+    },
+    {
+      "args": [
+        {
+          "name": "projectCwd",
+          "required": true,
+          "type": "path"
+        },
+        {
+          "name": "worktreePath",
+          "required": false,
+          "type": "path"
+        },
+        {
+          "name": "ref",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "branchPicker.selectionTarget",
+      "module": "branchPicker",
+      "returns": "object {checkoutCwd, nextWorktreePath, reuseExistingWorktree}: where to switch to the picked ref and the thread's next worktree"
+    },
+    {
+      "args": [
+        {
+          "name": "worktreePath",
+          "required": false,
+          "type": "path"
+        },
+        {
+          "name": "threadBranch",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "currentBranch",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "branchPicker.mismatch",
+      "module": "branchPicker",
+      "returns": "object {threadBranch, currentBranch, canRestore} when the checkout is not on the thread's branch, else null"
+    },
+    {
+      "args": [
+        {
+          "name": "name",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "branchPicker.temporaryBranch",
+      "module": "branchPicker",
+      "returns": "bool: a temporary worktree branch (t3-/t3/ or t3code-/t3code/ plus 8 hex, or t3code/ plus a UUID v4)"
+    },
+    {
+      "args": [
+        {
+          "name": "shell",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "environment",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "thread",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "requestId",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        }
+      ],
+      "fn": "gitControls.scope",
+      "module": "gitControls",
+      "returns": "object {environment, thread, requestId, projectId, cwd, projectRoot, worktreePath}: the thread's checkout resolved against the shell snapshot (project threads only; git_scope_changed when projectId or cwd moved)"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "gitControls.resolveScripts",
+      "module": "gitControls",
+      "returns": "array of the project's scripts {id, name, command, icon, runOnWorktreeCreate, …} with T3's precedence (project override, defaults, legacy override, project scripts)"
+    },
+    {
+      "args": [
+        {
+          "name": "status",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "gitControls.actions",
+      "module": "gitControls",
+      "returns": "object {commit, push, pull, create_pr, commit_push, commit_push_pr} of bools: what the Git menu offers for a vcs.refreshStatus result"
+    },
+    {
+      "args": [
+        {
+          "name": "scope",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "status",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "scripts",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "gitControls.present",
+      "module": "gitControls",
+      "returns": "object {scope, status, scripts, actions, revision}: the Git & changes sheet; revision fingerprints checkout, status and scripts (not the requestId)"
+    },
+    {
+      "args": [
+        {
+          "name": "expected",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "receipt",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "gitControls.scopedResult",
+      "module": "gitControls",
+      "returns": "the receipt's result for the sheet's still-open scope and request, null for a late or other checkout; the receipt's error otherwise"
+    },
+    {
+      "args": [
+        {
+          "name": "current",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "intent",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "gitControls.buildAction",
+      "module": "gitControls",
+      "returns": "object {scope, revision, actionId, operation, steps [{tag, payload}], retryAutomatically: false}: a confirmed action (intent {scope, revision, confirmed, actionId (UUID), operation, defaultBranchConfirmed?, commitMessage?, filePaths?, scriptId?}) as git.runStackedAction, vcs.pull or terminal.open + terminal.write steps"
+    },
+    {
+      "args": [
+        {
+          "name": "current",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "fresh",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "intent",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "gitControls.buildVerifiedAction",
+      "module": "gitControls",
+      "returns": "gitControls.buildAction's plan, only when a fresh read right before dispatch has the same revision (git_stale_result otherwise)"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "nativeSettings.snapshot",
+      "module": "nativeSettings",
+      "returns": "object {fields [{key, label, section, kind: bool, choice, days, text or model, value, resetValue?, choices?, description?, …}]}: server.getSettings as the settings pages' fields; never credentials or provider configuration"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "config",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "nativeSettings.patch",
+      "module": "nativeSettings",
+      "returns": "object {patch} for server.updateSettings from {key, value} (value null clears a nullable model); with server.getConfig as config, models and storage settings are checked against the server"
+    },
+    {
+      "args": [
+        {
+          "name": "key",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "nativeSettings.description",
+      "module": "nativeSettings",
+      "returns": "string: a field's English description (empty when it has none)"
+    },
+    {
+      "args": [
+        {
+          "name": "selection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "nativeSettings.modelSelection",
+      "module": "nativeSettings",
+      "returns": "object {instanceId, model, options? [{id, value}]}: a checked model selection"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "instanceId",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "nativeSettings.idleCompaction",
+      "module": "nativeSettings",
+      "returns": "string: the idle compaction mode (onReturn, beforeCacheExpires or off), the provider instance's override first when instanceId is given; null when the server has none"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "patch",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "nativeSettings.idleCompactionPatch",
+      "module": "nativeSettings",
+      "returns": "object {patch}: an idleCompaction patch in the form this server reads (compactIdleThreads on older servers)"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "nativeSettings.threadDefaults",
+      "module": "nativeSettings",
+      "returns": "object {defaultModelSelection, modelDefaultConfigured, defaultRuntimeMode}: a new thread's defaults, the project's over the environment's"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "file",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "scopedSettings.effective",
+      "module": "scopedSettings",
+      "returns": "object {settings, sources {key: environment, project or t3.json}, overrides}: a project's effective settings over the environment's and its t3.json"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "key",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "patch",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "clear",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "scopedSettings.projectPatch",
+      "module": "scopedSettings",
+      "returns": "object {patch {projectSettingsOverrides {projectId: entry}}}: a project override that keeps its other keys (setting_environment_only for environment keys)"
+    },
+    {
+      "args": [
+        {
+          "name": "contents",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "scopedSettings.projectFile",
+      "module": "scopedSettings",
+      "returns": "object: a project's t3.json (comments and trailing commas allowed), or null when it is missing or invalid"
+    },
+    {
+      "args": [
+        {
+          "name": "scope",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "scopedSettings.validatedTargets",
+      "module": "scopedSettings",
+      "returns": "array of {environment, projectId}: the scope's targets, 1 to 64, all project-scoped or all not (settings_scope_unavailable otherwise)"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "config",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "writeAllowed",
+          "required": true,
+          "type": "bool"
+        }
+      ],
+      "fn": "scopedSettings.writePatch",
+      "module": "scopedSettings",
+      "returns": "object {patch} for one target's server.updateSettings from {key, action: update or clear, value}: project overrides for a project, environment patches otherwise"
+    },
+    {
+      "args": [
+        {
+          "name": "next",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "before",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "saved",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "scopedSettings.writeWasDropped",
+      "module": "scopedSettings",
+      "returns": "bool: the server accepted the patch but the read-back still has the old value"
+    },
+    {
+      "args": [
+        {
+          "name": "target",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "config",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "file",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "writeAllowed",
+          "required": true,
+          "type": "bool"
+        }
+      ],
+      "fn": "scopedSettings.targetView",
+      "module": "scopedSettings",
+      "returns": "object {target, fields (each with source, scopeWritable, overridden, projectScoped), writeAllowed, storageCapabilities, catalog}: one target's page"
+    },
+    {
+      "args": [
+        {
+          "name": "views",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "scopedSettings.aggregate",
+      "module": "scopedSettings",
+      "returns": "object {fields}: the fields every target has, with mixed, source (mixed when they differ), overridden and scopeWritable over all of them"
+    },
+    {
+      "args": [
+        {
+          "name": "scope",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "views",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "errors",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "saved",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "requested",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "scopedSettings.page",
+      "module": "scopedSettings",
+      "returns": "object {fields, storageScopes, scope, modelCatalog, targets, errors, savedTargets, complete, writable}: the settings page over every target"
+    },
+    {
+      "args": [
+        {
+          "name": "config",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "scopedSettings.projectCatalogConfig",
+      "module": "scopedSettings",
+      "returns": "object: server.getConfig with the project's provider enable overrides applied (for models.catalog)"
+    },
+    {
+      "args": [
+        {
+          "name": "rows",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "visibleRowIds",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "atEnd",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "timeline.minimap",
+      "module": "timeline",
+      "returns": "object {items [{id, rowIndex, userText, assistantText, userPreview, assistantPreview}], visible (two items or more), currentIndex, visibleIds}: one marker per user row of timeline.view's timeline, paired with the last assistant reply before the next user row; currentIndex and visibleIds follow the rows on screen"
+    },
+    {
+      "args": [
+        {
+          "name": "y",
+          "required": true,
+          "type": "number"
+        },
+        {
+          "name": "height",
+          "required": true,
+          "type": "number"
+        },
+        {
+          "name": "count",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "timeline.minimapIndex",
+      "module": "timeline",
+      "returns": "integer: the marker under y on a rail height tall with count markers, or -1"
+    },
+    {
+      "args": [
+        {
+          "name": "subagents",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "subagents.buckets",
+      "module": "subagents",
+      "returns": "object {working, done, failed, stopped, idle}: status counts (queued, running and waiting are working)"
+    },
+    {
+      "args": [
+        {
+          "name": "subagent",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "now",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "subagents.describe",
+      "module": "subagents",
+      "returns": "object {live, settled, label, tone, detail, elapsed}: one subagent row; label is an English source string (Queued, Running, Waiting, Idle · resumable, Completed, Failed, Stopped or Unknown), tone the colour's state (working, waiting, done, failed or idle), elapsed like 4m 09s"
+    },
+    {
+      "args": [
+        {
+          "name": "cards",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "threadSubagents",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "now",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "subagents.cards",
+      "module": "subagents",
+      "returns": "object {subagents [{subagent, view}], group, anyLive, expanded, counts, header {source, args}, summary [{source, args}]}: a timeline subagents row's cards overlaid with threadState.subagents; header and summary parts are catalog sources ({n} subagents; {n} working, done, failed, stopped, idle) joined with \" · \""
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "subagents.fromThread",
+      "module": "subagents",
+      "returns": "object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent"
+    },
+    {
+      "args": [
+        {
+          "name": "colors",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "id",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "theme.tokens",
+      "module": "theme",
+      "returns": "object {id, name, appearance (light when the background's Rec.709 luminance > 0.5), luminance, mode, base, roles {dim, statusMuted, divider, surface, card, cardBorder, changesCard, rowSelected, rowPressed, rowDraft, field, fieldBorder, switchOff, inlineCode, composerBorder, composerFocus, working, done, waiting, failed, warning, input, onAccent}, layers {role: {color, alpha}}, statusColors {detail: colour}, projectPalette, projectFills, sky {lightSky, star, meteor, ink, header {brightness, nebula, meteorRate, base}, panel}, document {appearance, variables}, mcpTheme}: ot3's colours for an Omarchy colors.toml, each role the opaque #rrggbb ot3 draws"
+    },
+    {
+      "args": [
+        {
+          "name": "locale",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "key",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "args",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "i18n.t",
+      "module": "i18n",
+      "returns": "string: ot3's translation of an English source string for a locale list (fr_CA.UTF-8:en), else the language's, English's or the source; {name} placeholders from args, Arabic isolated with U+2068/U+2069"
+    },
+    {
+      "args": [
+        {
+          "name": "locale",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "i18n.catalog",
+      "module": "i18n",
+      "returns": "object {locale, language, rtl, strings {source: translation}}: every string of ot3's catalog for the locale as i18n.t gives it without args (1796 sources, 20 languages)"
+    },
+    {
+      "args": [
+        {
+          "name": "locale",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "i18n.resolve",
+      "module": "i18n",
+      "returns": "object {locale, language, rtl}: the first locale of the list the catalog has (by itself or its language), else the first"
+    },
+    {
+      "args": [
+        {
+          "name": "locale",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "i18n.languages",
+      "module": "i18n",
+      "returns": "array of {id, name}: ot3's language picker, system first (its name translated for locale), then each catalog language in its own name"
     }
   ],
   "functions": [

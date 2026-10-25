@@ -501,8 +501,11 @@ unchanged. `call` on a stream function is `stream_function`. `describe` adds
 
 Pure functions of the library, reachable by name from any host: what a client
 derives from T3's JSON (the sidebar over several environments, the thread
-timeline, Markdown blocks, project chips, the queue, approvals, questions,
-models, composer suggestions, history pages) and the commands it builds. They
+timeline and its minimap, Markdown blocks, project chips, subagent cards, the
+queue, approvals, questions, plans, rewind, the tool inspector, the diff, the Git
+sheet and branch picker, pull requests, settings, usage and quotas, models,
+composer suggestions, history pages), the commands and calls it builds, ot3's
+colours for an Omarchy theme and ot3's string catalog. They
 need no connection and never touch the network, so they work before
 `connectBearer` and while offline; anything that depends on the clock takes `now`
 (milliseconds) as an argument. Through the JSON ABI:
@@ -549,6 +552,41 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
   command), images, display math and rules, with flat inline spans. Links keep
   ot3's rule (http, https, file and t3-thread only) and its classes: github,
   web, thread, file (with a file type) and anchor.
+- **Calls to make.** A function that prepares a server call returns
+  `{method, payload}`: `payload` is the typed function's arguments, so the host
+  sends `call(method, payload)` (`pullRequests.request`, `pullRequests.payload`,
+  `toolInspector.request`). `pullRequests.request` with `action: "diff"` returns
+  method `diff`, the `/api/pull-requests/diff` query. `gitControls.buildAction`
+  returns ordered `steps` of `{tag, payload}` to run one after another, never
+  retried automatically. Commands come without `commandId` unless the function
+  derives it (`checkpointRevert.command` uses `omarchy-<requestId>`, which its
+  `observation` matches) or the host passes one.
+- **`theme.tokens`** takes an Omarchy `colors.toml` (and the theme's directory
+  name) and returns ot3's roles as opaque `#rrggbb`: the base palette as
+  Omarchy's `Color.qml` reads it, the status colours of `T3Palette.qml`, every
+  foreground or accent layer as Qt Quick draws it over the background (`layers`
+  keeps each one's colour and opacity), the sidebar detail colours, the project
+  palette and fills, the sky (the Rec.709 light rule, star ink, header base) and
+  `DocumentTheme`'s CSS variables. Goldens cover Omarchy's 22 themes, each
+  checked against what ot3 drew for it.
+- **`i18n.t`** is ot3's `T3I18n.tr` over ot3's catalog, which the library
+  carries (20 languages, 1796 English sources): a locale list such as
+  `fr_CA.UTF-8:en`, the English source as key and `{name}` arguments; Arabic
+  gets ot3's U+2068/U+2069 isolates. `i18n.catalog(locale)` returns every string
+  at once, `i18n.resolve` the locale ot3 picks and `i18n.languages` its language
+  picker. English source strings in other functions' output (`statusLabel`,
+  subagent labels, `header` and `summary` parts `{source, args}`) are keys of
+  this catalog.
+- **`subagents.cards`** takes a timeline `subagents` row's cards and
+  `threadState.subagents` and returns each card overlaid with its live copy and
+  described (label, tone, detail, elapsed), the group header, the summary parts
+  and whether the group opens expanded. `timeline.minimap` takes the timeline
+  rows (and the ids of the rows on screen) and returns ot3's markers.
+- **`checkpointRevert.safety`** reads the live gate as JSON (`canOperate`,
+  `connected`, `supportsConversationRollback`, `working`, `sendBusy`,
+  `connecting`, `pendingAttachments`, `rewinding`; anything but `true` is false)
+  and says why a rewind is refused; `checkpointRevert.command` takes the same
+  object.
 
 | Function | Arguments (`?` optional) | Returns |
 | --- | --- | --- |
@@ -589,6 +627,77 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
 | `codeBlocks.parse` | `markdown` | array of {index, language, code, command}: command only for a complete single-line shell fence |
 | `i18n.translate` | `catalog`, `locale`, `source` | string: the translation, the English source as fallback |
 | `i18n.normalize` | `locale` | string: a POSIX or BCP 47 locale as lowercase BCP 47 (fr_CA.UTF-8 → fr-ca) |
+| `diffReview.present` | `result`, `summary`? | object {files [{path, oldPath, kind, binary, missing?, additions, deletions, summaryAdditions?, summaryDeletions?, rows [{kind: hunk, addition, deletion, context or meta, text, oldLine, newLine}], splitRows [{kind, left, right}]}], additions, deletions, fromTurnCount, toTurnCount} from a diff RPC result {diff} |
+| `diffReview.scopedResult` | `expected`, `receipt`, `summary` | diffReview.present's object for a receipt of the still-open request, null for a late or other request; the receipt's error otherwise |
+| `toolInspector.compactReference` | `row` | object {sourceThreadId, sourceItemId, type, runId, providerTurnId, revision} of a turn item or projected row (revision live while it runs); timeline activity entries already carry it as inspector |
+| `toolInspector.scope` | `reference`, `environment`, `threadId` | object {environment, threadId, sourceThreadId, sourceItemId, type, runId, providerTurnId, revision}: the inspector's local scope, to match the read's answer against |
+| `toolInspector.request` | `reference`, `environment`, `threadId` | object {method: orchestration.getTurnItem, payload {threadId, itemId, revision}}: the typed call that reads the item |
+| `toolInspector.parse` | `reference`, `environment`, `threadId`, `response` | object {scope, available, title, status, failed, exitCode, sections [{key, label, text, truncated}], metadata, metadataTruncated, raw, rawTruncated, outputOmitted, emptyOutput} from orchestration.getTurnItem's {item}; {scope, available: false, sections: [], raw: "", rawTruncated: false} when the item is gone |
+| `planWorkflow.view` | `projection`, `mathRenderingEnabled`? | object {plans [{id, threadId, runId, status, markdown, title, displayMarkdown, blocks, updatedAt}], ready (the plan the banner offers to implement, or null), error?}: the projection's proposed plans with markdown.blocks of their display Markdown |
+| `planWorkflow.followUp` | `plan`, `threadId`, `draft`? | object {text, interactionMode, sourcePlanRef?}: an empty draft implements the plan (interactionMode default, sourcePlanRef {threadId, planId}); a non-empty one is feedback in plan mode |
+| `planWorkflow.attachSourceRef` | `command`, `followUp` | command: the message.dispatch command with the follow-up's sourcePlanRef, also when it targets a new thread |
+| `planWorkflow.implementationTitle` | `markdown` | string: the new thread's title for "Implement in new thread" (Implement <plan title>, else Implement plan; at most 255 characters) |
+| `planWorkflow.mode` | `planModeEnabled`, `provider`?, `requested` | object {enabled, interactionMode}: Plan / Build as the composer offers it for the thread's provider |
+| `checkpointRevert.canPreview` | `projection`, `message` | bool: offer "Edit from here" on this user message (a ready checkpoint for its run and a turn-start intent, when known) |
+| `checkpointRevert.reference` | `projection`, `messageId` | object {threadId, messageId, messageRunId, messageCheckpointId, checkpointId, checkpointRunId, scopeId, providerThreadId, providerInstanceId, turnCount, priorRollbackRequestId}: the checkpoint just before the message, on the raw projection (revert_* when unknown or stale) |
+| `checkpointRevert.safety` | `safety` | object {safety, allowed, error}: the live gate {canOperate, connected, supportsConversationRollback, working, sendBusy, connecting, pendingAttachments, rewinding} (anything but true is false) and the first reason a rewind is refused, or null |
+| `checkpointRevert.command` | `input`, `projection`, `safety` | command checkpoint.rollback {commandId omarchy-<requestId>, threadId, scopeId, checkpointId, restoreFiles} for first admission: input {confirmed, restoreFiles, requestId (UUID), environment, thread, reference} with the reference still fresh and the safety gate open |
+| `checkpointRevert.confirmedCommand` | `input` | command checkpoint.rollback from the input alone, to compare with an already persisted outbox command on an explicit retry |
+| `checkpointRevert.observation` | `input`, `projection` | object {state: pending, complete, failed or superseded, error?}: the rewind as the thread's read-back shows it |
+| `checkpointRevert.recoveryMessage` | `projection`, `reference` | object {id, runId, text, attachments, context}: the message to restore to the composer, captured before dispatch |
+| `checkpointRevert.appendPrompt` | `current`, `restored` | string: the composer draft with the restored prompt after it (a blank line between) |
+| `usageSummary.window` | `period`, `today` | object {sinceDay, untilDay}: the period's days ending `today` (YYYY-MM-DD, the device's local date) |
+| `usageSummary.request` | `period`, `today`, `timeZone` | object {sinceDay, untilDay, payload}: payload is server.getUsageSummary's arguments, days bucketed in the IANA `timeZone` |
+| `usageSummary.aggregate` | `summary`, `sinceDay`, `untilDay` | object {sinceDay, untilDay, cost, tokens, sessions, cacheSavings, unpricedRecords, kinds {input, cached, cacheWrite, output, reasoning}, days [{day, cost, tokens}], models [{provider, model, cost, tokens, records}] (top 12), providers [{provider, cost, tokens}], sources [{provider, status, message, refreshing}], pricing, readAt} |
+| `quotaSources.limits` | `usageLimits` | object {checkedAt, windows [{id, label, kind: session, weekly, monthly or other, usedPercent, resetsAt?, windowDurationMins?}], credentialFingerprint?, unavailable? {reason}, resetCredits? {availableCount, nextExpiresAt?}, externalUsage? {label, url}}, or null when unreadable |
+| `quotaSources.providers` | `providers` | array of {instanceId, driver, enabled, installed, availability, auth {status, email?, workspaceId?, label?}, displayName?, accentColor?, usageLimits?}: public provider statuses, never their configuration |
+| `quotaSources.sources` | `sources` | array of {id, label, accounts [{id, driver, usageLimits, email?, workspaceId?, plan?}], error?}: usage-limit sources with readable accounts |
+| `quotaSources.apply` | `state`?, `event` | object {state {providers, usageLimitSources, connected}, changed}: one server.subscribeServerConfig event (version 1) applied to the quota strip's state |
+| `pullRequests.sidebarBadge` | `thread` | object {kind: single, multiple or stack, text, state: open, draft, merged, closed or unknown, current, links} of a thread's linked pull requests, or null |
+| `pullRequests.request` | `action`, `state`?, `involvement`?, `query`?, `cursors`?, `reference`?, `cursor`? | object {method, payload}: the typed pullRequests.list, detail, checks or activity call and its args (list: 50 per page, state open and involvement all by default), or method diff with the /api/pull-requests/diff query; reference is {projectId, repository, host, number} |
+| `pullRequests.payload` | `kind`, `reference`, `body`?, `verdict`?, `action`?, `mergeMethod`?, `reviewers`?, `requested`?, `labels`?, `applied`? | object {method, payload}: the typed pullRequests.comment, submitReview, runAction, reviewerCandidates, labelCandidates, requestReviewers or setLabels call and its args, after the page's rules (a comment needs words; only the page's actions) |
+| `pullRequests.threadCommand` | `thread`, `link`, `reference`, `commandId`? | command thread.pull-request.link, unlink or watch for a reference {host, repository, number, url}; commandId only when given |
+| `branchPicker.dedupe` | `refs` | array: vcs.listRefs refs without the origin refs whose local branch is listed |
+| `branchPicker.deriveLocal` | `name` | string: the local branch name of a remote ref (origin/feature/x → feature/x) |
+| `branchPicker.sanitize` | `name` | string: a new branch name with whitespace runs as single dashes |
+| `branchPicker.selectionTarget` | `projectCwd`, `worktreePath`?, `ref` | object {checkoutCwd, nextWorktreePath, reuseExistingWorktree}: where to switch to the picked ref and the thread's next worktree |
+| `branchPicker.mismatch` | `worktreePath`?, `threadBranch`?, `currentBranch`? | object {threadBranch, currentBranch, canRestore} when the checkout is not on the thread's branch, else null |
+| `branchPicker.temporaryBranch` | `name` | bool: a temporary worktree branch (t3-/t3/ or t3code-/t3code/ plus 8 hex, or t3code/ plus a UUID v4) |
+| `gitControls.scope` | `shell`, `environment`, `thread`, `requestId`, `projectId`, `cwd` | object {environment, thread, requestId, projectId, cwd, projectRoot, worktreePath}: the thread's checkout resolved against the shell snapshot (project threads only; git_scope_changed when projectId or cwd moved) |
+| `gitControls.resolveScripts` | `settings`, `project` | array of the project's scripts {id, name, command, icon, runOnWorktreeCreate, …} with T3's precedence (project override, defaults, legacy override, project scripts) |
+| `gitControls.actions` | `status` | object {commit, push, pull, create_pr, commit_push, commit_push_pr} of bools: what the Git menu offers for a vcs.refreshStatus result |
+| `gitControls.present` | `scope`, `status`, `scripts` | object {scope, status, scripts, actions, revision}: the Git & changes sheet; revision fingerprints checkout, status and scripts (not the requestId) |
+| `gitControls.scopedResult` | `expected`, `receipt` | the receipt's result for the sheet's still-open scope and request, null for a late or other checkout; the receipt's error otherwise |
+| `gitControls.buildAction` | `current`, `intent` | object {scope, revision, actionId, operation, steps [{tag, payload}], retryAutomatically: false}: a confirmed action (intent {scope, revision, confirmed, actionId (UUID), operation, defaultBranchConfirmed?, commitMessage?, filePaths?, scriptId?}) as git.runStackedAction, vcs.pull or terminal.open + terminal.write steps |
+| `gitControls.buildVerifiedAction` | `current`, `fresh`, `intent` | gitControls.buildAction's plan, only when a fresh read right before dispatch has the same revision (git_stale_result otherwise) |
+| `nativeSettings.snapshot` | `settings` | object {fields [{key, label, section, kind: bool, choice, days, text or model, value, resetValue?, choices?, description?, …}]}: server.getSettings as the settings pages' fields; never credentials or provider configuration |
+| `nativeSettings.patch` | `input`, `config`? | object {patch} for server.updateSettings from {key, value} (value null clears a nullable model); with server.getConfig as config, models and storage settings are checked against the server |
+| `nativeSettings.description` | `key` | string: a field's English description (empty when it has none) |
+| `nativeSettings.modelSelection` | `selection` | object {instanceId, model, options? [{id, value}]}: a checked model selection |
+| `nativeSettings.idleCompaction` | `settings`, `instanceId`? | string: the idle compaction mode (onReturn, beforeCacheExpires or off), the provider instance's override first when instanceId is given; null when the server has none |
+| `nativeSettings.idleCompactionPatch` | `settings`, `patch` | object {patch}: an idleCompaction patch in the form this server reads (compactIdleThreads on older servers) |
+| `nativeSettings.threadDefaults` | `settings`, `projectId` | object {defaultModelSelection, modelDefaultConfigured, defaultRuntimeMode}: a new thread's defaults, the project's over the environment's |
+| `scopedSettings.effective` | `settings`, `project`?, `file`? | object {settings, sources {key: environment, project or t3.json}, overrides}: a project's effective settings over the environment's and its t3.json |
+| `scopedSettings.projectPatch` | `settings`, `project`, `key`, `patch`, `clear`? | object {patch {projectSettingsOverrides {projectId: entry}}}: a project override that keeps its other keys (setting_environment_only for environment keys) |
+| `scopedSettings.projectFile` | `contents` | object: a project's t3.json (comments and trailing commas allowed), or null when it is missing or invalid |
+| `scopedSettings.validatedTargets` | `scope` | array of {environment, projectId}: the scope's targets, 1 to 64, all project-scoped or all not (settings_scope_unavailable otherwise) |
+| `scopedSettings.writePatch` | `input`, `config`, `settings`, `project`?, `writeAllowed` | object {patch} for one target's server.updateSettings from {key, action: update or clear, value}: project overrides for a project, environment patches otherwise |
+| `scopedSettings.writeWasDropped` | `next`, `before`, `saved` | bool: the server accepted the patch but the read-back still has the old value |
+| `scopedSettings.targetView` | `target`, `config`, `settings`, `project`?, `file`?, `writeAllowed` | object {target, fields (each with source, scopeWritable, overridden, projectScoped), writeAllowed, storageCapabilities, catalog}: one target's page |
+| `scopedSettings.aggregate` | `views` | object {fields}: the fields every target has, with mixed, source (mixed when they differ), overridden and scopeWritable over all of them |
+| `scopedSettings.page` | `scope`, `views`, `errors`?, `saved`?, `requested` | object {fields, storageScopes, scope, modelCatalog, targets, errors, savedTargets, complete, writable}: the settings page over every target |
+| `scopedSettings.projectCatalogConfig` | `config`, `settings`, `project`? | object: server.getConfig with the project's provider enable overrides applied (for models.catalog) |
+| `timeline.minimap` | `rows`, `visibleRowIds`?, `atEnd`? | object {items [{id, rowIndex, userText, assistantText, userPreview, assistantPreview}], visible (two items or more), currentIndex, visibleIds}: one marker per user row of timeline.view's timeline, paired with the last assistant reply before the next user row; currentIndex and visibleIds follow the rows on screen |
+| `timeline.minimapIndex` | `y`, `height`, `count` | integer: the marker under y on a rail height tall with count markers, or -1 |
+| `subagents.buckets` | `subagents` | object {working, done, failed, stopped, idle}: status counts (queued, running and waiting are working) |
+| `subagents.describe` | `subagent`, `now` | object {live, settled, label, tone, detail, elapsed}: one subagent row; label is an English source string (Queued, Running, Waiting, Idle · resumable, Completed, Failed, Stopped or Unknown), tone the colour's state (working, waiting, done, failed or idle), elapsed like 4m 09s |
+| `subagents.cards` | `cards`, `threadSubagents`?, `now` | object {subagents [{subagent, view}], group, anyLive, expanded, counts, header {source, args}, summary [{source, args}]}: a timeline subagents row's cards overlaid with threadState.subagents; header and summary parts are catalog sources ({n} subagents; {n} working, done, failed, stopped, idle) joined with " · " |
+| `subagents.fromThread` | `thread` | object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent |
+| `theme.tokens` | `colors`, `id`? | object {id, name, appearance (light when the background's Rec.709 luminance > 0.5), luminance, mode, base, roles {dim, statusMuted, divider, surface, card, cardBorder, changesCard, rowSelected, rowPressed, rowDraft, field, fieldBorder, switchOff, inlineCode, composerBorder, composerFocus, working, done, waiting, failed, warning, input, onAccent}, layers {role: {color, alpha}}, statusColors {detail: colour}, projectPalette, projectFills, sky {lightSky, star, meteor, ink, header {brightness, nebula, meteorRate, base}, panel}, document {appearance, variables}, mcpTheme}: ot3's colours for an Omarchy colors.toml, each role the opaque #rrggbb ot3 draws |
+| `i18n.t` | `locale`, `key`, `args`? | string: ot3's translation of an English source string for a locale list (fr_CA.UTF-8:en), else the language's, English's or the source; {name} placeholders from args, Arabic isolated with U+2068/U+2069 |
+| `i18n.catalog` | `locale` | object {locale, language, rtl, strings {source: translation}}: every string of ot3's catalog for the locale as i18n.t gives it without args (1796 sources, 20 languages) |
+| `i18n.resolve` | `locale` | object {locale, language, rtl}: the first locale of the list the catalog has (by itself or its language), else the first |
+| `i18n.languages` | `locale`? | array of {id, name}: ot3's language picker, system first (its name translated for locale), then each catalog language in its own name |
 
 ## Validation
 
@@ -610,7 +719,7 @@ or real conversations are created by these tests.
 | Native state | `projection`, `history`, `lifecycle`, `stream` |
 | Transport | `ConnectionOptions`, `Connection::rpc`, `Connection::rpc_with_timeout`, `stream` (`subscribe`, `subscribe_probed`), `assets`, `pairing`, `bounded_snapshot` |
 | Chat operations | `composer`, `queue`, `questions`, `approvals`, `tasks` |
-| Presentation | `activity`, `changes`, `documents`, `sidebar` (and `sidebar::view`), `timeline`, `markdown`, `projects` (identity), `models`, `i18n` |
+| Presentation | `activity`, `changes`, `documents`, `sidebar` (and `sidebar::view`), `timeline` (and `timeline::minimap`), `subagents`, `markdown`, `projects` (identity), `models`, `theme`, `i18n` (with ot3's catalog) |
 | Domain operations | `domain` (the registry behind `{"op":"domain"}`) |
 | Devices | `device_hub` |
 | Configuration | `connection_catalog`, `projects`, `settings` |
@@ -702,6 +811,13 @@ environment, an RPC, the filesystem or a process.
   `projects::identities` are ot3's `project_identity` and its palette slot.
   `markdown` holds the Markdown facts ot3 derives (tables, search text, file
   references, image descriptors, inline-code paths) and the neutral `blocks`.
+- **Minimap, subagents, theme and strings (0.3.4).** `timeline::minimap` is
+  ot3's `TimelineModel.js` with the marker rules of `T3TimelineMinimap.qml`;
+  `subagents` is `Subagents.js` with `T3SubagentCards.qml`'s header; `theme` is
+  what `T3Palette.qml`, `T3Panel.qml`, `DocumentTheme.js` and `T3Starfield.qml`
+  draw for a theme; `i18n` carries ot3's catalog (`data/i18n.json`) and
+  `T3I18n.tr`. `scoped_settings::write_patch`, `target_view` and `page` are the
+  pure halves of ot3's settings executor.
 
 ### Rich text
 
@@ -713,6 +829,18 @@ explicit surface; Kotlin should treat it as Qt-specific. Hosts without Qt use
 renderer-neutral blocks and spans with ot3's link rule, math kept as TeX.
 `plan_workflow` and `timeline` take the renderer as a parameter, so neither is
 tied to Qt.
+
+### Added in 0.3.4
+
+- **71 more domain functions (108).** The diff (`diffReview`), usage and quotas
+  (`usageSummary`, `quotaSources`), pull requests, the branch picker, the tool
+  inspector, plans (`planWorkflow.view` with Markdown blocks), the Git sheet
+  (`gitControls`), settings (`nativeSettings`, `scopedSettings`) and checkpoint
+  rewind, which already lived here, now reachable by name.
+- **Ported from ot3.** `timeline.minimap`, `subagents`, `theme.tokens` and ot3's
+  string catalog with `i18n.t`, `catalog`, `resolve` and `languages`.
+- **AAR asset.** The Android package carries the catalog as
+  `assets/lib-t3-rust/i18n.json`.
 
 ### Added in 0.3.3
 

@@ -8,6 +8,12 @@ use crate::api::{ids, Arg, ArgType, Args};
 use crate::{activity, approvals, changes, code_blocks, composer, connection_catalog, history, i18n, markdown, models, projection, projects, questions, queue, sidebar, timeline, Result};
 use serde_json::{json, Value};
 
+mod git;
+mod presentation;
+mod review;
+mod settings;
+mod usage;
+
 /// One registry row. Built with `domain_fn!`.
 #[derive(Clone, Copy)]
 pub struct DomainFn {
@@ -95,7 +101,7 @@ const DECISIONS: &[&str] = &["accept", "acceptForSession", "acceptAlways", "decl
 const QUESTION_ACTIONS: &[&str] = &["respond", "dismiss"];
 const SUGGESTION_KINDS: &[&str] = &["skill", "command"];
 const GROUPING_MODES: &[&str] = &["repository", "repository_path", "separate"];
-static NULL: Value = Value::Null;
+pub(crate) static NULL: Value = Value::Null;
 
 fn sidebar_view(a: &Args) -> Result<Value> {
     let now = a.i64("now")?.unwrap_or(0);
@@ -383,9 +389,11 @@ pub const FUNCTIONS: &[DomainFn] = &[
     },
 ];
 
+/// The registry: this file's functions, then each area's.
+const MODULES: &[&[DomainFn]] = &[FUNCTIONS, review::FUNCTIONS, usage::FUNCTIONS, git::FUNCTIONS, settings::FUNCTIONS, presentation::FUNCTIONS];
 /// Every domain function, in a stable order.
 pub fn functions() -> impl Iterator<Item = &'static DomainFn> {
-    FUNCTIONS.iter()
+    MODULES.iter().flat_map(|m| m.iter())
 }
 pub fn function(name: &str) -> Option<&'static DomainFn> {
     functions().find(|f| f.name == name)

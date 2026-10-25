@@ -9,12 +9,13 @@ ABI v3 adds the typed API ops `call` and `describe` (see [Typed API](#typed-api)
 ## Using the Android package
 
 The Android release provides an AAR with the canonical Kotlin adapter and JNI
-libraries for **arm64-v8a, armeabi-v7a, x86 and x86_64**, targeting API 24+.
-It has no UI, account configuration or background service. Add the verified AAR
+libraries for **arm64-v8a, armeabi-v7a, x86 and x86_64**, targeting API 24+,
+and ot3's string catalog as the asset `lib-t3-rust/i18n.json` (see Domain
+operations, Strings). It has no UI, account configuration or background service. Add the verified AAR
 to the Android application's dependencies:
 
 ```kotlin
-implementation(files("libs/lib-t3-rust-android-v0.3.2.aar"))
+implementation(files("libs/lib-t3-rust-android-v0.3.4.aar"))
 ```
 
 The application supplies its existing INTERNET permission and Kotlin standard
@@ -223,15 +224,59 @@ envelope); other operations keep 8 MiB.
   links to the file); `break` (`hard`); `image`; `math`. A `link` is `{href, kind}`
   with kind `github`, `web`, `thread`, `file` (plus `fileType`) or `anchor`;
   links ot3 would not follow have no `link` at all.
+- **Diff and Git.** Parse `orchestration.getTurnDiff` (and `review.getDiffPreview`)
+  results with `diffReview.present`, using `changes.summaries` for the ranges and
+  `diffReview.scopedResult` to drop a late answer. The Git & changes sheet is
+  `gitControls.scope` (from the shell snapshot), `vcs.refreshStatus`,
+  `gitControls.present` and, after the user confirms, `gitControls.buildVerifiedAction`
+  with a fresh read: run its `steps` in order (`git.runStackedAction` is a stream,
+  `vcs.pull` and `terminal.*` are calls) and never retry them automatically.
+- **Branches and pull requests.** `branchPicker.dedupe` over `vcs.listRefs`,
+  `selectionTarget` for where to switch and `mismatch` for the composer's notice.
+  `pullRequests.request` / `payload` give `{method, payload}` for `call`;
+  `pullRequests.sidebarBadge` is the row badge (also in `sidebar.metadata`).
+- **Plans, rewind and the inspector.** `planWorkflow.view` (the `planView` of
+  `timeline.view`, plans with `blocks`), `followUp` for the banner's actions and
+  `attachSourceRef` on the `message.dispatch`. Rewind: `checkpointRevert.canPreview`
+  on a user row, `reference` on the raw projection, `safety` for the gate,
+  `command` to persist in the outbox before dispatch, `observation` on each
+  read-back. The inspector: `toolInspector.request(row.inspector, environment,
+  threadId)` → `call(method, payload)` → `toolInspector.parse(…, response)`.
+- **Settings and usage.** `nativeSettings.snapshot` / `patch` for an environment;
+  for a project scope over several environments, per target
+  `scopedSettings.targetView` (after the reads) and `writePatch` (before
+  `server.updateSettings`, then `writeWasDropped` on the read-back), and
+  `scopedSettings.page` over all of them. Usage: `usageSummary.request(period,
+  today, timeZone)` with the device's local date and IANA zone, then `aggregate`;
+  the quota strip folds `server.subscribeServerConfig` events with
+  `quotaSources.apply`.
+- **Minimap and subagents.** `timeline.minimap(rows, visibleRowIds, atEnd)` on
+  scroll (debounced) gives the markers and the current one;
+  `timeline.minimapIndex` maps a touch on the rail. `subagents.cards(row.subagents,
+  now, threadState.subagents)` per subagents row (refresh `now` each second while
+  `anyLive`).
+- **Theme.** `theme.tokens(colorsToml, id)` returns every ot3 role as an opaque
+  colour (`roles`, `statusColors`, `projectPalette`/`projectFills`, `sky`,
+  `document`), the same values ot3 draws, so the app needs no blending. The
+  `appearance` rule is the sky's (Rec.709 luminance of the background > 0.5).
+- **Strings.** `i18n.t(locale, key, args)` is ot3's lookup with its placeholders;
+  the key is the English source. Two ways to use the catalog: at run time,
+  `i18n.catalog(locale)` once per locale change (pass the app language or the
+  device locales joined by `:`) and look strings up in memory, so the app needs
+  no generated `strings_ot3.xml`; or at build time, a generator reads
+  `assets/lib-t3-rust/i18n.json` from the AAR (the same file, pinned to the lib
+  version) instead of an ot3 checkout and keeps writing `strings_ot3.xml`. The
+  first one also translates the English sources other functions return
+  (`statusLabel`, subagent labels, summary parts) without a name table.
 
-Kotlin wrappers under `T3Api(client).domain` (37):
+Kotlin wrappers under `T3Api(client).domain` (108):
 
 | Module | Functions |
 | --- | --- |
 | `projection` (1) | `apply` |
 | `sidebar` (8) | `status`, `metadata`, `sortTimestamps`, `command`, `threadAction`, `snapshot`, `view`, `detail` |
 | `projects` (2) | `identity`, `monogram` |
-| `timeline` (2) | `view`, `liveActivity` |
+| `timeline` (4) | `view`, `liveActivity`, `minimap`, `minimapIndex` |
 | `activity` (1) | `describe` |
 | `changes` (1) | `summaries` |
 | `markdown` (2) | `blocks`, `link` |
@@ -243,7 +288,20 @@ Kotlin wrappers under `T3Api(client).domain` (37):
 | `history` (2) | `path`, `envelope` |
 | `connectionCatalog` (1) | `pairingTarget` |
 | `codeBlocks` (1) | `parse` |
-| `i18n` (2) | `translate`, `normalize` |
+| `i18n` (6) | `translate`, `normalize`, `t`, `catalog`, `resolve`, `languages` |
+| `diffReview` (2) | `present`, `scopedResult` |
+| `toolInspector` (4) | `compactReference`, `scope`, `request`, `parse` |
+| `planWorkflow` (5) | `view`, `followUp`, `attachSourceRef`, `implementationTitle`, `mode` |
+| `checkpointRevert` (8) | `canPreview`, `reference`, `safety`, `command`, `confirmedCommand`, `observation`, `recoveryMessage`, `appendPrompt` |
+| `usageSummary` (3) | `window`, `request`, `aggregate` |
+| `quotaSources` (4) | `limits`, `providers`, `sources`, `apply` |
+| `pullRequests` (4) | `sidebarBadge`, `request`, `payload`, `threadCommand` |
+| `branchPicker` (6) | `dedupe`, `deriveLocal`, `sanitize`, `selectionTarget`, `mismatch`, `temporaryBranch` |
+| `gitControls` (7) | `scope`, `resolveScripts`, `actions`, `present`, `scopedResult`, `buildAction`, `buildVerifiedAction` |
+| `nativeSettings` (7) | `snapshot`, `patch`, `description`, `modelSelection`, `idleCompaction`, `idleCompactionPatch`, `threadDefaults` |
+| `scopedSettings` (10) | `effective`, `projectPatch`, `projectFile`, `validatedTargets`, `writePatch`, `writeWasDropped`, `targetView`, `aggregate`, `page`, `projectCatalogConfig` |
+| `subagents` (4) | `buckets`, `describe`, `cards`, `fromThread` |
+| `theme` (1) | `tokens` |
 
 ## Events through the existing JSON ABI
 
