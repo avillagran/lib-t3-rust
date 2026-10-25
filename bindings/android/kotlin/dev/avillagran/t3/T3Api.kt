@@ -809,6 +809,12 @@ class T3Api(client: T3Client) {
             /** `timeline.liveActivity` · array of the active run's in-flight activity {id, type, category, title, command, runId, status, failed, active, inspector}, newest first (at most 3) */
             fun liveActivity(projection: JSONObject): Any? =
                 client.domain("timeline.liveActivity", JSONObject().put("projection", projection))
+            /** `timeline.minimap` · object {items [{id, rowIndex, userText, assistantText, userPreview, assistantPreview}], visible (two items or more), currentIndex, visibleIds}: one marker per user row of timeline.view's timeline, paired with the last assistant reply before the next user row; currentIndex and visibleIds follow the rows on screen */
+            fun minimap(rows: JSONArray, visibleRowIds: JSONArray? = null, atEnd: Boolean? = null): Any? =
+                client.domain("timeline.minimap", JSONObject().put("rows", rows).put("visibleRowIds", visibleRowIds).put("atEnd", atEnd))
+            /** `timeline.minimapIndex` · integer: the marker under y on a rail height tall with count markers, or -1 */
+            fun minimapIndex(y: Double, height: Double, count: Long): Any? =
+                client.domain("timeline.minimapIndex", JSONObject().put("y", y).put("height", height).put("count", count))
         }
 
         class ToolInspector internal constructor(private val client: T3Client) {
