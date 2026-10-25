@@ -5,7 +5,8 @@ package dev.avillagran.t3
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Typed wrappers over [T3Client.call] and [T3Client.subscribeFn], one class per `describe` module. */
+/** Typed wrappers over [T3Client.call] and [T3Client.subscribeFn], one class per `describe` module;
+ *  [domain] wraps [T3Client.domain], one class per `describe` domain module. */
 @Suppress("unused")
 class T3Api(client: T3Client) {
     val agentSessions = AgentSessions(client)
@@ -28,6 +29,7 @@ class T3Api(client: T3Client) {
     val terminal = Terminal(client)
     val vcs = Vcs(client)
     val worktreeSetup = WorktreeSetup(client)
+    val domain = Domain(client)
 
     class AgentSessions internal constructor(private val client: T3Client) {
         /** `agentSessions.scan` · read · replay free · scope orchestration:read · 20000 ms */
@@ -432,5 +434,131 @@ class T3Api(client: T3Client) {
         /** `worktreeSetup.subscribeWorktreeSetup` · stream · read · replay free · scope orchestration:read */
         fun subscribeWorktreeSetup(threadId: String): T3Subscription =
             client.subscribeFn("worktreeSetup.subscribeWorktreeSetup", JSONObject().put("threadId", threadId))
+    }
+
+    /** Pure functions, offline: no connection is needed or used. */
+    class Domain internal constructor(client: T3Client) {
+        val approvals = Approvals(client)
+        val codeBlocks = CodeBlocks(client)
+        val composer = Composer(client)
+        val connectionCatalog = ConnectionCatalog(client)
+        val history = History(client)
+        val i18n = I18n(client)
+        val models = Models(client)
+        val projection = Projection(client)
+        val questions = Questions(client)
+        val queue = Queue(client)
+        val sidebar = Sidebar(client)
+
+        class Approvals internal constructor(private val client: T3Client) {
+            /** `approvals.pending` · array of {requestId, requestKind, createdAt, responseCapability, detail?, appName?, options}, oldest first */
+            fun pending(projection: JSONObject): Any? =
+                client.domain("approvals.pending", JSONObject().put("projection", projection))
+            /** `approvals.command` · command runtime-request.respond, only for a pending live request and an offered decision */
+            fun command(thread: String, runtimeRequestId: String, decision: String, projection: JSONObject): Any? =
+                client.domain("approvals.command", JSONObject().put("thread", thread).put("runtimeRequestId", runtimeRequestId).put("decision", decision).put("projection", projection))
+        }
+
+        class CodeBlocks internal constructor(private val client: T3Client) {
+            /** `codeBlocks.parse` · array of {index, language, code, command}: command only for a complete single-line shell fence */
+            fun parse(markdown: String): Any? =
+                client.domain("codeBlocks.parse", JSONObject().put("markdown", markdown))
+        }
+
+        class Composer internal constructor(private val client: T3Client) {
+            /** `composer.paths` · array of {kind, label, description, insert, icon} (at most 40) from projects.searchEntries */
+            fun paths(result: JSONObject): Any? =
+                client.domain("composer.paths", JSONObject().put("result", result))
+            /** `composer.catalog` · array of {kind, label, description, insert, icon} (at most 40): skills and slash commands */
+            fun catalog(provider: JSONObject, cwd: String, kind: String, query: String? = null): Any? =
+                client.domain("composer.catalog", JSONObject().put("provider", provider).put("cwd", cwd).put("kind", kind).put("query", query))
+            /** `composer.fileLink` · string: the Markdown file link T3's composer inserts */
+            fun fileLink(path: String): Any? =
+                client.domain("composer.fileLink", JSONObject().put("path", path))
+            /** `composer.attachmentReference` · string: the inline t3-context reference of an uploaded attachment */
+            fun attachmentReference(attachment: JSONObject): Any? =
+                client.domain("composer.attachmentReference", JSONObject().put("attachment", attachment))
+        }
+
+        class ConnectionCatalog internal constructor(private val client: T3Client) {
+            /** `connectionCatalog.pairingTarget` · object {httpBaseUrl, pairingCode}: a pairing link, QR payload or host plus code */
+            fun pairingTarget(link: String, pairingCode: String? = null): Any? =
+                client.domain("connectionCatalog.pairingTarget", JSONObject().put("link", link).put("pairingCode", pairingCode))
+        }
+
+        class History internal constructor(private val client: T3Client) {
+            /** `history.path` · string: the history page path for request */
+            fun path(threadId: String, cursor: String): Any? =
+                client.domain("history.path", JSONObject().put("threadId", threadId).put("cursor", cursor))
+            /** `history.envelope` · object {projection {thread, messages, turnItems}, historyCursor, hasMoreHistory} */
+            fun envelope(page: JSONObject, threadId: String): Any? =
+                client.domain("history.envelope", JSONObject().put("page", page).put("threadId", threadId))
+        }
+
+        class I18n internal constructor(private val client: T3Client) {
+            /** `i18n.translate` · string: the translation, the English source as fallback */
+            fun translate(catalog: JSONObject, locale: String, source: String): Any? =
+                client.domain("i18n.translate", JSONObject().put("catalog", catalog).put("locale", locale).put("source", source))
+            /** `i18n.normalize` · string: a POSIX or BCP 47 locale as lowercase BCP 47 (fr_CA.UTF-8 → fr-ca) */
+            fun normalize(locale: String): Any? =
+                client.domain("i18n.normalize", JSONObject().put("locale", locale))
+        }
+
+        class Models internal constructor(private val client: T3Client) {
+            /** `models.catalog` · object {models, providers, favorites, favoritesReady, capabilities, scratchWorkspaceRoot} from server.getConfig */
+            fun catalog(config: JSONObject): Any? =
+                client.domain("models.catalog", JSONObject().put("config", config))
+            /** `models.preferences` · object {favorites, favoritesReady} from server.getSettings */
+            fun preferences(settings: JSONObject): Any? =
+                client.domain("models.preferences", JSONObject().put("settings", settings))
+            /** `models.favoritePayload` · object {patch} for server.updateSettings */
+            fun favoritePayload(provider: String, model: String, favorite: Boolean): Any? =
+                client.domain("models.favoritePayload", JSONObject().put("provider", provider).put("model", model).put("favorite", favorite))
+            /** `models.runtimeModeCommand` · command thread.runtime-mode.set */
+            fun runtimeModeCommand(threadId: String, commandId: String, runtimeMode: String): Any? =
+                client.domain("models.runtimeModeCommand", JSONObject().put("threadId", threadId).put("commandId", commandId).put("runtimeMode", runtimeMode))
+        }
+
+        class Projection internal constructor(private val client: T3Client) {
+            /** `projection.apply` · object {projection, changed, applied}: `event` then each of `events` applied in order */
+            fun apply(projection: JSONObject, event: JSONObject? = null, events: JSONArray? = null): Any? =
+                client.domain("projection.apply", JSONObject().put("projection", projection).put("event", event).put("events", events))
+        }
+
+        class Questions internal constructor(private val client: T3Client) {
+            /** `questions.pending` · array of {requestId, createdAt, questions, responseCapability, dismissible}, oldest first */
+            fun pending(projection: JSONObject): Any? =
+                client.domain("questions.pending", JSONObject().put("projection", projection))
+            /** `questions.command` · command runtime-request.respond (answers) or thread.user-input.dismiss */
+            fun command(thread: String, runtimeRequestId: String, action: String, answers: JSONObject? = null): Any? =
+                client.domain("questions.command", JSONObject().put("thread", thread).put("runtimeRequestId", runtimeRequestId).put("action", action).put("answers", answers))
+        }
+
+        class Queue internal constructor(private val client: T3Client) {
+            /** `queue.derive` · object {items, hiddenMessageIds, acknowledgedMessageIds, held, activeRunId, canReorder, canSteer} */
+            fun derive(projection: JSONObject): Any? =
+                client.domain("queue.derive", JSONObject().put("projection", projection))
+            /** `queue.command` · command: queued-run.cancel/reorder/edit, queued-message.promote-to-steer or queue.resume (without commandId) */
+            fun command(thread: String, action: String, runId: String? = null, beforeRunId: String? = null, targetRunId: String? = null, text: String? = null, attachments: JSONArray? = null, context: JSONObject? = null): Any? =
+                client.domain("queue.command", JSONObject().put("thread", thread).put("action", action).put("runId", runId).put("beforeRunId", beforeRunId).put("targetRunId", targetRunId).put("text", text).put("attachments", attachments).put("context", context))
+        }
+
+        class Sidebar internal constructor(private val client: T3Client) {
+            /** `sidebar.status` · string: approval, input, waiting, working, goal, limited, failed or ready */
+            fun status(thread: JSONObject): Any? =
+                client.domain("sidebar.status", JSONObject().put("thread", thread))
+            /** `sidebar.metadata` · object {sidebarStatus, woke, wokeAt, snoozed, canSnooze, snoozedUntil, hasRuntimeError, runtimeErrorClass, providerHistory, pullRequests, linkedPullRequest, branchPullRequest, pullRequestBadge} */
+            fun metadata(thread: JSONObject, now: Long): Any? =
+                client.domain("sidebar.metadata", JSONObject().put("thread", thread).put("now", now))
+            /** `sidebar.sortTimestamps` · object {inboxAt, activeAnchorAt, lastSentAt, settledSortAt} (ms) */
+            fun sortTimestamps(thread: JSONObject): Any? =
+                client.domain("sidebar.sortTimestamps", JSONObject().put("thread", thread))
+            /** `sidebar.command` · command: thread.settle, thread.unsettle, thread.snooze or thread.unsnooze (without commandId) */
+            fun command(action: String, threadId: String, snoozedUntil: String? = null): Any? =
+                client.domain("sidebar.command", JSONObject().put("action", action).put("threadId", threadId).put("snoozedUntil", snoozedUntil))
+            /** `sidebar.threadAction` · command for the thread actions menu (without commandId) */
+            fun threadAction(thread: String, action: String, title: String? = null, enabled: Boolean? = null, confirmed: Boolean? = null, working: Boolean? = null): Any? =
+                client.domain("sidebar.threadAction", JSONObject().put("thread", thread).put("action", action).put("title", title).put("enabled", enabled).put("confirmed", confirmed).put("working", working))
+        }
     }
 }

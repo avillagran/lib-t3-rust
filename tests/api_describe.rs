@@ -1,6 +1,6 @@
 //! The saved `describe` (`bindings/android/describe.json`) and the Kotlin
 //! wrappers generated from it (`bindings/android/kotlin/.../T3Api.kt`, shipped in
-//! the AAR) must match the registry. Regenerate both with `T3_UPDATE_FIXTURES=1 cargo test --test api_describe`.
+//! the AAR) must match the registry, domain functions included. Regenerate both with `T3_UPDATE_FIXTURES=1 cargo test --test api_describe`.
 use serde_json::Value;
 use std::{fmt::Write, fs, path::Path};
 
@@ -57,17 +57,23 @@ fn kotlin(describe: &Value) -> String {
     let mut out = String::new();
     writeln!(out, "// Generated from bindings/android/describe.json ({}) by tests/api_describe.rs.", describe["contract"].as_str().unwrap()).unwrap();
     writeln!(out, "// Do not edit: run `T3_UPDATE_FIXTURES=1 cargo test --test api_describe`.").unwrap();
-    let arrays = functions.iter().flat_map(|f| f["args"].as_array().unwrap()).any(|a| a["type"] == "array");
+    let domain = describe["domain"].as_array().unwrap();
+    let mut domain_modules = domain.iter().map(|f| f["module"].as_str().unwrap()).collect::<Vec<_>>();
+    domain_modules.sort();
+    domain_modules.dedup();
+    let arrays = functions.iter().chain(domain).flat_map(|f| f["args"].as_array().unwrap()).any(|a| a["type"] == "array");
     writeln!(out, "package dev.avillagran.t3\n").unwrap();
     if arrays {
         writeln!(out, "import org.json.JSONArray").unwrap();
     }
     writeln!(out, "import org.json.JSONObject\n").unwrap();
-    writeln!(out, "/** Typed wrappers over [T3Client.call] and [T3Client.subscribeFn], one class per `describe` module. */").unwrap();
+    writeln!(out, "/** Typed wrappers over [T3Client.call] and [T3Client.subscribeFn], one class per `describe` module;").unwrap();
+    writeln!(out, " *  [domain] wraps [T3Client.domain], one class per `describe` domain module. */").unwrap();
     writeln!(out, "@Suppress(\"unused\")\nclass T3Api(client: T3Client) {{").unwrap();
     for m in &modules {
         writeln!(out, "    val {m} = {}(client)", capitalized(m)).unwrap();
     }
+    writeln!(out, "    val domain = Domain(client)").unwrap();
     for m in &modules {
         writeln!(out, "\n    class {} internal constructor(private val client: T3Client) {{", capitalized(m)).unwrap();
         for f in functions.iter().filter(|f| f["module"] == *m) {
@@ -88,28 +94,50 @@ fn kotlin(describe: &Value) -> String {
                 writeln!(out, "        fun {method}(args: JSONObject): {returns} = client.{open}(\"{name}\", args)").unwrap();
                 continue;
             }
-            let args = f["args"].as_array().unwrap();
-            let ordered = args.iter().filter(|a| a["required"] == true).chain(args.iter().filter(|a| a["required"] != true));
-            let params = ordered
-                .map(|a| {
-                    let arg = ident(a["name"].as_str().unwrap());
-                    if a["required"] == true {
-                        format!("{arg}: {}", kotlin_type(a))
-                    } else {
-                        format!("{arg}: {}? = null", kotlin_type(a))
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join(", ");
-            let puts = args.iter().map(|a| format!(".put(\"{}\", {})", a["name"].as_str().unwrap(), ident(a["name"].as_str().unwrap()))).collect::<String>();
+            let (params, puts) = parameters(f["args"].as_array().unwrap());
             let method = ident(&method);
             writeln!(out, "        fun {method}({params}): {returns} =
             client.{open}(\"{name}\", JSONObject(){puts})").unwrap();
         }
         writeln!(out, "    }}").unwrap();
     }
+    writeln!(out, "\n    /** Pure functions, offline: no connection is needed or used. */").unwrap();
+    writeln!(out, "    class Domain internal constructor(client: T3Client) {{").unwrap();
+    for m in &domain_modules {
+        writeln!(out, "        val {m} = {}(client)", capitalized(m)).unwrap();
+    }
+    for m in &domain_modules {
+        writeln!(out, "\n        class {} internal constructor(private val client: T3Client) {{", capitalized(m)).unwrap();
+        for f in domain.iter().filter(|f| f["module"] == *m) {
+            let name = f["fn"].as_str().unwrap();
+            writeln!(out, "            /** `{name}` · {} */", f["returns"].as_str().unwrap()).unwrap();
+            let args = f["args"].as_array().unwrap();
+            let (params, puts) = parameters(args);
+            writeln!(out, "            fun {}({params}): Any? =
+                client.domain(\"{name}\", JSONObject(){puts})", ident(&method_name(name))).unwrap();
+        }
+        writeln!(out, "        }}").unwrap();
+    }
+    writeln!(out, "    }}").unwrap();
     writeln!(out, "}}").unwrap();
     out
+}
+/// Kotlin parameters (required first, optional defaulting to null) and the `.put` chain.
+fn parameters(args: &[Value]) -> (String, String) {
+    let ordered = args.iter().filter(|a| a["required"] == true).chain(args.iter().filter(|a| a["required"] != true));
+    let params = ordered
+        .map(|a| {
+            let arg = ident(a["name"].as_str().unwrap());
+            if a["required"] == true {
+                format!("{arg}: {}", kotlin_type(a))
+            } else {
+                format!("{arg}: {}? = null", kotlin_type(a))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    let puts = args.iter().map(|a| format!(".put(\"{}\", {})", a["name"].as_str().unwrap(), ident(a["name"].as_str().unwrap()))).collect::<String>();
+    (params, puts)
 }
 
 #[test]

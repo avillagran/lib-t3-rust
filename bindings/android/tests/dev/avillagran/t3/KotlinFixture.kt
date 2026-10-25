@@ -49,6 +49,20 @@ fun main() {
             val error = runCatching { call() }.exceptionOrNull()
             check(error is T3Exception && error.code == "not_connected") { error.toString() }
         }
+        // Domain functions are pure: they answer offline, with the same error envelope.
+        val domains = client.describe().getJSONArray("domain").length()
+        val savedDomains = JSONObject(File("bindings/android/describe.json").readText()).getJSONArray("domain").length()
+        check(domains == savedDomains && domains > 20) { "describe lists $domains domain functions, describe.json $savedDomains" }
+        val blocks = api.domain.codeBlocks.parse("```bash\necho hi\n```") as org.json.JSONArray
+        check(blocks.getJSONObject(0).getString("command") == "echo hi") { blocks.toString() }
+        val target = api.domain.connectionCatalog.pairingTarget("wss://node:3773/x?token=abc") as JSONObject
+        check(target.getString("httpBaseUrl") == "https://node:3773" && target.getString("pairingCode") == "abc")
+        val queue = api.domain.queue.derive(JSONObject().put("runs", org.json.JSONArray())) as JSONObject
+        check(queue.getJSONArray("items").length() == 0 && !queue.getBoolean("canSteer"))
+        val noDomain = runCatching { client.domain("queue.nope") }.exceptionOrNull()
+        check(noDomain is T3Exception && noDomain.code == "unknown_function")
+        val badDomain = runCatching { client.domain("sidebar.command", JSONObject().put("action", "nap").put("threadId", "t")) }.exceptionOrNull()
+        check(badDomain is T3Exception && badDomain.code == "invalid_action") { badDomain.toString() }
         // JNI's own failures arrive as T3Exception too, before Rust or a connection.
         val badFd = runCatching { client.upload(-1, "x.bin", "application/octet-stream", 1) }.exceptionOrNull()
         check(badFd is T3Exception && badFd.code == "host_file_unavailable") { badFd.toString() }
@@ -86,6 +100,6 @@ fun main() {
         check(!worker.isAlive && !closing.isAlive && failure.get() == null) { failure.get().toString() }
         client.close() // idempotent
         check(runCatching { client.request("/fixture") }.exceptionOrNull() is IllegalStateException)
-        println("KOTLIN_JNI_PASS: canonical wrapper, capabilities, typed API call/describe, asset wrappers, connection options, Unicode, stable and JNI errors and concurrent close ownership")
+        println("KOTLIN_JNI_PASS: canonical wrapper, capabilities, typed API call/describe, domain functions, asset wrappers, connection options, Unicode, stable and JNI errors and concurrent close ownership")
     } finally { finish.countDown(); client.close(); server.stop(0) }
 }
