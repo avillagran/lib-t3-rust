@@ -1,0 +1,48 @@
+name: Android Kotlin toolchain
+description: >-
+  JDK 21, the Kotlin 2.3 compiler and org.json (pinned by SHA-256), the SDK's
+  android.jar and optionally the NDK; exports JAVA_HOME, KOTLIN_STDLIB,
+  KOTLIN_COMPILER_CLASSPATH, JSON_JAR, ANDROID_JAR and ANDROID_NDK_HOME.
+inputs:
+  ndk:
+    description: Also install the Android NDK and export ANDROID_NDK_HOME
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: "21"
+    - shell: bash
+      env:
+        KOTLIN_VERSION: 2.3.21
+        KOTLIN_SHA256: a8cfc1d62cd4d0de4d04f42575e40135bd620588c17d568a20eb9c7c259af14f
+        JSON_VERSION: "20250517"
+        JSON_SHA256: 3ea61b2a06e31edf1c91134fe9106b0ebb16628be169f3db75bc7a2b06b45796
+        ANDROID_PLATFORM: android-36
+        NDK_VERSION: 28.2.13676358
+        WITH_NDK: ${{ inputs.ndk }}
+      run: |
+        tools="$RUNNER_TEMP/android-toolchain"
+        mkdir -p "$tools"
+        curl -fsSL --retry 3 -o "$tools/kotlin.zip" \
+          "https://github.com/JetBrains/kotlin/releases/download/v$KOTLIN_VERSION/kotlin-compiler-$KOTLIN_VERSION.zip"
+        curl -fsSL --retry 3 -o "$tools/json.jar" \
+          "https://repo1.maven.org/maven2/org/json/json/$JSON_VERSION/json-$JSON_VERSION.jar"
+        printf '%s  %s\n' "$KOTLIN_SHA256" "$tools/kotlin.zip" "$JSON_SHA256" "$tools/json.jar" | sha256sum -c -
+        unzip -q "$tools/kotlin.zip" -d "$tools"
+        lib="$tools/kotlinc/lib"
+        sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        (yes || true) | "$sdkmanager" --licenses > /dev/null
+        [[ -f "$ANDROID_HOME/platforms/$ANDROID_PLATFORM/android.jar" ]] || "$sdkmanager" "platforms;$ANDROID_PLATFORM"
+        {
+          echo "KOTLIN_STDLIB=$lib/kotlin-stdlib.jar"
+          echo "KOTLIN_COMPILER_CLASSPATH=$lib/kotlin-compiler.jar:$lib/kotlin-stdlib.jar:$lib/kotlin-reflect.jar:$lib/kotlin-script-runtime.jar:$lib/kotlinx-coroutines-core-jvm.jar:$lib/annotations-13.0.jar"
+          echo "JSON_JAR=$tools/json.jar"
+          echo "ANDROID_JAR=$ANDROID_HOME/platforms/$ANDROID_PLATFORM/android.jar"
+        } >> "$GITHUB_ENV"
+        if [[ $WITH_NDK == true ]]; then
+          [[ -x "$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" ]] || "$sdkmanager" "ndk;$NDK_VERSION"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+        fi

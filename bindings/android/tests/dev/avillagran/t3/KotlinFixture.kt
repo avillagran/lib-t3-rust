@@ -1,6 +1,7 @@
 package dev.avillagran.t3
 
 import com.sun.net.httpserver.HttpServer
+import java.io.File
 import java.net.InetSocketAddress
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -30,7 +31,9 @@ fun main() {
         check(disconnected is T3Exception && disconnected.code == "not_connected")
         // Typed API: describe is offline, validation runs before the connection
         // check, and one generated wrapper per module reaches Rust through JNI.
-        check(client.describe().getJSONArray("functions").length() == 27)
+        val saved = JSONObject(File("bindings/android/describe.json").readText()).getJSONArray("functions").length()
+        val described = client.describe().getJSONArray("functions").length()
+        check(described == saved && described > 100) { "describe lists $described functions, describe.json $saved" }
         val api = T3Api(client)
         val invalid = runCatching { api.vcs.refreshStatus("") }.exceptionOrNull()
         check(invalid is T3Exception && invalid.code == "invalid_cwd")
@@ -46,10 +49,27 @@ fun main() {
             val error = runCatching { call() }.exceptionOrNull()
             check(error is T3Exception && error.code == "not_connected") { error.toString() }
         }
-        client.connectBearer("http://127.0.0.1:${server.address.port}", "fixture-token")
+        // JNI's own failures arrive as T3Exception too, before Rust or a connection.
+        val badFd = runCatching { client.upload(-1, "x.bin", "application/octet-stream", 1) }.exceptionOrNull()
+        check(badFd is T3Exception && badFd.code == "host_file_unavailable") { badFd.toString() }
+        // Signed assets and favicons go through the binary native path, not call().
+        for (call in listOf<() -> T3Asset>({ client.assetBytes(attachment) }, { client.projectFavicon("/repo") })) {
+            val error = runCatching { call() }.exceptionOrNull()
+            check(error is T3Exception && error.code == "not_connected") { error.toString() }
+        }
+        val base = "http://127.0.0.1:${server.address.port}"
+        val badOptions = runCatching { client.connectBearer(base, "fixture-token", JSONObject().put("retries", 3)) }
+        check((badOptions.exceptionOrNull() as? T3Exception)?.code == "invalid_connection_options") { badOptions.toString() }
+        val relay = runCatching {
+            client.connectRelay("https://relay.invalid", "jwt", "env-1", clientId = "fixture", options = JSONObject().put("requestTimeoutMs", 0))
+        }
+        check((relay.exceptionOrNull() as? T3Exception)?.code == "invalid_connection_options") { relay.toString() }
+        client.connectBearer(base, "fixture-token", JSONObject().put("requestTimeoutMs", 5000).put("connectTimeoutMs", 2000))
         check((client.request("/fixture") as JSONObject).getString("text") == "á 🦀")
         val image = runCatching { client.image("fixture", "x.svg", "image/svg+xml") }.exceptionOrNull()
         check(image is T3Exception && image.code == "invalid_image")
+        val timeout = runCatching { client.assetBytes(attachment, maxBytes = 10, timeoutMs = 0) }.exceptionOrNull()
+        check(timeout is T3Exception && timeout.code == "invalid_asset_timeout") { timeout.toString() }
         val failure = AtomicReference<Throwable?>(null)
         val worker = Thread {
             try { check((client.request("/fixture/slow") as JSONObject).getString("text") == "á 🦀") }
@@ -66,6 +86,6 @@ fun main() {
         check(!worker.isAlive && !closing.isAlive && failure.get() == null) { failure.get().toString() }
         client.close() // idempotent
         check(runCatching { client.request("/fixture") }.exceptionOrNull() is IllegalStateException)
-        println("KOTLIN_JNI_PASS: canonical wrapper, capabilities, typed API call/describe, Unicode, stable errors and concurrent close ownership")
+        println("KOTLIN_JNI_PASS: canonical wrapper, capabilities, typed API call/describe, asset wrappers, connection options, Unicode, stable and JNI errors and concurrent close ownership")
     } finally { finish.countDown(); client.close(); server.stop(0) }
 }

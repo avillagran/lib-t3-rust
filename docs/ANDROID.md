@@ -13,7 +13,7 @@ It has no UI, account configuration or background service. Add the verified AAR
 to the Android application's dependencies:
 
 ```kotlin
-implementation(files("libs/lib-t3-rust-android-v0.3.0.aar"))
+implementation(files("libs/lib-t3-rust-android-v0.3.2.aar"))
 ```
 
 The application supplies its existing INTERNET permission and Kotlin standard
@@ -103,18 +103,20 @@ functions also appear under `streams` with their item shapes (see Typed streams)
 harmless, `never` read the state back first. The library never retries.
 
 Typed Kotlin wrappers are generated from the saved `describe`
-([`bindings/android/describe.json`](../bindings/android/describe.json)). Today the
-generated [`T3Api.kt`](../bindings/android/tests/dev/avillagran/t3/T3Api.kt) is a test
-fixture (`T3Api(client).vcs.refreshStatus(path)`); `cargo test --test api_describe`
-fails when the registry, the saved `describe` and the wrappers disagree.
+([`bindings/android/describe.json`](../bindings/android/describe.json)). The
+generated [`T3Api.kt`](../bindings/android/kotlin/dev/avillagran/t3/T3Api.kt) sits
+next to `T3Client.kt` and ships in the AAR (`T3Api(client).vcs.refreshStatus(path)`);
+`cargo test --test api_describe` fails when the registry, the saved `describe` and
+the wrappers disagree.
 
 The generator maps `integer` to `Long`, `number` to `Double`, `object` and
 `command` to `JSONObject`, `array` to `JSONArray` and the rest to `String`; a Kotlin
 keyword used as an argument is backquoted (`` `when` `` in the keybinding calls).
 Functions with `openArgs` (`dispatchCommand`, `projects.mutate`, `device.action`)
 take the whole variant as one `JSONObject`. `cargo test --test api_describe` checks
-`T3Api.kt` against `describe.json` byte for byte; `tools/test-kotlin-jni` compiles
-it, which needs a JDK and `kotlinc`.
+`T3Api.kt` against `describe.json` byte for byte; `tools/compile-android-kotlin`
+compiles it with `T3Client.kt` against `android.jar` (as `tools/package-android`
+does) and `tools/test-kotlin-jni` runs it through JNI, which needs a JDK and `kotlinc`.
 
 Unary functions in this release (99; the README's Typed API section has each
 one's Rust signature, kind, scope, deadline and arguments; streams follow in
@@ -330,6 +332,12 @@ path. There is no full-file byte-array copy. A nonresponsive provider read has a
 bounded native deadline. Limits follow the core: 50 MiB/file, 10 MiB/image; the
 host must also honor any stricter current provider/server policy.
 
+Every adapter failure with a stable code is a `T3Exception`, including the ones the
+JNI layer raises before Rust runs: `host_file_unavailable` (a descriptor it cannot
+duplicate, e.g. `-1` or one already closed), `invalid_input` (a request over 8 MiB),
+`native_error` and `native_allocation_failed`. `IllegalStateException` remains only
+for misuse of the Kotlin objects (`client_closed`, `subscription_closed`).
+
 `T3Client.image(id, name, mimeType)` returns validated image bytes through
 `assets.createUrl` and its signed same-origin GET, with a 10 MiB bound. Kotlin
 owns the returned byte array and supplies decoding/cache/UI. Images do not pass
@@ -356,7 +364,10 @@ All of this is additive to ABI v2; `capabilities` lists it in `operations`,
 {"op":"requestOk","method":"POST","path":"/api/auth/clients/revoke","body":{"sessionId":"s-1"},"protocol":false}
 ```
 
-`options` is optional on `connectBearer` and `connectRelay`. Unknown keys,
+`options` is optional on `connectBearer` and `connectRelay`; in Kotlin it is the
+last parameter of both (`client.connectBearer(baseUrl, token, JSONObject().put("requestTimeoutMs", 8000))`),
+and `connectRelay(relayUrl, cloudJwt, environmentId, clientId = "t3-mobile", options = null)`
+lets the host name its relay client. Unknown keys,
 non-numeric values, a zero timeout, a timeout over 300 s or `maxBytes` outside
 1 byte to 64 MiB fail with `invalid_connection_options`; `null` clears the
 connect or pool-idle timeout. Options govern HTTP. Streams and RPC keep their
@@ -370,8 +381,19 @@ With `"connect":true` the handle switches to the new session after the exchange
 succeeds, cancelling its streams; a failed pairing leaves the old one in place.
 `boundedThread` returns the restored bounded snapshot (up to 64 MiB).
 
-Signed assets use the binary path, never Base64 JSON. Pass the metadata to the
-JNI `image` native (`t3_client_image`), which forwards it unchanged:
+Signed assets use the binary path, never Base64 JSON. From Kotlin:
+
+```kotlin
+val clip = client.assetBytes(resource, maxBytes = 50L * 1024 * 1024, timeoutMs = 120_000)
+// clip.status = {sizeBytes, mimeType}; clip.bytes is owned by the caller
+val icon = client.projectFavicon(cwd = "/repo", path = "favicon.svg") // path is optional
+if (icon.found) showIcon(icon.bytes!!, icon.mimeType)
+```
+
+`T3Asset` carries `status` (the JSON data), `bytes` (null when `found` is false),
+`found` and `mimeType`. `maxBytes` defaults to `T3Client.MAX_ASSET_BYTES` (64 MiB).
+Both wrappers pass this metadata to the JNI `image` native (`t3_client_image`), which
+forwards it unchanged:
 
 ```json
 {"op":"assetBytes","resource":{"_tag":"attachment","attachmentId":"a","fileName":"clip.mp4","mimeType":"video/mp4","disposition":"inline"},"maxBytes":52428800,"timeoutMs":120000}
@@ -381,9 +403,8 @@ JNI `image` native (`t3_client_image`), which forwards it unchanged:
 The status is `{sizeBytes, mimeType}`, or `{found:false, sizeBytes:0}` with no
 bytes for a project without a favicon. Errors are `asset_*`,
 `invalid_asset_url`, `invalid_asset_limit` and `invalid_asset_timeout`; through
-`t3_client_call` these two operations fail with `binary_operation`. The Kotlin
-`T3Client` has no typed wrapper for them yet. A wrapper is a one-line
-`T3Native.image` call with this metadata; the C++ adapter needs no change.
+`t3_client_call` these two operations fail with `binary_operation`. In Kotlin they
+throw `T3Exception` with that code, like every other operation.
 
 ## Building from source
 
@@ -401,11 +422,32 @@ configuration for offline builds. ELF libraries use 16 KiB maximum page alignmen
 Outputs live under `dist/android/<abi>/libt3_jni.so`. Desktop Linux libraries are
 not Android libraries, even when the CPU matches.
 
-`tools/package-android` compiles the Kotlin wrapper and assembles an AAR. It needs
+`tools/package-android` compiles the Kotlin adapter (`T3Client.kt` and `T3Api.kt`,
+through `tools/compile-android-kotlin`) and assembles an AAR. It needs
 `JAVA_HOME`, `ANDROID_JAR`, `KOTLIN_STDLIB` and `KOTLIN_COMPILER_CLASSPATH` pointing
 to explicitly installed/cached tools. Run it in the clean, committed release
 checkout after building all four ABIs. It produces the versioned AAR and SHA-256
 checksum in `dist/`; it does not sign or publish an Android application.
+
+### Releases
+
+Pushing a `v*` tag runs [`.github/workflows/android-release.yml`](../.github/workflows/android-release.yml)
+on `ubuntu-24.04`: it checks that the tag matches the `Cargo.toml` version, installs
+the four Rust Android targets, NDK 28.2.13676358 and the `android-36` platform
+through the runner's `sdkmanager`, JDK 21 and the Kotlin 2.3.21 compiler (the
+compiler and org.json downloads are pinned by SHA-256 in
+[`.github/actions/android-toolchain`](../.github/actions/android-toolchain/action.yml)),
+runs `tools/build-android arm64-v8a x86_64 armeabi-v7a x86` and
+`tools/package-android`, verifies the checksum and publishes
+`lib-t3-rust-android-v<version>.aar` and its `.sha256` as a GitHub release. A manual
+run (`workflow_dispatch`), or a pull request that touches the Android bindings or
+the release tools, builds and packages the same way and only uploads both files as a
+workflow artifact, which is how the workflow is checked before a tag.
+
+Every push and pull request also runs the `kotlin` job of
+[`test.yml`](../.github/workflows/test.yml): `tools/compile-android-kotlin` against
+`android.jar`, then `tools/test-jni` and `tools/test-kotlin-jni` on x86_64, so no
+Kotlin change is tagged without compiling.
 
 ## Validation
 
@@ -419,7 +461,7 @@ checksum in `dist/`; it does not sign or publish an Android application.
   through the generated wrappers, and concurrent close against a real native
   request; `StreamFixture` drives streams through a JDK-only fake WebSocket (chunk
   boundaries, completion marker, idle, wake probe and error reasons). Supply the cached compiler variables above
-  and `JSON_JAR` for the host's org.json implementation.
+  and `JSON_JAR` for the host's org.json implementation; CI runs it in the `kotlin` job.
 - Android cross-build/link checks cover all four ABIs. These are not Android
   device/UI/lifecycle E2E checks, which remain consumer work.
 
