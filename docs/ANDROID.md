@@ -3,7 +3,8 @@
 `lib-t3-rust` keeps the Cargo package/import names `t3-protocol` / `t3_protocol`
 and the static archive `libt3_protocol.a`. ABI v2 and v3 are additive: the original
 four C symbols and synchronous JSON operations remain available to existing adapters.
-ABI v3 adds the typed API ops `call` and `describe` (see [Typed API](#typed-api)).
+ABI v3 adds the typed API ops `call` and `describe` (see [Typed API](#typed-api)) and
+`domain`, the library's pure functions (see [Domain operations](#domain-operations)).
 
 ## Using the Android package
 
@@ -155,6 +156,94 @@ workspace and media files and `orchestration:read` for the rest;
 `mode: "worktree"` with a `threadId`; `device.list` needs `orchestration:operate`
 with `updateTool` or `retryHostId` (unless it is `inspectOnly` without
 `updateTool`).
+
+## Domain operations
+
+What the app derives from T3's JSON comes from the library too, so Kotlin holds
+no protocol rules: `T3Client.domain(fn, args)` runs one pure function by name,
+with no connection and no network (it works before `connectBearer` and while
+offline), and `T3Api(client).domain.<module>.<function>(…)` wraps each one. Call
+them on a worker like everything else: they are CPU work over JSON that can be
+a few MiB.
+
+```kotlin
+val api = T3Api(client)
+// Home: every saved environment's shell in one sidebar.
+val environments = JSONArray().apply {
+    for (e in saved) put(JSONObject().put("id", e.id).put("name", e.name)
+        .put("shell", e.shell /* last shell snapshot or stream state, or null */)
+        .put("state", e.connectionState /* null when connected */))
+}
+var returns: JSONObject? = null
+val sidebar = api.domain.sidebar.view(environments, System.currentTimeMillis(),
+    filter = "all", query = search, grouped = groupShelves, returns = returns,
+    selectedKey = selected, colors = theme.colors) as JSONObject
+returns = sidebar.getJSONObject("returns") // keep it for the next call
+val active = sidebar.getJSONObject("sections").getJSONArray("active")
+
+// Thread: keep the projection current, then derive the timeline.
+projection = (api.domain.projection.apply(projection, events = batch) as JSONObject).getJSONObject("projection")
+val view = api.domain.timeline.view(projection, mathRenderingEnabled = settings.math) as JSONObject
+val rows = view.getJSONArray("timeline") // each row has "rev": redraw only when it changes
+```
+
+```json
+{"op":"domain","fn":"markdown.blocks","args":{"markdown":"See [docs](./README.md)"}}
+```
+
+Arguments are validated before the function runs, as for `call`:
+`T3Exception("unknown_function")`, `"invalid_input"` (an unknown member) or
+`"invalid_<field>"` (missing or of the wrong JSON type), then the function's own
+codes. `describe().getJSONArray("domain")` lists each function's `args` and a
+one-line `returns`; the README's Domain operations table has them all. A
+`domain` request may be up to 72 MiB (a bounded thread snapshot and its
+envelope); other operations keep 8 MiB.
+
+- **Sidebar.** `sidebar.view` returns the sections (`active`, `working`,
+  `snoozed`, `settled`), `sectionCounts`, the header `counts`, the
+  `filterCounts`, `projectGroups`, `projectIdentities` (monogram, label, colour
+  slot and, given the theme's `colors`, the colour) and `returns`. Rows carry
+  `detail`, `state`, `statusLabel` (English source string for the catalog),
+  `statusRole` (working, done, failed, warning, input, waiting or muted) and
+  `time` (`kind` elapsed, countdown or age, `at` and the `label` for `now`;
+  recompute between views with the same rule). Shelf expansion stays app state;
+  the lists are always complete.
+- **Thread.** `timeline.view` returns `timeline`, `threadState` (working,
+  run clock, sort anchors, context window, subagents, merge-back target),
+  `activity` (the working pill), `approvals`, `questions`, `tasks`, `queue`,
+  `planView`, `historyCursor` and `hasMoreHistory`. Message rows are the user and
+  assistant rows of `timeline`; assistant rows and plans carry `blocks`.
+- **Markdown blocks.** Each block has a `type`: `paragraph` and `heading`
+  (`level`) with `spans`; `list` (`ordered`, `start`, `items[].blocks`); `quote`
+  (`blocks`); `code` (`index`, `language`, `code`, `runnable`, `command`);
+  `table` (`alignments`, `header`, `rows` of span arrays, `markdown`, `csv`);
+  `image` (`id` matching the row's `markdownImages`, `url`, `alt`, `title`);
+  `math` (`tex`, `display`); `rule`. Spans are flat: `text` with optional
+  `strong`, `emphasis`, `strikethrough` and `link`; `code` (a path in inline code
+  links to the file); `break` (`hard`); `image`; `math`. A `link` is `{href, kind}`
+  with kind `github`, `web`, `thread`, `file` (plus `fileType`) or `anchor`;
+  links ot3 would not follow have no `link` at all.
+
+Kotlin wrappers under `T3Api(client).domain` (37):
+
+| Module | Functions |
+| --- | --- |
+| `projection` (1) | `apply` |
+| `sidebar` (8) | `status`, `metadata`, `sortTimestamps`, `command`, `threadAction`, `snapshot`, `view`, `detail` |
+| `projects` (2) | `identity`, `monogram` |
+| `timeline` (2) | `view`, `liveActivity` |
+| `activity` (1) | `describe` |
+| `changes` (1) | `summaries` |
+| `markdown` (2) | `blocks`, `link` |
+| `queue` (2) | `derive`, `command` |
+| `approvals` (2) | `pending`, `command` |
+| `questions` (2) | `pending`, `command` |
+| `models` (4) | `catalog`, `preferences`, `favoritePayload`, `runtimeModeCommand` |
+| `composer` (4) | `paths`, `catalog`, `fileLink`, `attachmentReference` |
+| `history` (2) | `path`, `envelope` |
+| `connectionCatalog` (1) | `pairingTarget` |
+| `codeBlocks` (1) | `parse` |
+| `i18n` (2) | `translate`, `normalize` |
 
 ## Events through the existing JSON ABI
 
@@ -458,7 +547,8 @@ Kotlin change is tagged without compiling.
 - `tools/test-c-abi`: a real C caller links the static Rust archive.
 - `JAVA_HOME=... tools/test-jni`: real JNI/JVM calls, Unicode, error paths and ownership.
 - `tools/test-kotlin-jni`: canonical Kotlin adapter, typed errors, `call`/`describe`
-  through the generated wrappers, and concurrent close against a real native
+  and `domain` (sidebar, timeline, Markdown blocks, project chips, queue) through
+  the generated wrappers, and concurrent close against a real native
   request; `StreamFixture` drives streams through a JDK-only fake WebSocket (chunk
   boundaries, completion marker, idle, wake probe and error reasons). Supply the cached compiler variables above
   and `JSON_JAR` for the host's org.json implementation; CI runs it in the `kotlin` job.
