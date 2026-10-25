@@ -613,6 +613,18 @@ class T3Api(client: T3Client) {
             /** `i18n.normalize` · string: a POSIX or BCP 47 locale as lowercase BCP 47 (fr_CA.UTF-8 → fr-ca) */
             fun normalize(locale: String): Any? =
                 client.domain("i18n.normalize", JSONObject().put("locale", locale))
+            /** `i18n.t` · string: ot3's translation of an English source string for a locale list (fr_CA.UTF-8:en), else the language's, English's or the source; {name} placeholders from args, Arabic isolated with U+2068/U+2069 */
+            fun t(locale: String, key: String, args: JSONObject? = null): Any? =
+                client.domain("i18n.t", JSONObject().put("locale", locale).put("key", key).put("args", args))
+            /** `i18n.catalog` · object {locale, language, rtl, strings {source: translation}}: every string of ot3's catalog for the locale as i18n.t gives it without args (1796 sources, 20 languages) */
+            fun catalog(locale: String): Any? =
+                client.domain("i18n.catalog", JSONObject().put("locale", locale))
+            /** `i18n.resolve` · object {locale, language, rtl}: the first locale of the list the catalog has (by itself or its language), else the first */
+            fun resolve(locale: String): Any? =
+                client.domain("i18n.resolve", JSONObject().put("locale", locale))
+            /** `i18n.languages` · array of {id, name}: ot3's language picker, system first (its name translated for locale), then each catalog language in its own name */
+            fun languages(locale: String? = null): Any? =
+                client.domain("i18n.languages", JSONObject().put("locale", locale))
         }
 
         class Markdown internal constructor(private val client: T3Client) {

@@ -2126,6 +2126,64 @@
       "fn": "theme.tokens",
       "module": "theme",
       "returns": "object {id, name, appearance (light when the background's Rec.709 luminance > 0.5), luminance, mode, base, roles {dim, statusMuted, divider, surface, card, cardBorder, changesCard, rowSelected, rowPressed, rowDraft, field, fieldBorder, switchOff, inlineCode, composerBorder, composerFocus, working, done, waiting, failed, warning, input, onAccent}, layers {role: {color, alpha}}, statusColors {detail: colour}, projectPalette, projectFills, sky {lightSky, star, meteor, ink, header {brightness, nebula, meteorRate, base}, panel}, document {appearance, variables}, mcpTheme}: ot3's colours for an Omarchy colors.toml, each role the opaque #rrggbb ot3 draws"
+    },
+    {
+      "args": [
+        {
+          "name": "locale",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "key",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "args",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "i18n.t",
+      "module": "i18n",
+      "returns": "string: ot3's translation of an English source string for a locale list (fr_CA.UTF-8:en), else the language's, English's or the source; {name} placeholders from args, Arabic isolated with U+2068/U+2069"
+    },
+    {
+      "args": [
+        {
+          "name": "locale",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "i18n.catalog",
+      "module": "i18n",
+      "returns": "object {locale, language, rtl, strings {source: translation}}: every string of ot3's catalog for the locale as i18n.t gives it without args (1796 sources, 20 languages)"
+    },
+    {
+      "args": [
+        {
+          "name": "locale",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "i18n.resolve",
+      "module": "i18n",
+      "returns": "object {locale, language, rtl}: the first locale of the list the catalog has (by itself or its language), else the first"
+    },
+    {
+      "args": [
+        {
+          "name": "locale",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "i18n.languages",
+      "module": "i18n",
+      "returns": "array of {id, name}: ot3's language picker, system first (its name translated for locale), then each catalog language in its own name"
     }
   ],
   "functions": [
