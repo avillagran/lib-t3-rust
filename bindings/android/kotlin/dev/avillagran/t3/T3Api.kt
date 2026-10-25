@@ -440,20 +440,33 @@ class T3Api(client: T3Client) {
     class Domain internal constructor(client: T3Client) {
         val activity = Activity(client)
         val approvals = Approvals(client)
+        val branchPicker = BranchPicker(client)
         val changes = Changes(client)
+        val checkpointRevert = CheckpointRevert(client)
         val codeBlocks = CodeBlocks(client)
         val composer = Composer(client)
         val connectionCatalog = ConnectionCatalog(client)
+        val diffReview = DiffReview(client)
+        val gitControls = GitControls(client)
         val history = History(client)
         val i18n = I18n(client)
         val markdown = Markdown(client)
         val models = Models(client)
+        val nativeSettings = NativeSettings(client)
+        val planWorkflow = PlanWorkflow(client)
         val projection = Projection(client)
         val projects = Projects(client)
+        val pullRequests = PullRequests(client)
         val questions = Questions(client)
         val queue = Queue(client)
+        val quotaSources = QuotaSources(client)
+        val scopedSettings = ScopedSettings(client)
         val sidebar = Sidebar(client)
+        val subagents = Subagents(client)
+        val theme = Theme(client)
         val timeline = Timeline(client)
+        val toolInspector = ToolInspector(client)
+        val usageSummary = UsageSummary(client)
 
         class Activity internal constructor(private val client: T3Client) {
             /** `activity.describe` · object {id, type, category, title, command, runId, status, failed, active} of a turn item (or its projected row), or null for messages, checkpoints, plans and errors; never the tool's input or output */
@@ -470,10 +483,58 @@ class T3Api(client: T3Client) {
                 client.domain("approvals.command", JSONObject().put("thread", thread).put("runtimeRequestId", runtimeRequestId).put("decision", decision).put("projection", projection))
         }
 
+        class BranchPicker internal constructor(private val client: T3Client) {
+            /** `branchPicker.dedupe` · array: vcs.listRefs refs without the origin refs whose local branch is listed */
+            fun dedupe(refs: JSONArray): Any? =
+                client.domain("branchPicker.dedupe", JSONObject().put("refs", refs))
+            /** `branchPicker.deriveLocal` · string: the local branch name of a remote ref (origin/feature/x → feature/x) */
+            fun deriveLocal(name: String): Any? =
+                client.domain("branchPicker.deriveLocal", JSONObject().put("name", name))
+            /** `branchPicker.sanitize` · string: a new branch name with whitespace runs as single dashes */
+            fun sanitize(name: String): Any? =
+                client.domain("branchPicker.sanitize", JSONObject().put("name", name))
+            /** `branchPicker.selectionTarget` · object {checkoutCwd, nextWorktreePath, reuseExistingWorktree}: where to switch to the picked ref and the thread's next worktree */
+            fun selectionTarget(projectCwd: String, ref: JSONObject, worktreePath: String? = null): Any? =
+                client.domain("branchPicker.selectionTarget", JSONObject().put("projectCwd", projectCwd).put("worktreePath", worktreePath).put("ref", ref))
+            /** `branchPicker.mismatch` · object {threadBranch, currentBranch, canRestore} when the checkout is not on the thread's branch, else null */
+            fun mismatch(worktreePath: String? = null, threadBranch: String? = null, currentBranch: String? = null): Any? =
+                client.domain("branchPicker.mismatch", JSONObject().put("worktreePath", worktreePath).put("threadBranch", threadBranch).put("currentBranch", currentBranch))
+            /** `branchPicker.temporaryBranch` · bool: a temporary worktree branch (t3-/t3/ or t3code-/t3code/ plus 8 hex, or t3code/ plus a UUID v4) */
+            fun temporaryBranch(name: String): Any? =
+                client.domain("branchPicker.temporaryBranch", JSONObject().put("name", name))
+        }
+
         class Changes internal constructor(private val client: T3Client) {
             /** `changes.summaries` · array of {id, runId, capturedAt, fromTurnCount, toTurnCount, files [{path, kind, additions, deletions}], additions, deletions}, one per run with ready checkpoint files */
             fun summaries(projection: JSONObject): Any? =
                 client.domain("changes.summaries", JSONObject().put("projection", projection))
+        }
+
+        class CheckpointRevert internal constructor(private val client: T3Client) {
+            /** `checkpointRevert.canPreview` · bool: offer "Edit from here" on this user message (a ready checkpoint for its run and a turn-start intent, when known) */
+            fun canPreview(projection: JSONObject, message: JSONObject): Any? =
+                client.domain("checkpointRevert.canPreview", JSONObject().put("projection", projection).put("message", message))
+            /** `checkpointRevert.reference` · object {threadId, messageId, messageRunId, messageCheckpointId, checkpointId, checkpointRunId, scopeId, providerThreadId, providerInstanceId, turnCount, priorRollbackRequestId}: the checkpoint just before the message, on the raw projection (revert_* when unknown or stale) */
+            fun reference(projection: JSONObject, messageId: String): Any? =
+                client.domain("checkpointRevert.reference", JSONObject().put("projection", projection).put("messageId", messageId))
+            /** `checkpointRevert.safety` · object {safety, allowed, error}: the live gate {canOperate, connected, supportsConversationRollback, working, sendBusy, connecting, pendingAttachments, rewinding} (anything but true is false) and the first reason a rewind is refused, or null */
+            fun safety(safety: JSONObject): Any? =
+                client.domain("checkpointRevert.safety", JSONObject().put("safety", safety))
+            /** `checkpointRevert.command` · command checkpoint.rollback {commandId omarchy-<requestId>, threadId, scopeId, checkpointId, restoreFiles} for first admission: input {confirmed, restoreFiles, requestId (UUID), environment, thread, reference} with the reference still fresh and the safety gate open */
+            fun command(input: JSONObject, projection: JSONObject, safety: JSONObject): Any? =
+                client.domain("checkpointRevert.command", JSONObject().put("input", input).put("projection", projection).put("safety", safety))
+            /** `checkpointRevert.confirmedCommand` · command checkpoint.rollback from the input alone, to compare with an already persisted outbox command on an explicit retry */
+            fun confirmedCommand(input: JSONObject): Any? =
+                client.domain("checkpointRevert.confirmedCommand", JSONObject().put("input", input))
+            /** `checkpointRevert.observation` · object {state: pending, complete, failed or superseded, error?}: the rewind as the thread's read-back shows it */
+            fun observation(input: JSONObject, projection: JSONObject): Any? =
+                client.domain("checkpointRevert.observation", JSONObject().put("input", input).put("projection", projection))
+            /** `checkpointRevert.recoveryMessage` · object {id, runId, text, attachments, context}: the message to restore to the composer, captured before dispatch */
+            fun recoveryMessage(projection: JSONObject, reference: JSONObject): Any? =
+                client.domain("checkpointRevert.recoveryMessage", JSONObject().put("projection", projection).put("reference", reference))
+            /** `checkpointRevert.appendPrompt` · string: the composer draft with the restored prompt after it (a blank line between) */
+            fun appendPrompt(current: String, restored: String): Any? =
+                client.domain("checkpointRevert.appendPrompt", JSONObject().put("current", current).put("restored", restored))
         }
 
         class CodeBlocks internal constructor(private val client: T3Client) {
@@ -503,6 +564,39 @@ class T3Api(client: T3Client) {
                 client.domain("connectionCatalog.pairingTarget", JSONObject().put("link", link).put("pairingCode", pairingCode))
         }
 
+        class DiffReview internal constructor(private val client: T3Client) {
+            /** `diffReview.present` · object {files [{path, oldPath, kind, binary, missing?, additions, deletions, summaryAdditions?, summaryDeletions?, rows [{kind: hunk, addition, deletion, context or meta, text, oldLine, newLine}], splitRows [{kind, left, right}]}], additions, deletions, fromTurnCount, toTurnCount} from a diff RPC result {diff} */
+            fun present(result: JSONObject, summary: JSONObject? = null): Any? =
+                client.domain("diffReview.present", JSONObject().put("result", result).put("summary", summary))
+            /** `diffReview.scopedResult` · diffReview.present's object for a receipt of the still-open request, null for a late or other request; the receipt's error otherwise */
+            fun scopedResult(expected: JSONObject, receipt: JSONObject, summary: JSONObject): Any? =
+                client.domain("diffReview.scopedResult", JSONObject().put("expected", expected).put("receipt", receipt).put("summary", summary))
+        }
+
+        class GitControls internal constructor(private val client: T3Client) {
+            /** `gitControls.scope` · object {environment, thread, requestId, projectId, cwd, projectRoot, worktreePath}: the thread's checkout resolved against the shell snapshot (project threads only; git_scope_changed when projectId or cwd moved) */
+            fun scope(shell: JSONObject, environment: String, thread: String, requestId: String, projectId: String, cwd: String): Any? =
+                client.domain("gitControls.scope", JSONObject().put("shell", shell).put("environment", environment).put("thread", thread).put("requestId", requestId).put("projectId", projectId).put("cwd", cwd))
+            /** `gitControls.resolveScripts` · array of the project's scripts {id, name, command, icon, runOnWorktreeCreate, …} with T3's precedence (project override, defaults, legacy override, project scripts) */
+            fun resolveScripts(settings: JSONObject, project: JSONObject): Any? =
+                client.domain("gitControls.resolveScripts", JSONObject().put("settings", settings).put("project", project))
+            /** `gitControls.actions` · object {commit, push, pull, create_pr, commit_push, commit_push_pr} of bools: what the Git menu offers for a vcs.refreshStatus result */
+            fun actions(status: JSONObject): Any? =
+                client.domain("gitControls.actions", JSONObject().put("status", status))
+            /** `gitControls.present` · object {scope, status, scripts, actions, revision}: the Git & changes sheet; revision fingerprints checkout, status and scripts (not the requestId) */
+            fun present(scope: JSONObject, status: JSONObject, scripts: JSONArray): Any? =
+                client.domain("gitControls.present", JSONObject().put("scope", scope).put("status", status).put("scripts", scripts))
+            /** `gitControls.scopedResult` · the receipt's result for the sheet's still-open scope and request, null for a late or other checkout; the receipt's error otherwise */
+            fun scopedResult(expected: JSONObject, receipt: JSONObject): Any? =
+                client.domain("gitControls.scopedResult", JSONObject().put("expected", expected).put("receipt", receipt))
+            /** `gitControls.buildAction` · object {scope, revision, actionId, operation, steps [{tag, payload}], retryAutomatically: false}: a confirmed action (intent {scope, revision, confirmed, actionId (UUID), operation, defaultBranchConfirmed?, commitMessage?, filePaths?, scriptId?}) as git.runStackedAction, vcs.pull or terminal.open + terminal.write steps */
+            fun buildAction(current: JSONObject, intent: JSONObject): Any? =
+                client.domain("gitControls.buildAction", JSONObject().put("current", current).put("intent", intent))
+            /** `gitControls.buildVerifiedAction` · gitControls.buildAction's plan, only when a fresh read right before dispatch has the same revision (git_stale_result otherwise) */
+            fun buildVerifiedAction(current: JSONObject, fresh: JSONObject, intent: JSONObject): Any? =
+                client.domain("gitControls.buildVerifiedAction", JSONObject().put("current", current).put("fresh", fresh).put("intent", intent))
+        }
+
         class History internal constructor(private val client: T3Client) {
             /** `history.path` · string: the history page path for request */
             fun path(threadId: String, cursor: String): Any? =
@@ -519,6 +613,18 @@ class T3Api(client: T3Client) {
             /** `i18n.normalize` · string: a POSIX or BCP 47 locale as lowercase BCP 47 (fr_CA.UTF-8 → fr-ca) */
             fun normalize(locale: String): Any? =
                 client.domain("i18n.normalize", JSONObject().put("locale", locale))
+            /** `i18n.t` · string: ot3's translation of an English source string for a locale list (fr_CA.UTF-8:en), else the language's, English's or the source; {name} placeholders from args, Arabic isolated with U+2068/U+2069 */
+            fun t(locale: String, key: String, args: JSONObject? = null): Any? =
+                client.domain("i18n.t", JSONObject().put("locale", locale).put("key", key).put("args", args))
+            /** `i18n.catalog` · object {locale, language, rtl, strings {source: translation}}: every string of ot3's catalog for the locale as i18n.t gives it without args (1796 sources, 20 languages) */
+            fun catalog(locale: String): Any? =
+                client.domain("i18n.catalog", JSONObject().put("locale", locale))
+            /** `i18n.resolve` · object {locale, language, rtl}: the first locale of the list the catalog has (by itself or its language), else the first */
+            fun resolve(locale: String): Any? =
+                client.domain("i18n.resolve", JSONObject().put("locale", locale))
+            /** `i18n.languages` · array of {id, name}: ot3's language picker, system first (its name translated for locale), then each catalog language in its own name */
+            fun languages(locale: String? = null): Any? =
+                client.domain("i18n.languages", JSONObject().put("locale", locale))
         }
 
         class Markdown internal constructor(private val client: T3Client) {
@@ -545,6 +651,48 @@ class T3Api(client: T3Client) {
                 client.domain("models.runtimeModeCommand", JSONObject().put("threadId", threadId).put("commandId", commandId).put("runtimeMode", runtimeMode))
         }
 
+        class NativeSettings internal constructor(private val client: T3Client) {
+            /** `nativeSettings.snapshot` · object {fields [{key, label, section, kind: bool, choice, days, text or model, value, resetValue?, choices?, description?, …}]}: server.getSettings as the settings pages' fields; never credentials or provider configuration */
+            fun snapshot(settings: JSONObject): Any? =
+                client.domain("nativeSettings.snapshot", JSONObject().put("settings", settings))
+            /** `nativeSettings.patch` · object {patch} for server.updateSettings from {key, value} (value null clears a nullable model); with server.getConfig as config, models and storage settings are checked against the server */
+            fun patch(input: JSONObject, config: JSONObject? = null): Any? =
+                client.domain("nativeSettings.patch", JSONObject().put("input", input).put("config", config))
+            /** `nativeSettings.description` · string: a field's English description (empty when it has none) */
+            fun description(key: String): Any? =
+                client.domain("nativeSettings.description", JSONObject().put("key", key))
+            /** `nativeSettings.modelSelection` · object {instanceId, model, options? [{id, value}]}: a checked model selection */
+            fun modelSelection(selection: JSONObject): Any? =
+                client.domain("nativeSettings.modelSelection", JSONObject().put("selection", selection))
+            /** `nativeSettings.idleCompaction` · string: the idle compaction mode (onReturn, beforeCacheExpires or off), the provider instance's override first when instanceId is given; null when the server has none */
+            fun idleCompaction(settings: JSONObject, instanceId: String? = null): Any? =
+                client.domain("nativeSettings.idleCompaction", JSONObject().put("settings", settings).put("instanceId", instanceId))
+            /** `nativeSettings.idleCompactionPatch` · object {patch}: an idleCompaction patch in the form this server reads (compactIdleThreads on older servers) */
+            fun idleCompactionPatch(settings: JSONObject, patch: JSONObject): Any? =
+                client.domain("nativeSettings.idleCompactionPatch", JSONObject().put("settings", settings).put("patch", patch))
+            /** `nativeSettings.threadDefaults` · object {defaultModelSelection, modelDefaultConfigured, defaultRuntimeMode}: a new thread's defaults, the project's over the environment's */
+            fun threadDefaults(settings: JSONObject, projectId: String): Any? =
+                client.domain("nativeSettings.threadDefaults", JSONObject().put("settings", settings).put("projectId", projectId))
+        }
+
+        class PlanWorkflow internal constructor(private val client: T3Client) {
+            /** `planWorkflow.view` · object {plans [{id, threadId, runId, status, markdown, title, displayMarkdown, blocks, updatedAt}], ready (the plan the banner offers to implement, or null), error?}: the projection's proposed plans with markdown.blocks of their display Markdown */
+            fun view(projection: JSONObject, mathRenderingEnabled: Boolean? = null): Any? =
+                client.domain("planWorkflow.view", JSONObject().put("projection", projection).put("mathRenderingEnabled", mathRenderingEnabled))
+            /** `planWorkflow.followUp` · object {text, interactionMode, sourcePlanRef?}: an empty draft implements the plan (interactionMode default, sourcePlanRef {threadId, planId}); a non-empty one is feedback in plan mode */
+            fun followUp(plan: JSONObject, threadId: String, draft: String? = null): Any? =
+                client.domain("planWorkflow.followUp", JSONObject().put("plan", plan).put("threadId", threadId).put("draft", draft))
+            /** `planWorkflow.attachSourceRef` · command: the message.dispatch command with the follow-up's sourcePlanRef, also when it targets a new thread */
+            fun attachSourceRef(command: JSONObject, followUp: JSONObject): Any? =
+                client.domain("planWorkflow.attachSourceRef", JSONObject().put("command", command).put("followUp", followUp))
+            /** `planWorkflow.implementationTitle` · string: the new thread's title for "Implement in new thread" (Implement <plan title>, else Implement plan; at most 255 characters) */
+            fun implementationTitle(markdown: String): Any? =
+                client.domain("planWorkflow.implementationTitle", JSONObject().put("markdown", markdown))
+            /** `planWorkflow.mode` · object {enabled, interactionMode}: Plan / Build as the composer offers it for the thread's provider */
+            fun mode(planModeEnabled: Boolean, requested: String, provider: JSONObject? = null): Any? =
+                client.domain("planWorkflow.mode", JSONObject().put("planModeEnabled", planModeEnabled).put("provider", provider).put("requested", requested))
+        }
+
         class Projection internal constructor(private val client: T3Client) {
             /** `projection.apply` · object {projection, changed, applied}: `event` then each of `events` applied in order */
             fun apply(projection: JSONObject, event: JSONObject? = null, events: JSONArray? = null): Any? =
@@ -558,6 +706,21 @@ class T3Api(client: T3Client) {
             /** `projects.monogram` · string: the two-letter monogram of a project title */
             fun monogram(name: String): Any? =
                 client.domain("projects.monogram", JSONObject().put("name", name))
+        }
+
+        class PullRequests internal constructor(private val client: T3Client) {
+            /** `pullRequests.sidebarBadge` · object {kind: single, multiple or stack, text, state: open, draft, merged, closed or unknown, current, links} of a thread's linked pull requests, or null */
+            fun sidebarBadge(thread: JSONObject): Any? =
+                client.domain("pullRequests.sidebarBadge", JSONObject().put("thread", thread))
+            /** `pullRequests.request` · object {method, payload}: the typed pullRequests.list, detail, checks or activity call and its args (list: 50 per page, state open and involvement all by default), or method diff with the /api/pull-requests/diff query; reference is {projectId, repository, host, number} */
+            fun request(action: String, state: String? = null, involvement: String? = null, query: String? = null, cursors: JSONObject? = null, reference: JSONObject? = null, cursor: String? = null): Any? =
+                client.domain("pullRequests.request", JSONObject().put("action", action).put("state", state).put("involvement", involvement).put("query", query).put("cursors", cursors).put("reference", reference).put("cursor", cursor))
+            /** `pullRequests.payload` · object {method, payload}: the typed pullRequests.comment, submitReview, runAction, reviewerCandidates, labelCandidates, requestReviewers or setLabels call and its args, after the page's rules (a comment needs words; only the page's actions) */
+            fun payload(kind: String, reference: JSONObject, body: String? = null, verdict: String? = null, action: String? = null, mergeMethod: String? = null, reviewers: JSONArray? = null, requested: Boolean? = null, labels: JSONArray? = null, applied: Boolean? = null): Any? =
+                client.domain("pullRequests.payload", JSONObject().put("kind", kind).put("reference", reference).put("body", body).put("verdict", verdict).put("action", action).put("mergeMethod", mergeMethod).put("reviewers", reviewers).put("requested", requested).put("labels", labels).put("applied", applied))
+            /** `pullRequests.threadCommand` · command thread.pull-request.link, unlink or watch for a reference {host, repository, number, url}; commandId only when given */
+            fun threadCommand(thread: String, link: String, reference: JSONObject, commandId: String? = null): Any? =
+                client.domain("pullRequests.threadCommand", JSONObject().put("thread", thread).put("link", link).put("reference", reference).put("commandId", commandId))
         }
 
         class Questions internal constructor(private val client: T3Client) {
@@ -576,6 +739,54 @@ class T3Api(client: T3Client) {
             /** `queue.command` · command: queued-run.cancel/reorder/edit, queued-message.promote-to-steer or queue.resume (without commandId) */
             fun command(thread: String, action: String, runId: String? = null, beforeRunId: String? = null, targetRunId: String? = null, text: String? = null, attachments: JSONArray? = null, context: JSONObject? = null): Any? =
                 client.domain("queue.command", JSONObject().put("thread", thread).put("action", action).put("runId", runId).put("beforeRunId", beforeRunId).put("targetRunId", targetRunId).put("text", text).put("attachments", attachments).put("context", context))
+        }
+
+        class QuotaSources internal constructor(private val client: T3Client) {
+            /** `quotaSources.limits` · object {checkedAt, windows [{id, label, kind: session, weekly, monthly or other, usedPercent, resetsAt?, windowDurationMins?}], credentialFingerprint?, unavailable? {reason}, resetCredits? {availableCount, nextExpiresAt?}, externalUsage? {label, url}}, or null when unreadable */
+            fun limits(usageLimits: JSONObject): Any? =
+                client.domain("quotaSources.limits", JSONObject().put("usageLimits", usageLimits))
+            /** `quotaSources.providers` · array of {instanceId, driver, enabled, installed, availability, auth {status, email?, workspaceId?, label?}, displayName?, accentColor?, usageLimits?}: public provider statuses, never their configuration */
+            fun providers(providers: JSONArray): Any? =
+                client.domain("quotaSources.providers", JSONObject().put("providers", providers))
+            /** `quotaSources.sources` · array of {id, label, accounts [{id, driver, usageLimits, email?, workspaceId?, plan?}], error?}: usage-limit sources with readable accounts */
+            fun sources(sources: JSONArray): Any? =
+                client.domain("quotaSources.sources", JSONObject().put("sources", sources))
+            /** `quotaSources.apply` · object {state {providers, usageLimitSources, connected}, changed}: one server.subscribeServerConfig event (version 1) applied to the quota strip's state */
+            fun apply(event: JSONObject, state: JSONObject? = null): Any? =
+                client.domain("quotaSources.apply", JSONObject().put("state", state).put("event", event))
+        }
+
+        class ScopedSettings internal constructor(private val client: T3Client) {
+            /** `scopedSettings.effective` · object {settings, sources {key: environment, project or t3.json}, overrides}: a project's effective settings over the environment's and its t3.json */
+            fun effective(settings: JSONObject, project: JSONObject? = null, file: JSONObject? = null): Any? =
+                client.domain("scopedSettings.effective", JSONObject().put("settings", settings).put("project", project).put("file", file))
+            /** `scopedSettings.projectPatch` · object {patch {projectSettingsOverrides {projectId: entry}}}: a project override that keeps its other keys (setting_environment_only for environment keys) */
+            fun projectPatch(settings: JSONObject, project: JSONObject, key: String, patch: JSONObject, clear: Boolean? = null): Any? =
+                client.domain("scopedSettings.projectPatch", JSONObject().put("settings", settings).put("project", project).put("key", key).put("patch", patch).put("clear", clear))
+            /** `scopedSettings.projectFile` · object: a project's t3.json (comments and trailing commas allowed), or null when it is missing or invalid */
+            fun projectFile(contents: String): Any? =
+                client.domain("scopedSettings.projectFile", JSONObject().put("contents", contents))
+            /** `scopedSettings.validatedTargets` · array of {environment, projectId}: the scope's targets, 1 to 64, all project-scoped or all not (settings_scope_unavailable otherwise) */
+            fun validatedTargets(scope: JSONObject): Any? =
+                client.domain("scopedSettings.validatedTargets", JSONObject().put("scope", scope))
+            /** `scopedSettings.writePatch` · object {patch} for one target's server.updateSettings from {key, action: update or clear, value}: project overrides for a project, environment patches otherwise */
+            fun writePatch(input: JSONObject, config: JSONObject, settings: JSONObject, writeAllowed: Boolean, project: JSONObject? = null): Any? =
+                client.domain("scopedSettings.writePatch", JSONObject().put("input", input).put("config", config).put("settings", settings).put("project", project).put("writeAllowed", writeAllowed))
+            /** `scopedSettings.writeWasDropped` · bool: the server accepted the patch but the read-back still has the old value */
+            fun writeWasDropped(next: JSONObject, before: JSONObject, saved: JSONObject): Any? =
+                client.domain("scopedSettings.writeWasDropped", JSONObject().put("next", next).put("before", before).put("saved", saved))
+            /** `scopedSettings.targetView` · object {target, fields (each with source, scopeWritable, overridden, projectScoped), writeAllowed, storageCapabilities, catalog}: one target's page */
+            fun targetView(target: JSONObject, config: JSONObject, settings: JSONObject, writeAllowed: Boolean, project: JSONObject? = null, file: JSONObject? = null): Any? =
+                client.domain("scopedSettings.targetView", JSONObject().put("target", target).put("config", config).put("settings", settings).put("project", project).put("file", file).put("writeAllowed", writeAllowed))
+            /** `scopedSettings.aggregate` · object {fields}: the fields every target has, with mixed, source (mixed when they differ), overridden and scopeWritable over all of them */
+            fun aggregate(views: JSONArray): Any? =
+                client.domain("scopedSettings.aggregate", JSONObject().put("views", views))
+            /** `scopedSettings.page` · object {fields, storageScopes, scope, modelCatalog, targets, errors, savedTargets, complete, writable}: the settings page over every target */
+            fun page(scope: JSONObject, views: JSONArray, requested: Long, errors: JSONArray? = null, saved: JSONArray? = null): Any? =
+                client.domain("scopedSettings.page", JSONObject().put("scope", scope).put("views", views).put("errors", errors).put("saved", saved).put("requested", requested))
+            /** `scopedSettings.projectCatalogConfig` · object: server.getConfig with the project's provider enable overrides applied (for models.catalog) */
+            fun projectCatalogConfig(config: JSONObject, settings: JSONObject, project: JSONObject? = null): Any? =
+                client.domain("scopedSettings.projectCatalogConfig", JSONObject().put("config", config).put("settings", settings).put("project", project))
         }
 
         class Sidebar internal constructor(private val client: T3Client) {
@@ -605,6 +816,27 @@ class T3Api(client: T3Client) {
                 client.domain("sidebar.detail", JSONObject().put("thread", thread).put("now", now))
         }
 
+        class Subagents internal constructor(private val client: T3Client) {
+            /** `subagents.buckets` · object {working, done, failed, stopped, idle}: status counts (queued, running and waiting are working) */
+            fun buckets(subagents: JSONArray): Any? =
+                client.domain("subagents.buckets", JSONObject().put("subagents", subagents))
+            /** `subagents.describe` · object {live, settled, label, tone, detail, elapsed}: one subagent row; label is an English source string (Queued, Running, Waiting, Idle · resumable, Completed, Failed, Stopped or Unknown), tone the colour's state (working, waiting, done, failed or idle), elapsed like 4m 09s */
+            fun describe(subagent: JSONObject, now: Long): Any? =
+                client.domain("subagents.describe", JSONObject().put("subagent", subagent).put("now", now))
+            /** `subagents.cards` · object {subagents [{subagent, view}], group, anyLive, expanded, counts, header {source, args}, summary [{source, args}]}: a timeline subagents row's cards overlaid with threadState.subagents; header and summary parts are catalog sources ({n} subagents; {n} working, done, failed, stopped, idle) joined with " · " */
+            fun cards(cards: JSONArray, now: Long, threadSubagents: JSONArray? = null): Any? =
+                client.domain("subagents.cards", JSONObject().put("cards", cards).put("threadSubagents", threadSubagents).put("now", now))
+            /** `subagents.fromThread` · object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent */
+            fun fromThread(thread: JSONObject): Any? =
+                client.domain("subagents.fromThread", JSONObject().put("thread", thread))
+        }
+
+        class Theme internal constructor(private val client: T3Client) {
+            /** `theme.tokens` · object {id, name, appearance (light when the background's Rec.709 luminance > 0.5), luminance, mode, base, roles {dim, statusMuted, divider, surface, card, cardBorder, changesCard, rowSelected, rowPressed, rowDraft, field, fieldBorder, switchOff, inlineCode, composerBorder, composerFocus, working, done, waiting, failed, warning, input, onAccent}, layers {role: {color, alpha}}, statusColors {detail: colour}, projectPalette, projectFills, sky {lightSky, star, meteor, ink, header {brightness, nebula, meteorRate, base}, panel}, document {appearance, variables}, mcpTheme}: ot3's colours for an Omarchy colors.toml, each role the opaque #rrggbb ot3 draws */
+            fun tokens(colors: String, id: String? = null): Any? =
+                client.domain("theme.tokens", JSONObject().put("colors", colors).put("id", id))
+        }
+
         class Timeline internal constructor(private val client: T3Client) {
             /** `timeline.view` · object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev; assistant rows and plans carry markdown.blocks], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded} */
             fun view(projection: JSONObject, historyCursor: String? = null, hasMoreHistory: Boolean? = null, payloadBudgetExceeded: Boolean? = null, mathRenderingEnabled: Boolean? = null): Any? =
@@ -612,6 +844,39 @@ class T3Api(client: T3Client) {
             /** `timeline.liveActivity` · array of the active run's in-flight activity {id, type, category, title, command, runId, status, failed, active, inspector}, newest first (at most 3) */
             fun liveActivity(projection: JSONObject): Any? =
                 client.domain("timeline.liveActivity", JSONObject().put("projection", projection))
+            /** `timeline.minimap` · object {items [{id, rowIndex, userText, assistantText, userPreview, assistantPreview}], visible (two items or more), currentIndex, visibleIds}: one marker per user row of timeline.view's timeline, paired with the last assistant reply before the next user row; currentIndex and visibleIds follow the rows on screen */
+            fun minimap(rows: JSONArray, visibleRowIds: JSONArray? = null, atEnd: Boolean? = null): Any? =
+                client.domain("timeline.minimap", JSONObject().put("rows", rows).put("visibleRowIds", visibleRowIds).put("atEnd", atEnd))
+            /** `timeline.minimapIndex` · integer: the marker under y on a rail height tall with count markers, or -1 */
+            fun minimapIndex(y: Double, height: Double, count: Long): Any? =
+                client.domain("timeline.minimapIndex", JSONObject().put("y", y).put("height", height).put("count", count))
+        }
+
+        class ToolInspector internal constructor(private val client: T3Client) {
+            /** `toolInspector.compactReference` · object {sourceThreadId, sourceItemId, type, runId, providerTurnId, revision} of a turn item or projected row (revision live while it runs); timeline activity entries already carry it as inspector */
+            fun compactReference(row: JSONObject): Any? =
+                client.domain("toolInspector.compactReference", JSONObject().put("row", row))
+            /** `toolInspector.scope` · object {environment, threadId, sourceThreadId, sourceItemId, type, runId, providerTurnId, revision}: the inspector's local scope, to match the read's answer against */
+            fun scope(reference: JSONObject, environment: String, threadId: String): Any? =
+                client.domain("toolInspector.scope", JSONObject().put("reference", reference).put("environment", environment).put("threadId", threadId))
+            /** `toolInspector.request` · object {method: orchestration.getTurnItem, payload {threadId, itemId, revision}}: the typed call that reads the item */
+            fun request(reference: JSONObject, environment: String, threadId: String): Any? =
+                client.domain("toolInspector.request", JSONObject().put("reference", reference).put("environment", environment).put("threadId", threadId))
+            /** `toolInspector.parse` · object {scope, available, title, status, failed, exitCode, sections [{key, label, text, truncated}], metadata, metadataTruncated, raw, rawTruncated, outputOmitted, emptyOutput} from orchestration.getTurnItem's {item}; {scope, available: false, sections: [], raw: "", rawTruncated: false} when the item is gone */
+            fun parse(reference: JSONObject, environment: String, threadId: String, response: JSONObject): Any? =
+                client.domain("toolInspector.parse", JSONObject().put("reference", reference).put("environment", environment).put("threadId", threadId).put("response", response))
+        }
+
+        class UsageSummary internal constructor(private val client: T3Client) {
+            /** `usageSummary.window` · object {sinceDay, untilDay}: the period's days ending `today` (YYYY-MM-DD, the device's local date) */
+            fun window(period: String, today: String): Any? =
+                client.domain("usageSummary.window", JSONObject().put("period", period).put("today", today))
+            /** `usageSummary.request` · object {sinceDay, untilDay, payload}: payload is server.getUsageSummary's arguments, days bucketed in the IANA `timeZone` */
+            fun request(period: String, today: String, timeZone: String): Any? =
+                client.domain("usageSummary.request", JSONObject().put("period", period).put("today", today).put("timeZone", timeZone))
+            /** `usageSummary.aggregate` · object {sinceDay, untilDay, cost, tokens, sessions, cacheSavings, unpricedRecords, kinds {input, cached, cacheWrite, output, reasoning}, days [{day, cost, tokens}], models [{provider, model, cost, tokens, records}] (top 12), providers [{provider, cost, tokens}], sources [{provider, status, message, refreshing}], pricing, readAt} */
+            fun aggregate(summary: JSONObject, sinceDay: String, untilDay: String): Any? =
+                client.domain("usageSummary.aggregate", JSONObject().put("summary", summary).put("sinceDay", sinceDay).put("untilDay", untilDay))
         }
     }
 }

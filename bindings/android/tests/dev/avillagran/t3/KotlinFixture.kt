@@ -85,6 +85,55 @@ fun main() {
         check((api.domain.markdown.link("https://github.com/a/b") as JSONObject).getString("kind") == "github")
         val chips = api.domain.projects.identity(org.json.JSONArray().put(JSONObject().put("key", "e/p").put("title", "lib t3 rust"))) as org.json.JSONArray
         check(chips.getJSONObject(0).getString("monogram") == "LR")
+        // The presentation modules of the other screens: diff, usage, pull requests, Git, settings, rewind, plans.
+        val patch = "diff --git a/src/a.rs b/src/a.rs\n--- a/src/a.rs\n+++ b/src/a.rs\n@@ -1 +1 @@\n-old\n+new\n"
+        val diff = api.domain.diffReview.present(JSONObject().put("diff", patch)) as JSONObject
+        check(diff.getJSONArray("files").getJSONObject(0).getString("path") == "src/a.rs" && diff.getInt("additions") == 1) { diff.toString() }
+        val usage = api.domain.usageSummary.request("week", "2026-10-20", "America/Santiago") as JSONObject
+        check(usage.getJSONObject("payload").getString("sinceDay") == "2026-10-14" && usage.getString("untilDay") == "2026-10-20")
+        val window = JSONObject().put("id", "5h").put("kind", "session").put("label", "5 hours").put("usedPercent", 42)
+        val limits = api.domain.quotaSources.limits(JSONObject().put("checkedAt", "2026-10-18T12:00:00Z").put("windows", org.json.JSONArray().put(window))) as JSONObject
+        check(limits.getJSONArray("windows").getJSONObject(0).getInt("usedPercent") == 42)
+        val reference = JSONObject().put("projectId", "p").put("repository", "o/r").put("host", "github.com").put("number", 7)
+        val comment = api.domain.pullRequests.payload("comment", reference, body = "Looks good") as JSONObject
+        check(comment.getString("method") == "pullRequests.comment" && comment.getJSONObject("payload").getInt("number") == 7) { comment.toString() }
+        val mismatch = api.domain.branchPicker.mismatch(threadBranch = "main", currentBranch = "dev") as JSONObject
+        check(mismatch.getBoolean("canRestore"))
+        check(api.domain.branchPicker.sanitize("  my new\tbranch ") == "my-new-branch")
+        val status = JSONObject().put("isRepo", true).put("hasPrimaryRemote", true).put("isDefaultRef", false).put("refName", "feature/x")
+            .put("hasWorkingTreeChanges", true).put("hasUpstream", true).put("aheadCount", 1).put("behindCount", 0)
+        val gitActions = api.domain.gitControls.actions(status) as JSONObject
+        check(gitActions.getBoolean("commit") && gitActions.getBoolean("push") && !gitActions.getBoolean("pull"))
+        val inspector = JSONObject().put("sourceThreadId", "thread:source").put("sourceItemId", "item:1").put("type", "command_execution")
+            .put("runId", "run:1").put("providerTurnId", "turn:1").put("revision", "2026-10-17T12:00:01.000Z")
+        val read = api.domain.toolInspector.request(inspector, "laptop", "thread:viewer") as JSONObject
+        check(read.getString("method") == "orchestration.getTurnItem" && read.getJSONObject("payload").getString("itemId") == "item:1")
+        val plan = JSONObject().put("id", "plan-1").put("threadId", "thread-1").put("status", "active").put("markdown", "# Ship it\n\n1. Build")
+        val implement = api.domain.planWorkflow.followUp(plan, "thread-1") as JSONObject
+        check(implement.getString("interactionMode") == "default" && implement.getJSONObject("sourcePlanRef").getString("planId") == "plan-1")
+        check(api.domain.planWorkflow.implementationTitle("# Ship it") == "Implement Ship it")
+        val setting = api.domain.nativeSettings.patch(JSONObject().put("key", "defaultRuntimeMode").put("value", "auto")) as JSONObject
+        check(setting.getJSONObject("patch").getString("defaultRuntimeMode") == "auto")
+        val projectFile = api.domain.scopedSettings.projectFile("{// note\n\"worktreeSubmodules\":\"none\",}") as JSONObject
+        check(projectFile.getString("worktreeSubmodules") == "none")
+        val gate = api.domain.checkpointRevert.safety(JSONObject().put("canOperate", true)) as JSONObject
+        check(!gate.getBoolean("allowed") && gate.getString("error") == "revert_disconnected") { gate.toString() }
+        // The ports: minimap, subagents, theme colours and ot3's string catalog.
+        val rows = org.json.JSONArray().put(JSONObject().put("id", "u1").put("role", "user").put("text", "Fix\n the build"))
+            .put(JSONObject().put("id", "a1").put("role", "assistant").put("text", "Done."))
+            .put(JSONObject().put("id", "u2").put("role", "user").put("text", "Thanks"))
+        val minimap = api.domain.timeline.minimap(rows, atEnd = true) as JSONObject
+        check(minimap.getBoolean("visible") && minimap.getInt("currentIndex") == 1 && minimap.getJSONArray("items").getJSONObject(0).getString("userPreview") == "Fix the build")
+        check((api.domain.timeline.minimapIndex(75.0, 100.0, 3) as Number).toInt() == 2)
+        val cards = api.domain.subagents.cards(org.json.JSONArray().put(JSONObject().put("id", "s").put("status", "running").put("startedAt", 1000)), 250000) as JSONObject
+        val card = cards.getJSONArray("subagents").getJSONObject(0).getJSONObject("view")
+        check(card.getString("label") == "Running" && card.getString("elapsed") == "4m 09s" && card.getString("tone") == "working") { cards.toString() }
+        val tokens = api.domain.theme.tokens("background = \"#1a1b26\"\nforeground = \"#a9b1d6\"\naccent = \"#7aa2f7\"\n", "tokyo-night") as JSONObject
+        check(tokens.getString("name") == "Tokyo Night" && tokens.getString("appearance") == "dark" && tokens.getJSONObject("roles").getString("dim") == "#6b718a") { tokens.toString() }
+        check(api.domain.i18n.t("es", "Close") == "Cerrar")
+        check(api.domain.i18n.t("de", "{n} subagents", JSONObject().put("n", 3)) == "3 Unteragenten")
+        val catalog = api.domain.i18n.catalog("fr_CA.UTF-8") as JSONObject
+        check(catalog.getString("language") == "fr" && catalog.getJSONObject("strings").length() == 1796)
         val noDomain = runCatching { client.domain("queue.nope") }.exceptionOrNull()
         check(noDomain is T3Exception && noDomain.code == "unknown_function")
         val badDomain = runCatching { client.domain("sidebar.command", JSONObject().put("action", "nap").put("threadId", "t")) }.exceptionOrNull()

@@ -10,6 +10,8 @@ use crate::{activity, approvals, changes, checkpoint_revert, code_blocks, compac
 use serde_json::{json, Value};
 use std::collections::HashSet;
 
+pub mod minimap;
+
 /// A host's rich-text renderer for one message: its display text, its code
 /// blocks (`code_blocks::parse`) and whether math is on (ot3: Qt rich text).
 pub type MessageRenderer = dyn Fn(&str, &[Value], bool) -> String;
@@ -146,7 +148,7 @@ pub fn view(p: &Value, history: &Value, r: &Render) -> Result<Value> {
     Ok(view)
 }
 /// A plan card's blocks in place of its `rendered` text.
-fn plan_blocks(plan: &mut Value, math: bool) {
+pub(crate) fn plan_blocks(plan: &mut Value, math: bool) {
     if let Some(fields) = plan.as_object_mut() {
         fields.remove("rendered");
         let blocks = markdown::blocks(fields.get("displayMarkdown").and_then(Value::as_str).unwrap_or(""), math);
