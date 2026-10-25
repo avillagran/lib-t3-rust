@@ -792,6 +792,45 @@
       "fn": "i18n.normalize",
       "module": "i18n",
       "returns": "string: a POSIX or BCP 47 locale as lowercase BCP 47 (fr_CA.UTF-8 → fr-ca)"
+    },
+    {
+      "args": [
+        {
+          "name": "result",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "summary",
+          "required": false,
+          "type": "object"
+        }
+      ],
+      "fn": "diffReview.present",
+      "module": "diffReview",
+      "returns": "object {files [{path, oldPath, kind, binary, missing?, additions, deletions, summaryAdditions?, summaryDeletions?, rows [{kind: hunk, addition, deletion, context or meta, text, oldLine, newLine}], splitRows [{kind, left, right}]}], additions, deletions, fromTurnCount, toTurnCount} from a diff RPC result {diff}"
+    },
+    {
+      "args": [
+        {
+          "name": "expected",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "receipt",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "summary",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "diffReview.scopedResult",
+      "module": "diffReview",
+      "returns": "diffReview.present's object for a receipt of the still-open request, null for a late or other request; the receipt's error otherwise"
     }
   ],
   "functions": [
