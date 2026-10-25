@@ -1012,6 +1012,137 @@
     {
       "args": [
         {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "message",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.canPreview",
+      "module": "checkpointRevert",
+      "returns": "bool: offer \"Edit from here\" on this user message (a ready checkpoint for its run and a turn-start intent, when known)"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "messageId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "checkpointRevert.reference",
+      "module": "checkpointRevert",
+      "returns": "object {threadId, messageId, messageRunId, messageCheckpointId, checkpointId, checkpointRunId, scopeId, providerThreadId, providerInstanceId, turnCount, priorRollbackRequestId}: the checkpoint just before the message, on the raw projection (revert_* when unknown or stale)"
+    },
+    {
+      "args": [
+        {
+          "name": "safety",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.safety",
+      "module": "checkpointRevert",
+      "returns": "object {safety, allowed, error}: the live gate {canOperate, connected, supportsConversationRollback, working, sendBusy, connecting, pendingAttachments, rewinding} (anything but true is false) and the first reason a rewind is refused, or null"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "safety",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.command",
+      "module": "checkpointRevert",
+      "returns": "command checkpoint.rollback {commandId omarchy-<requestId>, threadId, scopeId, checkpointId, restoreFiles} for first admission: input {confirmed, restoreFiles, requestId (UUID), environment, thread, reference} with the reference still fresh and the safety gate open"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.confirmedCommand",
+      "module": "checkpointRevert",
+      "returns": "command checkpoint.rollback from the input alone, to compare with an already persisted outbox command on an explicit retry"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.observation",
+      "module": "checkpointRevert",
+      "returns": "object {state: pending, complete, failed or superseded, error?}: the rewind as the thread's read-back shows it"
+    },
+    {
+      "args": [
+        {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "checkpointRevert.recoveryMessage",
+      "module": "checkpointRevert",
+      "returns": "object {id, runId, text, attachments, context}: the message to restore to the composer, captured before dispatch"
+    },
+    {
+      "args": [
+        {
+          "name": "current",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "restored",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "checkpointRevert.appendPrompt",
+      "module": "checkpointRevert",
+      "returns": "string: the composer draft with the restored prompt after it (a blank line between)"
+    },
+    {
+      "args": [
+        {
           "name": "period",
           "required": true,
           "type": "enum",

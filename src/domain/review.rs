@@ -1,6 +1,7 @@
 //! Review screens: the diff, the tool inspector, plans and checkpoint rewind.
 use super::{domain_fn, DomainFn, NULL};
 use crate::api::Args;
+use crate::checkpoint_revert::{self, Safety};
 use crate::{diff_review, plan_workflow, timeline, tool_inspector, Result};
 use serde_json::{json, Value};
 
@@ -100,5 +101,57 @@ pub const FUNCTIONS: &[DomainFn] = &[
         args: [(planModeEnabled, Bool, required), (provider, Object, optional), (requested, Enum(INTERACTION_MODES), required)],
         returns: "object {enabled, interactionMode}: Plan / Build as the composer offers it for the thread's provider",
         run: |a| Ok(plan_workflow::mode(a.bool("planModeEnabled")?.unwrap_or(false), a.get("provider"), a.req("requested")?)),
+    },
+    domain_fn! {
+        name: "checkpointRevert.canPreview", module: "checkpointRevert",
+        args: [(projection, Object, required), (message, Object, required)],
+        returns: "bool: offer \"Edit from here\" on this user message (a ready checkpoint for its run and a turn-start intent, when known)",
+        run: |a| Ok(json!(checkpoint_revert::can_preview(a.req_object("projection")?, a.req_object("message")?))),
+    },
+    domain_fn! {
+        name: "checkpointRevert.reference", module: "checkpointRevert",
+        args: [(projection, Object, required), (messageId, Id, required)],
+        returns: "object {threadId, messageId, messageRunId, messageCheckpointId, checkpointId, checkpointRunId, scopeId, providerThreadId, providerInstanceId, turnCount, priorRollbackRequestId}: the checkpoint just before the message, on the raw projection (revert_* when unknown or stale)",
+        run: |a| checkpoint_revert::reference(a.req_object("projection")?, a.req("messageId")?),
+    },
+    domain_fn! {
+        name: "checkpointRevert.safety", module: "checkpointRevert",
+        args: [(safety, Object, required)],
+        returns: "object {safety, allowed, error}: the live gate {canOperate, connected, supportsConversationRollback, working, sendBusy, connecting, pendingAttachments, rewinding} (anything but true is false) and the first reason a rewind is refused, or null",
+        run: |a| {
+            let safety = Safety::from_json(a.req_object("safety")?);
+            let error = safety.check().err();
+            Ok(json!({"safety":safety.to_json(),"allowed":error.is_none(),"error":error}))
+        },
+    },
+    domain_fn! {
+        name: "checkpointRevert.command", module: "checkpointRevert",
+        args: [(input, Object, required), (projection, Object, required), (safety, Object, required)],
+        returns: "command checkpoint.rollback {commandId omarchy-<requestId>, threadId, scopeId, checkpointId, restoreFiles} for first admission: input {confirmed, restoreFiles, requestId (UUID), environment, thread, reference} with the reference still fresh and the safety gate open",
+        run: |a| checkpoint_revert::command(a.req_object("input")?, a.req_object("projection")?, &Safety::from_json(a.req_object("safety")?)),
+    },
+    domain_fn! {
+        name: "checkpointRevert.confirmedCommand", module: "checkpointRevert",
+        args: [(input, Object, required)],
+        returns: "command checkpoint.rollback from the input alone, to compare with an already persisted outbox command on an explicit retry",
+        run: |a| checkpoint_revert::confirmed_command(a.req_object("input")?),
+    },
+    domain_fn! {
+        name: "checkpointRevert.observation", module: "checkpointRevert",
+        args: [(input, Object, required), (projection, Object, required)],
+        returns: "object {state: pending, complete, failed or superseded, error?}: the rewind as the thread's read-back shows it",
+        run: |a| checkpoint_revert::observation(a.req_object("input")?, a.req_object("projection")?),
+    },
+    domain_fn! {
+        name: "checkpointRevert.recoveryMessage", module: "checkpointRevert",
+        args: [(projection, Object, required), (reference, Object, required)],
+        returns: "object {id, runId, text, attachments, context}: the message to restore to the composer, captured before dispatch",
+        run: |a| checkpoint_revert::recovery_message(a.req_object("projection")?, a.req_object("reference")?),
+    },
+    domain_fn! {
+        name: "checkpointRevert.appendPrompt", module: "checkpointRevert",
+        args: [(current, Text, required), (restored, Text, required)],
+        returns: "string: the composer draft with the restored prompt after it (a blank line between)",
+        run: |a| Ok(json!(checkpoint_revert::append_prompt(a.req("current")?, a.req("restored")?))),
     },
 ];
