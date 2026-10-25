@@ -2,7 +2,11 @@
 //! tables as Markdown and CSV, the searchable text, workspace file references,
 //! image descriptors and the inline-code path rule. Byte-for-byte ot3's
 //! `markdown_tables`, `markdown_search_text`, `file_references`,
-//! `markdown_images::descriptors` and `inline_code_path`.
+//! `markdown_images::descriptors` and `inline_code_path`. `blocks` renders a
+//! message as renderer-neutral blocks for hosts without ot3's Qt renderer.
+pub mod blocks;
+
+pub use blocks::{blocks, link};
 use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};

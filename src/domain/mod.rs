@@ -5,7 +5,7 @@
 //! The JSON ABI reaches them with `{"op":"domain","fn":"queue.derive","args":{…}}`
 //! and `describe` lists them under `domain`.
 use crate::api::{ids, Arg, ArgType, Args};
-use crate::{activity, approvals, changes, code_blocks, composer, connection_catalog, history, i18n, models, projection, projects, questions, queue, sidebar, timeline, Result};
+use crate::{activity, approvals, changes, code_blocks, composer, connection_catalog, history, i18n, markdown, models, projection, projects, questions, queue, sidebar, timeline, Result};
 use serde_json::{json, Value};
 
 /// One registry row. Built with `domain_fn!`.
@@ -216,9 +216,9 @@ pub const FUNCTIONS: &[DomainFn] = &[
             (projection, Object, required), (historyCursor, Opaque, optional), (hasMoreHistory, Bool, optional),
             (payloadBudgetExceeded, Bool, optional), (mathRenderingEnabled, Bool, optional),
         ],
-        returns: "object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded}",
+        returns: "object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev; assistant rows and plans carry markdown.blocks], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded}",
         run: |a| {
-            let mut view = timeline::view(a.req_object("projection")?, a.all(), &timeline::Render::plain(a.bool("mathRenderingEnabled")?.unwrap_or(false)))?;
+            let mut view = timeline::view(a.req_object("projection")?, a.all(), &timeline::Render::neutral(a.bool("mathRenderingEnabled")?.unwrap_or(false)))?;
             // The message rows are the timeline's user and assistant rows.
             view.as_object_mut().unwrap().remove("messages");
             Ok(view)
@@ -241,6 +241,18 @@ pub const FUNCTIONS: &[DomainFn] = &[
         args: [(projection, Object, required)],
         returns: "array of {id, runId, capturedAt, fromTurnCount, toTurnCount, files [{path, kind, additions, deletions}], additions, deletions}, one per run with ready checkpoint files",
         run: |a| Ok(json!(changes::summaries(a.req_object("projection")?))),
+    },
+    domain_fn! {
+        name: "markdown.blocks", module: "markdown",
+        args: [(markdown, Text, required), (mathRenderingEnabled, Bool, optional)],
+        returns: "array of blocks {type: paragraph, heading, list, quote, code, table, image, math or rule} with flat inline spans (text with strong/emphasis/strikethrough/link, code, break, image, math); links classified github, web, thread, file or anchor; unsafe links dropped",
+        run: |a| Ok(json!(markdown::blocks(a.req("markdown")?, a.bool("mathRenderingEnabled")?.unwrap_or(false)))),
+    },
+    domain_fn! {
+        name: "markdown.link", module: "markdown",
+        args: [(href, Text, required)],
+        returns: "object {href, kind: github, web, thread, file or anchor, fileType?} or null when ot3 would not follow the link",
+        run: |a| Ok(markdown::link(a.req("href")?).unwrap_or(Value::Null)),
     },
     domain_fn! {
         name: "queue.derive", module: "queue",

@@ -333,7 +333,7 @@
       ],
       "fn": "timeline.view",
       "module": "timeline",
-      "returns": "object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded}"
+      "returns": "object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev; assistant rows and plans carry markdown.blocks], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded}"
     },
     {
       "args": [
@@ -370,6 +370,35 @@
       "fn": "changes.summaries",
       "module": "changes",
       "returns": "array of {id, runId, capturedAt, fromTurnCount, toTurnCount, files [{path, kind, additions, deletions}], additions, deletions}, one per run with ready checkpoint files"
+    },
+    {
+      "args": [
+        {
+          "name": "markdown",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "mathRenderingEnabled",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "markdown.blocks",
+      "module": "markdown",
+      "returns": "array of blocks {type: paragraph, heading, list, quote, code, table, image, math or rule} with flat inline spans (text with strong/emphasis/strikethrough/link, code, break, image, math); links classified github, web, thread, file or anchor; unsafe links dropped"
+    },
+    {
+      "args": [
+        {
+          "name": "href",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "markdown.link",
+      "module": "markdown",
+      "returns": "object {href, kind: github, web, thread, file or anchor, fileType?} or null when ot3 would not follow the link"
     },
     {
       "args": [

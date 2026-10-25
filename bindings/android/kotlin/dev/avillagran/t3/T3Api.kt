@@ -446,6 +446,7 @@ class T3Api(client: T3Client) {
         val connectionCatalog = ConnectionCatalog(client)
         val history = History(client)
         val i18n = I18n(client)
+        val markdown = Markdown(client)
         val models = Models(client)
         val projection = Projection(client)
         val projects = Projects(client)
@@ -518,6 +519,15 @@ class T3Api(client: T3Client) {
             /** `i18n.normalize` · string: a POSIX or BCP 47 locale as lowercase BCP 47 (fr_CA.UTF-8 → fr-ca) */
             fun normalize(locale: String): Any? =
                 client.domain("i18n.normalize", JSONObject().put("locale", locale))
+        }
+
+        class Markdown internal constructor(private val client: T3Client) {
+            /** `markdown.blocks` · array of blocks {type: paragraph, heading, list, quote, code, table, image, math or rule} with flat inline spans (text with strong/emphasis/strikethrough/link, code, break, image, math); links classified github, web, thread, file or anchor; unsafe links dropped */
+            fun blocks(markdown: String, mathRenderingEnabled: Boolean? = null): Any? =
+                client.domain("markdown.blocks", JSONObject().put("markdown", markdown).put("mathRenderingEnabled", mathRenderingEnabled))
+            /** `markdown.link` · object {href, kind: github, web, thread, file or anchor, fileType?} or null when ot3 would not follow the link */
+            fun link(href: String): Any? =
+                client.domain("markdown.link", JSONObject().put("href", href))
         }
 
         class Models internal constructor(private val client: T3Client) {
@@ -596,7 +606,7 @@ class T3Api(client: T3Client) {
         }
 
         class Timeline internal constructor(private val client: T3Client) {
-            /** `timeline.view` · object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded} */
+            /** `timeline.view` · object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev; assistant rows and plans carry markdown.blocks], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded} */
             fun view(projection: JSONObject, historyCursor: String? = null, hasMoreHistory: Boolean? = null, payloadBudgetExceeded: Boolean? = null, mathRenderingEnabled: Boolean? = null): Any? =
                 client.domain("timeline.view", JSONObject().put("projection", projection).put("historyCursor", historyCursor).put("hasMoreHistory", hasMoreHistory).put("payloadBudgetExceeded", payloadBudgetExceeded).put("mathRenderingEnabled", mathRenderingEnabled))
             /** `timeline.liveActivity` · array of the active run's in-flight activity {id, type, category, title, command, runId, status, failed, active, inspector}, newest first (at most 3) */
