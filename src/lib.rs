@@ -44,6 +44,7 @@ pub mod checkpoint_revert;
 pub mod plan_workflow;
 pub mod prompt_recall;
 pub mod latex;
+pub mod markdown;
 pub mod message_text;
 pub mod storage_settings;
 pub mod diff_review;
@@ -59,6 +60,7 @@ pub mod failure_context;
 pub mod usage_summary;
 pub mod server_updates;
 pub mod reconnect;
+pub mod timeline;
 mod options;
 pub use options::ConnectionOptions;
 pub mod assets;
@@ -71,6 +73,7 @@ pub use pairing::{
 };
 use options::valid_limit;
 pub mod api;
+pub mod domain;
 pub mod errors;
 mod ffi_call;
 

@@ -61,8 +61,15 @@ class T3Client : Closeable {
     fun call(fn: String, args: JSONObject = JSONObject(), timeoutMs: Int? = null): Any? = execute(
         JSONObject().put("op", "call").put("fn", fn).put("args", args).put("timeoutMs", timeoutMs)
     )
-    /** The typed API registry: functions, args, kind, replay rule, scope and deadline. Offline. */
+    /** The typed API registry: functions, args, kind, replay rule, scope and deadline, and the
+     *  `domain` functions with their args and result shape. Offline. */
     fun describe(): JSONObject = execute(JSONObject().put("op", "describe")) as JSONObject
+    /** A pure domain function by name (`describe` lists them under `domain`): projection,
+     *  sidebar, timeline, Markdown, queue, approvals, models… [args] are validated in Rust and
+     *  nothing touches the network, so this works before [connectBearer] and while offline. */
+    fun domain(fn: String, args: JSONObject = JSONObject()): Any? = execute(
+        JSONObject().put("op", "domain").put("fn", fn).put("args", args)
+    )
     /** Up to 8 per handle (2 of them bounded thread streams); more fail with `subscription_limit`.
      *  The raw tag form: [payload] reaches the server unchecked. Prefer [subscribeFn]. */
     fun subscribe(tag: String, payload: JSONObject): T3Subscription {

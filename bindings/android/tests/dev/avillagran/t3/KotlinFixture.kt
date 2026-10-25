@@ -49,6 +49,46 @@ fun main() {
             val error = runCatching { call() }.exceptionOrNull()
             check(error is T3Exception && error.code == "not_connected") { error.toString() }
         }
+        // Domain functions are pure: they answer offline, with the same error envelope.
+        val domains = client.describe().getJSONArray("domain").length()
+        val savedDomains = JSONObject(File("bindings/android/describe.json").readText()).getJSONArray("domain").length()
+        check(domains == savedDomains && domains > 20) { "describe lists $domains domain functions, describe.json $savedDomains" }
+        val blocks = api.domain.codeBlocks.parse("```bash\necho hi\n```") as org.json.JSONArray
+        check(blocks.getJSONObject(0).getString("command") == "echo hi") { blocks.toString() }
+        val target = api.domain.connectionCatalog.pairingTarget("wss://node:3773/x?token=abc") as JSONObject
+        check(target.getString("httpBaseUrl") == "https://node:3773" && target.getString("pairingCode") == "abc")
+        val queue = api.domain.queue.derive(JSONObject().put("runs", org.json.JSONArray())) as JSONObject
+        check(queue.getJSONArray("items").length() == 0 && !queue.getBoolean("canSteer"))
+        val shell = JSONObject()
+            .put("projects", org.json.JSONArray().put(JSONObject().put("id", "p").put("title", "omarchy-t3-code")))
+            .put("threads", org.json.JSONArray().put(JSONObject().put("id", "t-1").put("title", "Fix build")
+                .put("projectId", "p").put("status", "running").put("latestRunId", "r").put("updatedAt", "2026-10-15T04:00:00Z")))
+        val environments = org.json.JSONArray()
+            .put(JSONObject().put("id", "laptop").put("name", "Laptop").put("shell", shell))
+            .put(JSONObject().put("id", "desktop").put("state", "unreachable"))
+        val sidebar = api.domain.sidebar.view(environments, 1792036800000L, grouped = true, colors = JSONObject().put("blue", "#123456")) as JSONObject
+        val working = sidebar.getJSONObject("sections").getJSONArray("working").getJSONObject(0)
+        check(working.getString("key") == "laptop/t-1" && working.getString("detail") == "working" && working.getString("statusLabel") == "Working")
+        check(sidebar.getBoolean("stale") && sidebar.getJSONObject("projectIdentities").getJSONObject("laptop/p").getString("monogram") == "OC")
+        val projection = JSONObject().put("thread", JSONObject().put("id", "t-1"))
+            .put("messages", org.json.JSONArray().put(JSONObject().put("id", "m").put("role", "assistant").put("text", "**Done** in `src/lib.rs`").put("createdAt", 1)))
+        val applied = api.domain.projection.apply(projection, events = org.json.JSONArray()
+            .put(JSONObject().put("type", "run.updated").put("payload", JSONObject().put("id", "r").put("status", "running")))) as JSONObject
+        check(applied.getBoolean("changed"))
+        val thread = api.domain.timeline.view(applied.getJSONObject("projection")) as JSONObject
+        val reply = thread.getJSONArray("timeline").getJSONObject(0)
+        check(reply.getString("rev").length == 16 && thread.getJSONObject("threadState").getBoolean("working"))
+        val spans = reply.getJSONArray("blocks").getJSONObject(0).getJSONArray("spans")
+        check(spans.getJSONObject(0).getBoolean("strong") && spans.getJSONObject(2).getJSONObject("link").getString("fileType") == "rust") { spans.toString() }
+        val md = api.domain.markdown.blocks("[x](javascript:alert(1)) [gh](https://github.com/a/b)") as org.json.JSONArray
+        check(!md.getJSONObject(0).getJSONArray("spans").getJSONObject(0).has("link"))
+        check((api.domain.markdown.link("https://github.com/a/b") as JSONObject).getString("kind") == "github")
+        val chips = api.domain.projects.identity(org.json.JSONArray().put(JSONObject().put("key", "e/p").put("title", "lib t3 rust"))) as org.json.JSONArray
+        check(chips.getJSONObject(0).getString("monogram") == "LR")
+        val noDomain = runCatching { client.domain("queue.nope") }.exceptionOrNull()
+        check(noDomain is T3Exception && noDomain.code == "unknown_function")
+        val badDomain = runCatching { client.domain("sidebar.command", JSONObject().put("action", "nap").put("threadId", "t")) }.exceptionOrNull()
+        check(badDomain is T3Exception && badDomain.code == "invalid_action") { badDomain.toString() }
         // JNI's own failures arrive as T3Exception too, before Rust or a connection.
         val badFd = runCatching { client.upload(-1, "x.bin", "application/octet-stream", 1) }.exceptionOrNull()
         check(badFd is T3Exception && badFd.code == "host_file_unavailable") { badFd.toString() }
@@ -86,6 +126,6 @@ fun main() {
         check(!worker.isAlive && !closing.isAlive && failure.get() == null) { failure.get().toString() }
         client.close() // idempotent
         check(runCatching { client.request("/fixture") }.exceptionOrNull() is IllegalStateException)
-        println("KOTLIN_JNI_PASS: canonical wrapper, capabilities, typed API call/describe, asset wrappers, connection options, Unicode, stable and JNI errors and concurrent close ownership")
+        println("KOTLIN_JNI_PASS: canonical wrapper, capabilities, typed API call/describe, domain functions, asset wrappers, connection options, Unicode, stable and JNI errors and concurrent close ownership")
     } finally { finish.countDown(); client.close(); server.stop(0) }
 }
