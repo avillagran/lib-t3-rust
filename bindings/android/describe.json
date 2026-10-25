@@ -831,6 +831,134 @@
       "fn": "diffReview.scopedResult",
       "module": "diffReview",
       "returns": "diffReview.present's object for a receipt of the still-open request, null for a late or other request; the receipt's error otherwise"
+    },
+    {
+      "args": [
+        {
+          "name": "period",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year"
+          ]
+        },
+        {
+          "name": "today",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "usageSummary.window",
+      "module": "usageSummary",
+      "returns": "object {sinceDay, untilDay}: the period's days ending `today` (YYYY-MM-DD, the device's local date)"
+    },
+    {
+      "args": [
+        {
+          "name": "period",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year"
+          ]
+        },
+        {
+          "name": "today",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "timeZone",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "usageSummary.request",
+      "module": "usageSummary",
+      "returns": "object {sinceDay, untilDay, payload}: payload is server.getUsageSummary's arguments, days bucketed in the IANA `timeZone`"
+    },
+    {
+      "args": [
+        {
+          "name": "summary",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "sinceDay",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "untilDay",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "usageSummary.aggregate",
+      "module": "usageSummary",
+      "returns": "object {sinceDay, untilDay, cost, tokens, sessions, cacheSavings, unpricedRecords, kinds {input, cached, cacheWrite, output, reasoning}, days [{day, cost, tokens}], models [{provider, model, cost, tokens, records}] (top 12), providers [{provider, cost, tokens}], sources [{provider, status, message, refreshing}], pricing, readAt}"
+    },
+    {
+      "args": [
+        {
+          "name": "usageLimits",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "quotaSources.limits",
+      "module": "quotaSources",
+      "returns": "object {checkedAt, windows [{id, label, kind: session, weekly, monthly or other, usedPercent, resetsAt?, windowDurationMins?}], credentialFingerprint?, unavailable? {reason}, resetCredits? {availableCount, nextExpiresAt?}, externalUsage? {label, url}}, or null when unreadable"
+    },
+    {
+      "args": [
+        {
+          "name": "providers",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "quotaSources.providers",
+      "module": "quotaSources",
+      "returns": "array of {instanceId, driver, enabled, installed, availability, auth {status, email?, workspaceId?, label?}, displayName?, accentColor?, usageLimits?}: public provider statuses, never their configuration"
+    },
+    {
+      "args": [
+        {
+          "name": "sources",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "quotaSources.sources",
+      "module": "quotaSources",
+      "returns": "array of {id, label, accounts [{id, driver, usageLimits, email?, workspaceId?, plan?}], error?}: usage-limit sources with readable accounts"
+    },
+    {
+      "args": [
+        {
+          "name": "state",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "event",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "quotaSources.apply",
+      "module": "quotaSources",
+      "returns": "object {state {providers, usageLimitSources, connected}, changed}: one server.subscribeServerConfig event (version 1) applied to the quota strip's state"
     }
   ],
   "functions": [

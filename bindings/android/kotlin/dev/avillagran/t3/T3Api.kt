@@ -453,8 +453,10 @@ class T3Api(client: T3Client) {
         val projects = Projects(client)
         val questions = Questions(client)
         val queue = Queue(client)
+        val quotaSources = QuotaSources(client)
         val sidebar = Sidebar(client)
         val timeline = Timeline(client)
+        val usageSummary = UsageSummary(client)
 
         class Activity internal constructor(private val client: T3Client) {
             /** `activity.describe` · object {id, type, category, title, command, runId, status, failed, active} of a turn item (or its projected row), or null for messages, checkpoints, plans and errors; never the tool's input or output */
@@ -588,6 +590,21 @@ class T3Api(client: T3Client) {
                 client.domain("queue.command", JSONObject().put("thread", thread).put("action", action).put("runId", runId).put("beforeRunId", beforeRunId).put("targetRunId", targetRunId).put("text", text).put("attachments", attachments).put("context", context))
         }
 
+        class QuotaSources internal constructor(private val client: T3Client) {
+            /** `quotaSources.limits` · object {checkedAt, windows [{id, label, kind: session, weekly, monthly or other, usedPercent, resetsAt?, windowDurationMins?}], credentialFingerprint?, unavailable? {reason}, resetCredits? {availableCount, nextExpiresAt?}, externalUsage? {label, url}}, or null when unreadable */
+            fun limits(usageLimits: JSONObject): Any? =
+                client.domain("quotaSources.limits", JSONObject().put("usageLimits", usageLimits))
+            /** `quotaSources.providers` · array of {instanceId, driver, enabled, installed, availability, auth {status, email?, workspaceId?, label?}, displayName?, accentColor?, usageLimits?}: public provider statuses, never their configuration */
+            fun providers(providers: JSONArray): Any? =
+                client.domain("quotaSources.providers", JSONObject().put("providers", providers))
+            /** `quotaSources.sources` · array of {id, label, accounts [{id, driver, usageLimits, email?, workspaceId?, plan?}], error?}: usage-limit sources with readable accounts */
+            fun sources(sources: JSONArray): Any? =
+                client.domain("quotaSources.sources", JSONObject().put("sources", sources))
+            /** `quotaSources.apply` · object {state {providers, usageLimitSources, connected}, changed}: one server.subscribeServerConfig event (version 1) applied to the quota strip's state */
+            fun apply(event: JSONObject, state: JSONObject? = null): Any? =
+                client.domain("quotaSources.apply", JSONObject().put("state", state).put("event", event))
+        }
+
         class Sidebar internal constructor(private val client: T3Client) {
             /** `sidebar.status` · string: approval, input, waiting, working, goal, limited, failed or ready */
             fun status(thread: JSONObject): Any? =
@@ -622,6 +639,18 @@ class T3Api(client: T3Client) {
             /** `timeline.liveActivity` · array of the active run's in-flight activity {id, type, category, title, command, runId, status, failed, active, inspector}, newest first (at most 3) */
             fun liveActivity(projection: JSONObject): Any? =
                 client.domain("timeline.liveActivity", JSONObject().put("projection", projection))
+        }
+
+        class UsageSummary internal constructor(private val client: T3Client) {
+            /** `usageSummary.window` · object {sinceDay, untilDay}: the period's days ending `today` (YYYY-MM-DD, the device's local date) */
+            fun window(period: String, today: String): Any? =
+                client.domain("usageSummary.window", JSONObject().put("period", period).put("today", today))
+            /** `usageSummary.request` · object {sinceDay, untilDay, payload}: payload is server.getUsageSummary's arguments, days bucketed in the IANA `timeZone` */
+            fun request(period: String, today: String, timeZone: String): Any? =
+                client.domain("usageSummary.request", JSONObject().put("period", period).put("today", today).put("timeZone", timeZone))
+            /** `usageSummary.aggregate` · object {sinceDay, untilDay, cost, tokens, sessions, cacheSavings, unpricedRecords, kinds {input, cached, cacheWrite, output, reasoning}, days [{day, cost, tokens}], models [{provider, model, cost, tokens, records}] (top 12), providers [{provider, cost, tokens}], sources [{provider, status, message, refreshing}], pricing, readAt} */
+            fun aggregate(summary: JSONObject, sinceDay: String, untilDay: String): Any? =
+                client.domain("usageSummary.aggregate", JSONObject().put("summary", summary).put("sinceDay", sinceDay).put("untilDay", untilDay))
         }
     }
 }

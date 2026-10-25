@@ -9,6 +9,7 @@ use crate::{activity, approvals, changes, code_blocks, composer, connection_cata
 use serde_json::{json, Value};
 
 mod review;
+mod usage;
 
 /// One registry row. Built with `domain_fn!`.
 #[derive(Clone, Copy)]
@@ -386,7 +387,7 @@ pub const FUNCTIONS: &[DomainFn] = &[
 ];
 
 /// The registry: this file's functions, then each area's.
-const MODULES: &[&[DomainFn]] = &[FUNCTIONS, review::FUNCTIONS];
+const MODULES: &[&[DomainFn]] = &[FUNCTIONS, review::FUNCTIONS, usage::FUNCTIONS];
 /// Every domain function, in a stable order.
 pub fn functions() -> impl Iterator<Item = &'static DomainFn> {
     MODULES.iter().flat_map(|m| m.iter())
