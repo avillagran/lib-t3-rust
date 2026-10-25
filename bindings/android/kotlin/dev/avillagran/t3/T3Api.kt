@@ -446,6 +446,7 @@ class T3Api(client: T3Client) {
         val i18n = I18n(client)
         val models = Models(client)
         val projection = Projection(client)
+        val projects = Projects(client)
         val questions = Questions(client)
         val queue = Queue(client)
         val sidebar = Sidebar(client)
@@ -525,6 +526,15 @@ class T3Api(client: T3Client) {
                 client.domain("projection.apply", JSONObject().put("projection", projection).put("event", event).put("events", events))
         }
 
+        class Projects internal constructor(private val client: T3Client) {
+            /** `projects.identity` · array of {key, monogram, label, kind, icon, colorSlot, colorKey, color, fill}, one per project, slots over all of them */
+            fun identity(projects: JSONArray, colors: JSONObject? = null, accent: String? = null): Any? =
+                client.domain("projects.identity", JSONObject().put("projects", projects).put("colors", colors).put("accent", accent))
+            /** `projects.monogram` · string: the two-letter monogram of a project title */
+            fun monogram(name: String): Any? =
+                client.domain("projects.monogram", JSONObject().put("name", name))
+        }
+
         class Questions internal constructor(private val client: T3Client) {
             /** `questions.pending` · array of {requestId, createdAt, questions, responseCapability, dismissible}, oldest first */
             fun pending(projection: JSONObject): Any? =
@@ -562,9 +572,9 @@ class T3Api(client: T3Client) {
             /** `sidebar.snapshot` · object {environments [{id, name, state}], stale, projects, threads, working, pending}: each environment {id, name?, shell?, state?} as ot3's rows, newest first */
             fun snapshot(environments: JSONArray, now: Long): Any? =
                 client.domain("sidebar.snapshot", JSONObject().put("environments", environments).put("now", now))
-            /** `sidebar.view` · object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time */
-            fun view(environments: JSONArray, now: Long, filter: String? = null, project: String? = null, environmentId: String? = null, query: String? = null, grouped: Boolean? = null, subthreadsExpanded: JSONObject? = null, selectedKey: String? = null, returns: JSONObject? = null, groupingMode: String? = null, groupingOverrides: JSONObject? = null, nativeGrouping: JSONObject? = null): Any? =
-                client.domain("sidebar.view", JSONObject().put("environments", environments).put("now", now).put("filter", filter).put("project", project).put("environmentId", environmentId).put("query", query).put("grouped", grouped).put("subthreadsExpanded", subthreadsExpanded).put("selectedKey", selectedKey).put("returns", returns).put("groupingMode", groupingMode).put("groupingOverrides", groupingOverrides).put("nativeGrouping", nativeGrouping))
+            /** `sidebar.view` · object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, projectIdentities {key: identity}, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time */
+            fun view(environments: JSONArray, now: Long, filter: String? = null, project: String? = null, environmentId: String? = null, query: String? = null, grouped: Boolean? = null, subthreadsExpanded: JSONObject? = null, selectedKey: String? = null, returns: JSONObject? = null, groupingMode: String? = null, groupingOverrides: JSONObject? = null, nativeGrouping: JSONObject? = null, colors: JSONObject? = null, accent: String? = null): Any? =
+                client.domain("sidebar.view", JSONObject().put("environments", environments).put("now", now).put("filter", filter).put("project", project).put("environmentId", environmentId).put("query", query).put("grouped", grouped).put("subthreadsExpanded", subthreadsExpanded).put("selectedKey", selectedKey).put("returns", returns).put("groupingMode", groupingMode).put("groupingOverrides", groupingOverrides).put("nativeGrouping", nativeGrouping).put("colors", colors).put("accent", accent))
             /** `sidebar.detail` · object {detail, state, statusLabel, statusRole, time} of one sidebar row */
             fun detail(thread: JSONObject, now: Long? = null): Any? =
                 client.domain("sidebar.detail", JSONObject().put("thread", thread).put("now", now))

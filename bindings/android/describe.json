@@ -236,11 +236,21 @@
           "name": "nativeGrouping",
           "required": false,
           "type": "object"
+        },
+        {
+          "name": "colors",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "accent",
+          "required": false,
+          "type": "text"
         }
       ],
       "fn": "sidebar.view",
       "module": "sidebar",
-      "returns": "object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time"
+      "returns": "object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, projectIdentities {key: identity}, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time"
     },
     {
       "args": [
@@ -258,6 +268,40 @@
       "fn": "sidebar.detail",
       "module": "sidebar",
       "returns": "object {detail, state, statusLabel, statusRole, time} of one sidebar row"
+    },
+    {
+      "args": [
+        {
+          "name": "projects",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "colors",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "accent",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "projects.identity",
+      "module": "projects",
+      "returns": "array of {key, monogram, label, kind, icon, colorSlot, colorKey, color, fill}, one per project, slots over all of them"
+    },
+    {
+      "args": [
+        {
+          "name": "name",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "projects.monogram",
+      "module": "projects",
+      "returns": "string: the two-letter monogram of a project title"
     },
     {
       "args": [
