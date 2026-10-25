@@ -1,7 +1,7 @@
 //! Review screens: the diff, the tool inspector, plans and checkpoint rewind.
 use super::{domain_fn, DomainFn, NULL};
 use crate::api::Args;
-use crate::{diff_review, tool_inspector, Result};
+use crate::{diff_review, plan_workflow, timeline, tool_inspector, Result};
 use serde_json::{json, Value};
 
 /// A timeline row's `inspector` reference scoped to the viewer's environment and thread.
@@ -10,6 +10,21 @@ fn inspector_input(a: &Args) -> Result<Value> {
     input["environment"] = json!(a.req("environment")?);
     input["threadId"] = json!(a.req("threadId")?);
     Ok(input)
+}
+
+const INTERACTION_MODES: &[&str] = &["default", "plan"];
+
+/// ot3's plan view with each plan's Markdown as `markdown.blocks` instead of
+/// Qt rich text: the same planView `timeline.view` returns.
+fn plan_view(a: &Args) -> Result<Value> {
+    let math = a.bool("mathRenderingEnabled")?.unwrap_or(false);
+    let render = timeline::Render::neutral(math);
+    let mut view = plan_workflow::view(a.req_object("projection")?, render.plan);
+    for plan in view["plans"].as_array_mut().into_iter().flatten() {
+        timeline::plan_blocks(plan, math);
+    }
+    timeline::plan_blocks(&mut view["ready"], math);
+    Ok(view)
 }
 
 pub const FUNCTIONS: &[DomainFn] = &[
@@ -51,5 +66,39 @@ pub const FUNCTIONS: &[DomainFn] = &[
         args: [(reference, Object, required), (environment, Text, required), (threadId, Id, required), (response, Object, required)],
         returns: "object {scope, available, title, status, failed, exitCode, sections [{key, label, text, truncated}], metadata, metadataTruncated, raw, rawTruncated, outputOmitted, emptyOutput} from orchestration.getTurnItem's {item}; {scope, available: false, sections: [], raw: \"\", rawTruncated: false} when the item is gone",
         run: |a| tool_inspector::parse(&inspector_input(a)?, a.req_object("response")?),
+    },
+    domain_fn! {
+        name: "planWorkflow.view", module: "planWorkflow",
+        args: [(projection, Object, required), (mathRenderingEnabled, Bool, optional)],
+        returns: "object {plans [{id, threadId, runId, status, markdown, title, displayMarkdown, blocks, updatedAt}], ready (the plan the banner offers to implement, or null), error?}: the projection's proposed plans with markdown.blocks of their display Markdown",
+        run: plan_view,
+    },
+    domain_fn! {
+        name: "planWorkflow.followUp", module: "planWorkflow",
+        args: [(plan, Object, required), (threadId, Id, required), (draft, Text, optional)],
+        returns: "object {text, interactionMode, sourcePlanRef?}: an empty draft implements the plan (interactionMode default, sourcePlanRef {threadId, planId}); a non-empty one is feedback in plan mode",
+        run: |a| Ok(plan_workflow::follow_up(a.req_object("plan")?, a.req("threadId")?, a.str("draft")?.unwrap_or(""))?),
+    },
+    domain_fn! {
+        name: "planWorkflow.attachSourceRef", module: "planWorkflow",
+        args: [(command, Object, required), (followUp, Object, required)],
+        returns: "command: the message.dispatch command with the follow-up's sourcePlanRef, also when it targets a new thread",
+        run: |a| {
+            let mut command = a.req_object("command")?.clone();
+            plan_workflow::attach_source_ref(&mut command, a.req_object("followUp")?)?;
+            Ok(command)
+        },
+    },
+    domain_fn! {
+        name: "planWorkflow.implementationTitle", module: "planWorkflow",
+        args: [(markdown, Text, required)],
+        returns: "string: the new thread's title for \"Implement in new thread\" (Implement <plan title>, else Implement plan; at most 255 characters)",
+        run: |a| Ok(json!(plan_workflow::implementation_title(a.req("markdown")?))),
+    },
+    domain_fn! {
+        name: "planWorkflow.mode", module: "planWorkflow",
+        args: [(planModeEnabled, Bool, required), (provider, Object, optional), (requested, Enum(INTERACTION_MODES), required)],
+        returns: "object {enabled, interactionMode}: Plan / Build as the composer offers it for the thread's provider",
+        run: |a| Ok(plan_workflow::mode(a.bool("planModeEnabled")?.unwrap_or(false), a.get("provider"), a.req("requested")?)),
     },
 ];

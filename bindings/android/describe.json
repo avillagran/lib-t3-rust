@@ -918,6 +918,100 @@
     {
       "args": [
         {
+          "name": "projection",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "mathRenderingEnabled",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "planWorkflow.view",
+      "module": "planWorkflow",
+      "returns": "object {plans [{id, threadId, runId, status, markdown, title, displayMarkdown, blocks, updatedAt}], ready (the plan the banner offers to implement, or null), error?}: the projection's proposed plans with markdown.blocks of their display Markdown"
+    },
+    {
+      "args": [
+        {
+          "name": "plan",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "draft",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "planWorkflow.followUp",
+      "module": "planWorkflow",
+      "returns": "object {text, interactionMode, sourcePlanRef?}: an empty draft implements the plan (interactionMode default, sourcePlanRef {threadId, planId}); a non-empty one is feedback in plan mode"
+    },
+    {
+      "args": [
+        {
+          "name": "command",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "followUp",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "planWorkflow.attachSourceRef",
+      "module": "planWorkflow",
+      "returns": "command: the message.dispatch command with the follow-up's sourcePlanRef, also when it targets a new thread"
+    },
+    {
+      "args": [
+        {
+          "name": "markdown",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "fn": "planWorkflow.implementationTitle",
+      "module": "planWorkflow",
+      "returns": "string: the new thread's title for \"Implement in new thread\" (Implement <plan title>, else Implement plan; at most 255 characters)"
+    },
+    {
+      "args": [
+        {
+          "name": "planModeEnabled",
+          "required": true,
+          "type": "bool"
+        },
+        {
+          "name": "provider",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "requested",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "default",
+            "plan"
+          ]
+        }
+      ],
+      "fn": "planWorkflow.mode",
+      "module": "planWorkflow",
+      "returns": "object {enabled, interactionMode}: Plan / Build as the composer offers it for the thread's provider"
+    },
+    {
+      "args": [
+        {
           "name": "period",
           "required": true,
           "type": "enum",
