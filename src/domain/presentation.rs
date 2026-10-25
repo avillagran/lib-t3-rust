@@ -1,7 +1,7 @@
 //! Presentation ported from ot3's QML and JavaScript: the conversation minimap,
 //! subagent cards, theme colours and the string catalog.
 use super::{domain_fn, DomainFn};
-use crate::{subagents, theme};
+use crate::{i18n, subagents, theme};
 use crate::timeline::minimap;
 use serde_json::json;
 
@@ -47,5 +47,35 @@ pub const FUNCTIONS: &[DomainFn] = &[
         args: [(colors, Text, required), (id, Text, optional)],
         returns: "object {id, name, appearance (light when the background's Rec.709 luminance > 0.5), luminance, mode, base, roles {dim, statusMuted, divider, surface, card, cardBorder, changesCard, rowSelected, rowPressed, rowDraft, field, fieldBorder, switchOff, inlineCode, composerBorder, composerFocus, working, done, waiting, failed, warning, input, onAccent}, layers {role: {color, alpha}}, statusColors {detail: colour}, projectPalette, projectFills, sky {lightSky, star, meteor, ink, header {brightness, nebula, meteorRate, base}, panel}, document {appearance, variables}, mcpTheme}: ot3's colours for an Omarchy colors.toml, each role the opaque #rrggbb ot3 draws",
         run: |a| Ok(theme::tokens(a.req("colors")?, a.str("id")?)),
+    },
+    domain_fn! {
+        name: "i18n.t", module: "i18n",
+        args: [(locale, Text, required), (key, Text, required), (args, Object, optional)],
+        returns: "string: ot3's translation of an English source string for a locale list (fr_CA.UTF-8:en), else the language's, English's or the source; {name} placeholders from args, Arabic isolated with U+2068/U+2069",
+        run: |a| Ok(json!(i18n::t(a.req("locale")?, a.req("key")?, a.get("args")))),
+    },
+    domain_fn! {
+        name: "i18n.catalog", module: "i18n",
+        args: [(locale, Text, required)],
+        returns: "object {locale, language, rtl, strings {source: translation}}: every string of ot3's catalog for the locale as i18n.t gives it without args (1796 sources, 20 languages)",
+        run: |a| Ok(i18n::strings(a.req("locale")?)),
+    },
+    domain_fn! {
+        name: "i18n.resolve", module: "i18n",
+        args: [(locale, Text, required)],
+        returns: "object {locale, language, rtl}: the first locale of the list the catalog has (by itself or its language), else the first",
+        run: |a| {
+            let (locale, language, rtl) = i18n::resolve(a.req("locale")?);
+            Ok(json!({"locale":locale,"language":language,"rtl":rtl}))
+        },
+    },
+    domain_fn! {
+        name: "i18n.languages", module: "i18n",
+        args: [(locale, Text, optional)],
+        returns: "array of {id, name}: ot3's language picker, system first (its name translated for locale), then each catalog language in its own name",
+        run: |a| {
+            let system = json!({"id":"system","name":i18n::t(a.str("locale")?.unwrap_or("en"), "System language", None)});
+            Ok(json!(std::iter::once(system).chain(i18n::LANGUAGES.iter().map(|(id, name)| json!({"id":id,"name":name}))).collect::<Vec<_>>()))
+        },
     },
 ];

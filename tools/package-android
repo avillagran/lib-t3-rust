@@ -28,6 +28,9 @@ printf '%s\n' '<manifest xmlns:android="http://schemas.android.com/apk/res/andro
 printf '%s\n' '-keep class dev.avillagran.t3.T3Native { *; }' > "$stage/aar/proguard.txt"
 : > "$stage/aar/R.txt"
 cp LICENSE "$stage/aar/META-INF/LICENSE"
+# ot3's string catalog, the same file i18n.catalog serves, for build-time generators.
+mkdir -p "$stage/aar/assets/lib-t3-rust"
+cp data/i18n.json "$stage/aar/assets/lib-t3-rust/i18n.json"
 printf 'version=%s\nsource=%s\n' "$version" "$(git rev-parse HEAD)" > "$stage/aar/META-INF/lib-t3-rust.properties"
 mkdir -p dist
 asset="lib-t3-rust-android-v$version.aar"
