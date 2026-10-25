@@ -462,6 +462,7 @@ class T3Api(client: T3Client) {
         val quotaSources = QuotaSources(client)
         val scopedSettings = ScopedSettings(client)
         val sidebar = Sidebar(client)
+        val subagents = Subagents(client)
         val timeline = Timeline(client)
         val toolInspector = ToolInspector(client)
         val usageSummary = UsageSummary(client)
@@ -800,6 +801,21 @@ class T3Api(client: T3Client) {
             /** `sidebar.detail` · object {detail, state, statusLabel, statusRole, time} of one sidebar row */
             fun detail(thread: JSONObject, now: Long? = null): Any? =
                 client.domain("sidebar.detail", JSONObject().put("thread", thread).put("now", now))
+        }
+
+        class Subagents internal constructor(private val client: T3Client) {
+            /** `subagents.buckets` · object {working, done, failed, stopped, idle}: status counts (queued, running and waiting are working) */
+            fun buckets(subagents: JSONArray): Any? =
+                client.domain("subagents.buckets", JSONObject().put("subagents", subagents))
+            /** `subagents.describe` · object {live, settled, label, tone, detail, elapsed}: one subagent row; label is an English source string (Queued, Running, Waiting, Idle · resumable, Completed, Failed, Stopped or Unknown), tone the colour's state (working, waiting, done, failed or idle), elapsed like 4m 09s */
+            fun describe(subagent: JSONObject, now: Long): Any? =
+                client.domain("subagents.describe", JSONObject().put("subagent", subagent).put("now", now))
+            /** `subagents.cards` · object {subagents [{subagent, view}], group, anyLive, expanded, counts, header {source, args}, summary [{source, args}]}: a timeline subagents row's cards overlaid with threadState.subagents; header and summary parts are catalog sources ({n} subagents; {n} working, done, failed, stopped, idle) joined with " · " */
+            fun cards(cards: JSONArray, now: Long, threadSubagents: JSONArray? = null): Any? =
+                client.domain("subagents.cards", JSONObject().put("cards", cards).put("threadSubagents", threadSubagents).put("now", now))
+            /** `subagents.fromThread` · object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent */
+            fun fromThread(thread: JSONObject): Any? =
+                client.domain("subagents.fromThread", JSONObject().put("thread", thread))
         }
 
         class Timeline internal constructor(private val client: T3Client) {
