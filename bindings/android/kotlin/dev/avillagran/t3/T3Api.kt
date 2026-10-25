@@ -444,6 +444,7 @@ class T3Api(client: T3Client) {
         val codeBlocks = CodeBlocks(client)
         val composer = Composer(client)
         val connectionCatalog = ConnectionCatalog(client)
+        val diffReview = DiffReview(client)
         val history = History(client)
         val i18n = I18n(client)
         val markdown = Markdown(client)
@@ -501,6 +502,15 @@ class T3Api(client: T3Client) {
             /** `connectionCatalog.pairingTarget` · object {httpBaseUrl, pairingCode}: a pairing link, QR payload or host plus code */
             fun pairingTarget(link: String, pairingCode: String? = null): Any? =
                 client.domain("connectionCatalog.pairingTarget", JSONObject().put("link", link).put("pairingCode", pairingCode))
+        }
+
+        class DiffReview internal constructor(private val client: T3Client) {
+            /** `diffReview.present` · object {files [{path, oldPath, kind, binary, missing?, additions, deletions, summaryAdditions?, summaryDeletions?, rows [{kind: hunk, addition, deletion, context or meta, text, oldLine, newLine}], splitRows [{kind, left, right}]}], additions, deletions, fromTurnCount, toTurnCount} from a diff RPC result {diff} */
+            fun present(result: JSONObject, summary: JSONObject? = null): Any? =
+                client.domain("diffReview.present", JSONObject().put("result", result).put("summary", summary))
+            /** `diffReview.scopedResult` · diffReview.present's object for a receipt of the still-open request, null for a late or other request; the receipt's error otherwise */
+            fun scopedResult(expected: JSONObject, receipt: JSONObject, summary: JSONObject): Any? =
+                client.domain("diffReview.scopedResult", JSONObject().put("expected", expected).put("receipt", receipt).put("summary", summary))
         }
 
         class History internal constructor(private val client: T3Client) {
