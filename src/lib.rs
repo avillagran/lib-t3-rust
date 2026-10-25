@@ -62,6 +62,7 @@ pub mod server_updates;
 pub mod reconnect;
 pub mod timeline;
 pub mod subagents;
+pub mod theme;
 mod js;
 mod options;
 pub use options::ConnectionOptions;
