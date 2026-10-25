@@ -71,6 +71,7 @@ pub use pairing::{
 };
 use options::valid_limit;
 pub mod api;
+pub mod domain;
 pub mod errors;
 mod ffi_call;
 
