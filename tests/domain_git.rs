@@ -106,3 +106,70 @@ fn branch_picker_rules() {
     assert_eq!(call("branchPicker.temporaryBranch", &json!({"name":"t3/1a2b3c4d"})).unwrap(), true);
     assert_eq!(call("branchPicker.temporaryBranch", &json!({"name":"feature/x"})).unwrap(), false);
 }
+
+fn git_shell() -> Value {
+    json!({"projects":[{"id":"p","workspaceRoot":"/remote/project","scripts":[]}],
+        "threads":[{"id":"t","projectId":"p","worktreePath":"/remote/tree"}]})
+}
+fn git_status() -> Value {
+    json!({"isRepo":true,"hasPrimaryRemote":true,"isDefaultRef":false,"refName":"feature/x",
+        "hasWorkingTreeChanges":true,"hasUpstream":true,"aheadCount":1,"behindCount":0,"pr":null,
+        "workingTree":{"files":[{"path":"a.rs","insertions":2,"deletions":1}],"insertions":2,"deletions":1}})
+}
+fn git_script() -> Value {
+    json!({"id":"test","name":"Test","command":"npm test","icon":"test","runOnWorktreeCreate":false})
+}
+
+#[test]
+fn git_controls_scope_present_and_actions() {
+    let where_ = json!({"shell":git_shell(),"environment":"remote","thread":"t","requestId":"r1","projectId":"p","cwd":"/remote/tree"});
+    let scope = call("gitControls.scope", &where_).unwrap();
+    assert_eq!(keys(&scope), ["cwd", "environment", "projectId", "projectRoot", "requestId", "thread", "worktreePath"]);
+    let mut moved = where_.clone();
+    moved["cwd"] = json!("/remote/project");
+    assert_eq!(call("gitControls.scope", &moved).unwrap_err(), "git_scope_changed");
+    let scripts = call("gitControls.resolveScripts", &json!({"settings":{"defaultProjectScripts":[git_script()]},"project":{"id":"p","scripts":[]}})).unwrap();
+    assert_eq!(scripts[0]["id"], "test");
+    let actions = call("gitControls.actions", &json!({"status":git_status()})).unwrap();
+    assert_eq!(actions, json!({"commit":true,"push":true,"pull":false,"create_pr":true,"commit_push":true,"commit_push_pr":true}));
+    let sheet = call("gitControls.present", &json!({"scope":scope,"status":git_status(),"scripts":scripts})).unwrap();
+    assert_eq!(keys(&sheet), ["actions", "revision", "scope", "scripts", "status"]);
+    assert_eq!(sheet, t3_protocol::git_controls::present(&scope, &git_status(), &scripts).unwrap());
+    // A new request id for the same checkout reads as the same revision.
+    let mut again = where_.clone();
+    again["requestId"] = json!("r2");
+    let again = call("gitControls.present", &json!({"scope":call("gitControls.scope", &again).unwrap(),"status":git_status(),"scripts":scripts})).unwrap();
+    assert_eq!(again["revision"], sheet["revision"]);
+    let mut bad = git_status();
+    bad["aheadCount"] = json!(-1);
+    assert_eq!(call("gitControls.present", &json!({"scope":scope,"status":bad,"scripts":[]})).unwrap_err(), "invalid_git_status");
+
+    let mut receipt = scope.clone();
+    receipt["result"] = sheet.clone();
+    assert_eq!(call("gitControls.scopedResult", &json!({"expected":scope,"receipt":receipt})).unwrap(), sheet);
+    receipt["requestId"] = json!("r0");
+    assert!(call("gitControls.scopedResult", &json!({"expected":scope,"receipt":receipt})).unwrap().is_null());
+}
+
+#[test]
+fn git_controls_actions_need_confirmation_and_a_fresh_revision() {
+    let scope = call("gitControls.scope", &json!({"shell":git_shell(),"environment":"remote","thread":"t","requestId":"r1","projectId":"p","cwd":"/remote/tree"})).unwrap();
+    let current = call("gitControls.present", &json!({"scope":scope,"status":git_status(),"scripts":[git_script()]})).unwrap();
+    let intent = |operation: &str| json!({"scope":current["scope"],"revision":current["revision"],"operation":operation,"actionId":"dd38bad7-c625-438d-9f12-165f25521753","confirmed":true});
+    let plan = call("gitControls.buildAction", &json!({"current":current,"intent":intent("commit_push")})).unwrap();
+    assert_eq!(keys(&plan), ["actionId", "operation", "retryAutomatically", "revision", "scope", "steps"]);
+    assert_eq!((plan["steps"][0]["tag"].as_str(), plan["steps"][0]["payload"]["action"].as_str(), plan["retryAutomatically"].as_bool()), (Some("git.runStackedAction"), Some("commit_push"), Some(false)));
+    let mut script = intent("script");
+    script["scriptId"] = json!("test");
+    let steps = call("gitControls.buildAction", &json!({"current":current,"intent":script})).unwrap()["steps"].clone();
+    assert_eq!(steps.as_array().unwrap().iter().map(|s| s["tag"].as_str().unwrap()).collect::<Vec<_>>(), ["terminal.open", "terminal.write"]);
+    let mut unconfirmed = intent("commit");
+    unconfirmed["confirmed"] = json!(false);
+    assert_eq!(call("gitControls.buildAction", &json!({"current":current,"intent":unconfirmed})).unwrap_err(), "git_confirmation_required");
+    assert_eq!(call("gitControls.buildAction", &json!({"current":current,"intent":intent("pull")})).unwrap_err(), "git_action_unavailable");
+    assert_eq!(call("gitControls.buildVerifiedAction", &json!({"current":current,"fresh":current,"intent":intent("commit")})).unwrap()["operation"], "commit");
+    let mut changed = git_status();
+    changed["aheadCount"] = json!(2);
+    let fresh = call("gitControls.present", &json!({"scope":scope,"status":changed,"scripts":[git_script()]})).unwrap();
+    assert_eq!(call("gitControls.buildVerifiedAction", &json!({"current":current,"fresh":fresh,"intent":intent("commit")})).unwrap_err(), "git_stale_result");
+}

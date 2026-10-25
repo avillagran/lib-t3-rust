@@ -1388,6 +1388,150 @@
       "fn": "branchPicker.temporaryBranch",
       "module": "branchPicker",
       "returns": "bool: a temporary worktree branch (t3-/t3/ or t3code-/t3code/ plus 8 hex, or t3code/ plus a UUID v4)"
+    },
+    {
+      "args": [
+        {
+          "name": "shell",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "environment",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "thread",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "requestId",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        }
+      ],
+      "fn": "gitControls.scope",
+      "module": "gitControls",
+      "returns": "object {environment, thread, requestId, projectId, cwd, projectRoot, worktreePath}: the thread's checkout resolved against the shell snapshot (project threads only; git_scope_changed when projectId or cwd moved)"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "project",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "gitControls.resolveScripts",
+      "module": "gitControls",
+      "returns": "array of the project's scripts {id, name, command, icon, runOnWorktreeCreate, …} with T3's precedence (project override, defaults, legacy override, project scripts)"
+    },
+    {
+      "args": [
+        {
+          "name": "status",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "gitControls.actions",
+      "module": "gitControls",
+      "returns": "object {commit, push, pull, create_pr, commit_push, commit_push_pr} of bools: what the Git menu offers for a vcs.refreshStatus result"
+    },
+    {
+      "args": [
+        {
+          "name": "scope",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "status",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "scripts",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "gitControls.present",
+      "module": "gitControls",
+      "returns": "object {scope, status, scripts, actions, revision}: the Git & changes sheet; revision fingerprints checkout, status and scripts (not the requestId)"
+    },
+    {
+      "args": [
+        {
+          "name": "expected",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "receipt",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "gitControls.scopedResult",
+      "module": "gitControls",
+      "returns": "the receipt's result for the sheet's still-open scope and request, null for a late or other checkout; the receipt's error otherwise"
+    },
+    {
+      "args": [
+        {
+          "name": "current",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "intent",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "gitControls.buildAction",
+      "module": "gitControls",
+      "returns": "object {scope, revision, actionId, operation, steps [{tag, payload}], retryAutomatically: false}: a confirmed action (intent {scope, revision, confirmed, actionId (UUID), operation, defaultBranchConfirmed?, commitMessage?, filePaths?, scriptId?}) as git.runStackedAction, vcs.pull or terminal.open + terminal.write steps"
+    },
+    {
+      "args": [
+        {
+          "name": "current",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "fresh",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "intent",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "gitControls.buildVerifiedAction",
+      "module": "gitControls",
+      "returns": "gitControls.buildAction's plan, only when a fresh read right before dispatch has the same revision (git_stale_result otherwise)"
     }
   ],
   "functions": [
