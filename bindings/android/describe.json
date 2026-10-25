@@ -959,6 +959,166 @@
       "fn": "quotaSources.apply",
       "module": "quotaSources",
       "returns": "object {state {providers, usageLimitSources, connected}, changed}: one server.subscribeServerConfig event (version 1) applied to the quota strip's state"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "pullRequests.sidebarBadge",
+      "module": "pullRequests",
+      "returns": "object {kind: single, multiple or stack, text, state: open, draft, merged, closed or unknown, current, links} of a thread's linked pull requests, or null"
+    },
+    {
+      "args": [
+        {
+          "name": "action",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "list",
+            "detail",
+            "checks",
+            "activity",
+            "diff"
+          ]
+        },
+        {
+          "name": "state",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "involvement",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "query",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "cursors",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "reference",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "cursor",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "pullRequests.request",
+      "module": "pullRequests",
+      "returns": "object {method, payload}: the typed pullRequests.list, detail, checks or activity call and its args (list: 50 per page, state open and involvement all by default), or method diff with the /api/pull-requests/diff query; reference is {projectId, repository, host, number}"
+    },
+    {
+      "args": [
+        {
+          "name": "kind",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "comment",
+            "review",
+            "action",
+            "reviewer-candidates",
+            "label-candidates",
+            "reviewers",
+            "labels"
+          ]
+        },
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "body",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "verdict",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "action",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "mergeMethod",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "reviewers",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "requested",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "labels",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "applied",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.payload",
+      "module": "pullRequests",
+      "returns": "object {method, payload}: the typed pullRequests.comment, submitReview, runAction, reviewerCandidates, labelCandidates, requestReviewers or setLabels call and its args, after the page's rules (a comment needs words; only the page's actions)"
+    },
+    {
+      "args": [
+        {
+          "name": "thread",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "link",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "link",
+            "unlink",
+            "watch",
+            "unwatch"
+          ]
+        },
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "commandId",
+          "required": false,
+          "type": "id"
+        }
+      ],
+      "fn": "pullRequests.threadCommand",
+      "module": "pullRequests",
+      "returns": "command thread.pull-request.link, unlink or watch for a reference {host, repository, number, url}; commandId only when given"
     }
   ],
   "functions": [

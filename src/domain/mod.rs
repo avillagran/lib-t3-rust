@@ -8,6 +8,7 @@ use crate::api::{ids, Arg, ArgType, Args};
 use crate::{activity, approvals, changes, code_blocks, composer, connection_catalog, history, i18n, markdown, models, projection, projects, questions, queue, sidebar, timeline, Result};
 use serde_json::{json, Value};
 
+mod git;
 mod review;
 mod usage;
 
@@ -387,7 +388,7 @@ pub const FUNCTIONS: &[DomainFn] = &[
 ];
 
 /// The registry: this file's functions, then each area's.
-const MODULES: &[&[DomainFn]] = &[FUNCTIONS, review::FUNCTIONS, usage::FUNCTIONS];
+const MODULES: &[&[DomainFn]] = &[FUNCTIONS, review::FUNCTIONS, usage::FUNCTIONS, git::FUNCTIONS];
 /// Every domain function, in a stable order.
 pub fn functions() -> impl Iterator<Item = &'static DomainFn> {
     MODULES.iter().flat_map(|m| m.iter())
