@@ -22,11 +22,14 @@ pub struct Render<'a> {
     pub message: Option<&'a MessageRenderer>,
     /// The renderer `plan_workflow::view` passes plan Markdown through.
     pub plan: &'a dyn Fn(&str) -> String,
+    /// Add `markdown::blocks` to assistant messages and plans (and drop the
+    /// plans' `rendered`), for hosts that draw the blocks themselves.
+    pub blocks: bool,
 }
 impl Render<'_> {
-    /// No rich text: plans keep their Markdown as `rendered`.
-    pub fn plain(math: bool) -> Render<'static> {
-        Render { math, message: None, plan: &|markdown: &str| markdown.to_string() }
+    /// No rich text: renderer-neutral blocks for assistant messages and plans.
+    pub fn neutral(math: bool) -> Render<'static> {
+        Render { math, message: None, plan: &|markdown: &str| markdown.to_string(), blocks: true }
     }
 }
 
@@ -84,6 +87,9 @@ pub fn messages(p: &Value, r: &Render) -> Result<Vec<Value>> {
         if let Some(render) = r.message {
             row["rendered"] = json!(render(&display, &blocks, r.math));
         }
+        if r.blocks && m["role"] == "assistant" {
+            row["blocks"] = json!(markdown::blocks(&display, r.math));
+        }
         row["codeBlocks"] = json!(blocks);
         messages.push(row);
     }
@@ -125,9 +131,27 @@ pub fn view(p: &Value, history: &Value, r: &Render) -> Result<Value> {
     // This thread's subagents, newest first: the composer bar shows the live
     // ones, the conversation cards and the Agents panel all of them.
     thread_state["subagents"] = json!(p["subagents"].as_array().into_iter().flatten().rev().take(48).map(subagent_summary).collect::<Vec<_>>());
-    Ok(json!({"threadState":thread_state,"approvals":approvals::pending(p),"questions":questions::pending(p),"tasks":tasks::derive(p),"queue":queue,
+    let mut view = json!({"threadState":thread_state,"approvals":approvals::pending(p),"questions":questions::pending(p),"tasks":tasks::derive(p),"queue":queue,
         "planView":plan_workflow::view(p,r.plan),"timeline":conversation(p,&messages,r.plan),"messages":messages,"activity":live_activity(p),
-        "historyCursor":history["historyCursor"],"hasMoreHistory":truth(&history["hasMoreHistory"]),"payloadBudgetExceeded":truth(&history["payloadBudgetExceeded"])}))
+        "historyCursor":history["historyCursor"],"hasMoreHistory":truth(&history["hasMoreHistory"]),"payloadBudgetExceeded":truth(&history["payloadBudgetExceeded"])});
+    if r.blocks {
+        for plan in view["planView"]["plans"].as_array_mut().into_iter().flatten() {
+            plan_blocks(plan, r.math);
+        }
+        plan_blocks(&mut view["planView"]["ready"], r.math);
+        for row in view["timeline"].as_array_mut().into_iter().flatten().filter(|row| row["role"] == "plan") {
+            plan_blocks(&mut row["plan"], r.math);
+        }
+    }
+    Ok(view)
+}
+/// A plan card's blocks in place of its `rendered` text.
+fn plan_blocks(plan: &mut Value, math: bool) {
+    if let Some(fields) = plan.as_object_mut() {
+        fields.remove("rendered");
+        let blocks = markdown::blocks(fields.get("displayMarkdown").and_then(Value::as_str).unwrap_or(""), math);
+        fields.insert("blocks".into(), json!(blocks));
+    }
 }
 
 /// One line of a subagent's free text (progress or result), whitespace collapsed.

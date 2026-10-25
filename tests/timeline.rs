@@ -11,7 +11,7 @@ fn fixture(name: &str) -> Value {
     fixtures().into_iter().find(|(n, _)| n == name).unwrap().1
 }
 fn plain(p: &Value) -> Value {
-    timeline::view(p, &json!({}), &Render::plain(false)).unwrap()
+    timeline::view(p, &json!({}), &Render::neutral(false)).unwrap()
 }
 fn md(input: &str) -> String {
     input.to_string()
@@ -73,7 +73,7 @@ fn live_activity_does_not_invent_work_or_export_inputs() {
 #[test]
 fn contextual_timeline_keeps_active_work_and_message_order() {
     let p = fixture("contextual-activity")["projection"].clone();
-    let messages = timeline::messages(&p, &Render::plain(false)).unwrap();
+    let messages = timeline::messages(&p, &Render::neutral(false)).unwrap();
     let rows = timeline::conversation(&p, &messages, &md);
     assert_eq!(rows.len(), 3);
     assert_eq!((rows[0]["id"].as_str(), rows[2]["id"].as_str()), (Some("u"), Some("a")));
@@ -121,7 +121,7 @@ fn context_window_prefers_turn_usage_then_provider_thread_then_compaction() {
 #[test]
 fn every_row_kind_appears_in_time_order_and_rolled_back_runs_vanish() {
     let d = fixture("kitchen-sink");
-    let view = timeline::view(&d["projection"], &d, &Render::plain(false)).unwrap();
+    let view = timeline::view(&d["projection"], &d, &Render::neutral(false)).unwrap();
     let rows = view["timeline"].as_array().unwrap();
     let roles = rows.iter().map(|r| r["role"].as_str().unwrap()).collect::<std::collections::BTreeSet<_>>();
     assert_eq!(roles.into_iter().collect::<Vec<_>>(), ["activity", "assistant", "changes", "context", "error", "plan", "secret", "subagents", "user"]);
@@ -164,19 +164,19 @@ fn every_row_kind_appears_in_time_order_and_rolled_back_runs_vanish() {
 fn a_host_renderer_fills_rendered_and_plans() {
     let d = fixture("plans");
     let render = |text: &str, blocks: &[Value], math: bool| format!("{math}:{text}:{}", blocks.len());
-    let view = timeline::view(&d["projection"], &d, &Render { math: true, message: Some(&render), plan: &|s: &str| format!("<p>{s}</p>") }).unwrap();
+    let view = timeline::view(&d["projection"], &d, &Render { math: true, message: Some(&render), plan: &|s: &str| format!("<p>{s}</p>"), blocks: false }).unwrap();
     assert_eq!(view["planView"]["ready"]["id"], "plan-2");
     let plan = view["timeline"].as_array().unwrap().iter().find(|r| r["role"] == "plan" && r["plan"]["id"] == "plan-2").unwrap();
     assert_eq!(plan["plan"]["rendered"], "<p>One\n\n## Steps\nTwo</p>", "the plan's display Markdown, without its title and Summary heading");
     let msgs = fixture("code-actions-and-images");
-    let view = timeline::view(&msgs["projection"], &msgs, &Render { math: false, message: Some(&render), plan: &md }).unwrap();
+    let view = timeline::view(&msgs["projection"], &msgs, &Render { math: false, message: Some(&render), plan: &md, blocks: false }).unwrap();
     let m = &view["messages"];
     assert_eq!(m[0]["rendered"], format!("false:{}:2", m[0]["text"].as_str().unwrap()));
     assert_eq!(m[0]["codeBlocks"][0]["command"], "bash experiments/tooltips/run-native");
     assert_eq!(m[1]["markdownImages"].as_array().unwrap().len(), 2);
     assert_eq!(m[1]["tables"][0]["csv"], "a,b\n1,2");
     assert_eq!(m[2]["text"], "Hello & world", "a Qt rich-text document is shown as its text");
-    assert_eq!(timeline::messages(&json!({"messages":[{"id":"x","role":"user"}]}), &Render::plain(false)).unwrap_err(), "malformed");
+    assert_eq!(timeline::messages(&json!({"messages":[{"id":"x","role":"user"}]}), &Render::neutral(false)).unwrap_err(), "malformed");
 }
 
 #[test]
@@ -193,5 +193,5 @@ fn timeline_through_domain() {
     assert_eq!(t3_protocol::domain::call("timeline.view", &json!({"projection":{"messages":7}})).unwrap_err(), "malformed");
 }
 fn plain_with_history(d: &Value) -> Value {
-    timeline::view(&d["projection"], d, &Render::plain(false)).unwrap()
+    timeline::view(&d["projection"], d, &Render::neutral(false)).unwrap()
 }
