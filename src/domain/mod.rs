@@ -94,6 +94,29 @@ const QUEUE_ACTIONS: &[&str] = &["cancel", "reorder", "steer", "resume", "edit"]
 const DECISIONS: &[&str] = &["accept", "acceptForSession", "acceptAlways", "decline", "cancel"];
 const QUESTION_ACTIONS: &[&str] = &["respond", "dismiss"];
 const SUGGESTION_KINDS: &[&str] = &["skill", "command"];
+const GROUPING_MODES: &[&str] = &["repository", "repository_path", "separate"];
+static NULL: Value = Value::Null;
+
+fn sidebar_view(a: &Args) -> Result<Value> {
+    let now = a.i64("now")?.unwrap_or(0);
+    let snapshot = sidebar::view::snapshot(a.req_array("environments")?, now)?;
+    let state = sidebar::view::ViewState {
+        filter: a.str("filter")?.unwrap_or("all"),
+        project: a.str("project")?.unwrap_or(""),
+        environment: a.str("environmentId")?.filter(|e| !e.is_empty()),
+        query: a.str("query")?.unwrap_or(""),
+        grouped: a.bool("grouped")?.unwrap_or(false),
+        subthreads_expanded: a.get("subthreadsExpanded").unwrap_or(&NULL),
+        selected: a.str("selectedKey")?.unwrap_or(""),
+        returns: a.get("returns").unwrap_or(&NULL),
+        grouping: sidebar::view::Grouping {
+            mode: a.str("groupingMode")?,
+            overrides: a.get("groupingOverrides").unwrap_or(&NULL),
+            native: a.get("nativeGrouping").unwrap_or(&NULL),
+        },
+    };
+    Ok(sidebar::view::view(&snapshot, &state, now))
+}
 
 pub const FUNCTIONS: &[DomainFn] = &[
     domain_fn! {
@@ -142,6 +165,34 @@ pub const FUNCTIONS: &[DomainFn] = &[
         ],
         returns: "command for the thread actions menu (without commandId)",
         run: |a| sidebar::thread_action(a.all()),
+    },
+    domain_fn! {
+        name: "sidebar.snapshot", module: "sidebar",
+        args: [(environments, Array, required), (now, Integer, required)],
+        returns: "object {environments [{id, name, state}], stale, projects, threads, working, pending}: each environment {id, name?, shell?, state?} as ot3's rows, newest first",
+        run: |a| sidebar::view::snapshot(a.req_array("environments")?, a.i64("now")?.unwrap_or(0)),
+    },
+    domain_fn! {
+        name: "sidebar.view", module: "sidebar",
+        args: [
+            (environments, Array, required), (now, Integer, required), (filter, Enum(sidebar::view::FILTERS), optional),
+            (project, Text, optional), (environmentId, Text, optional), (query, Text, optional), (grouped, Bool, optional),
+            (subthreadsExpanded, Object, optional), (selectedKey, Text, optional), (returns, Object, optional),
+            (groupingMode, Enum(GROUPING_MODES), optional), (groupingOverrides, Object, optional), (nativeGrouping, Object, optional),
+        ],
+        returns: "object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time",
+        run: sidebar_view,
+    },
+    domain_fn! {
+        name: "sidebar.detail", module: "sidebar",
+        args: [(thread, Object, required), (now, Integer, optional)],
+        returns: "object {detail, state, statusLabel, statusRole, time} of one sidebar row",
+        run: |a| {
+            let t = a.req_object("thread")?;
+            let detail = sidebar::view::detail(t);
+            Ok(json!({"detail":detail,"state":sidebar::view::state(t),"statusLabel":sidebar::view::label(detail),
+                "statusRole":sidebar::view::role(detail),"time":sidebar::view::time(t, a.i64("now")?.unwrap_or(0))}))
+        },
     },
     domain_fn! {
         name: "queue.derive", module: "queue",

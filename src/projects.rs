@@ -30,3 +30,19 @@ pub fn command(input:&Value)->Result<Value>{
  }
  Ok(c)
 }
+
+/// A project's two-letter monogram, T3's geometry (ot3 `project_identity`): the
+/// first letter, then the first digit of the first word, else the last word's
+/// initial, else the first word's last letter. Colours belong to the theme.
+pub fn monogram(name: &str) -> String {
+    let words: Vec<&str> = name.trim().split(|c: char| !c.is_alphanumeric()).filter(|s| !s.is_empty()).collect();
+    let first = words.first().copied().unwrap_or("PR");
+    let initial = first.chars().next().unwrap_or('P');
+    let second = first
+        .chars()
+        .skip(1)
+        .find(|c| c.is_numeric())
+        .or_else(|| if words.len() > 1 { words.last().and_then(|s| s.chars().next()) } else { first.chars().last() })
+        .unwrap_or(initial);
+    format!("{initial}{second}").to_uppercase().chars().take(2).collect()
+}

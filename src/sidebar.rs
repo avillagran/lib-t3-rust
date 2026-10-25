@@ -1,5 +1,6 @@
 //! Portable sidebar metadata and native thread lifecycle commands.
 use super::*;
+pub mod view;
 fn stamp(v:&Value)->i64 { v.as_str().and_then(|s|chrono::DateTime::parse_from_rfc3339(s).ok()).map(|d|d.timestamp_millis()).or_else(||v.as_i64()).unwrap_or(0) }
 /// Native inbox/working/history anchors, matching client-runtime/state/threadInbox.ts
 /// and threadSort.ts. Shells use flat run stamps; bounded projections use latestRun.
