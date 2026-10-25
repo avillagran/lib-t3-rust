@@ -146,7 +146,7 @@ pub fn view(p: &Value, history: &Value, r: &Render) -> Result<Value> {
     Ok(view)
 }
 /// A plan card's blocks in place of its `rendered` text.
-fn plan_blocks(plan: &mut Value, math: bool) {
+pub(crate) fn plan_blocks(plan: &mut Value, math: bool) {
     if let Some(fields) = plan.as_object_mut() {
         fields.remove("rendered");
         let blocks = markdown::blocks(fields.get("displayMarkdown").and_then(Value::as_str).unwrap_or(""), math);

@@ -450,6 +450,7 @@ class T3Api(client: T3Client) {
         val i18n = I18n(client)
         val markdown = Markdown(client)
         val models = Models(client)
+        val planWorkflow = PlanWorkflow(client)
         val projection = Projection(client)
         val projects = Projects(client)
         val pullRequests = PullRequests(client)
@@ -579,6 +580,24 @@ class T3Api(client: T3Client) {
             /** `models.runtimeModeCommand` · command thread.runtime-mode.set */
             fun runtimeModeCommand(threadId: String, commandId: String, runtimeMode: String): Any? =
                 client.domain("models.runtimeModeCommand", JSONObject().put("threadId", threadId).put("commandId", commandId).put("runtimeMode", runtimeMode))
+        }
+
+        class PlanWorkflow internal constructor(private val client: T3Client) {
+            /** `planWorkflow.view` · object {plans [{id, threadId, runId, status, markdown, title, displayMarkdown, blocks, updatedAt}], ready (the plan the banner offers to implement, or null), error?}: the projection's proposed plans with markdown.blocks of their display Markdown */
+            fun view(projection: JSONObject, mathRenderingEnabled: Boolean? = null): Any? =
+                client.domain("planWorkflow.view", JSONObject().put("projection", projection).put("mathRenderingEnabled", mathRenderingEnabled))
+            /** `planWorkflow.followUp` · object {text, interactionMode, sourcePlanRef?}: an empty draft implements the plan (interactionMode default, sourcePlanRef {threadId, planId}); a non-empty one is feedback in plan mode */
+            fun followUp(plan: JSONObject, threadId: String, draft: String? = null): Any? =
+                client.domain("planWorkflow.followUp", JSONObject().put("plan", plan).put("threadId", threadId).put("draft", draft))
+            /** `planWorkflow.attachSourceRef` · command: the message.dispatch command with the follow-up's sourcePlanRef, also when it targets a new thread */
+            fun attachSourceRef(command: JSONObject, followUp: JSONObject): Any? =
+                client.domain("planWorkflow.attachSourceRef", JSONObject().put("command", command).put("followUp", followUp))
+            /** `planWorkflow.implementationTitle` · string: the new thread's title for "Implement in new thread" (Implement <plan title>, else Implement plan; at most 255 characters) */
+            fun implementationTitle(markdown: String): Any? =
+                client.domain("planWorkflow.implementationTitle", JSONObject().put("markdown", markdown))
+            /** `planWorkflow.mode` · object {enabled, interactionMode}: Plan / Build as the composer offers it for the thread's provider */
+            fun mode(planModeEnabled: Boolean, requested: String, provider: JSONObject? = null): Any? =
+                client.domain("planWorkflow.mode", JSONObject().put("planModeEnabled", planModeEnabled).put("provider", provider).put("requested", requested))
         }
 
         class Projection internal constructor(private val client: T3Client) {

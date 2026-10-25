@@ -92,3 +92,44 @@ fn tool_inspector_reference_request_and_parse() {
     bad["reference"]["revision"] = json!("");
     assert_eq!(call("toolInspector.request", &bad).unwrap_err(), "invalid_tool_reference");
 }
+
+fn plan_projection() -> Value {
+    json!({"thread":{"id":"thread-1","interactionMode":"plan"},"updatedAt":"2026-10-17T10:00:00Z",
+      "runs":[{"id":"run-1","ordinal":1,"status":"completed"}],
+      "turnItems":[{"item":{"type":"proposed_plan","planId":"plan-1"},"updatedAt":"2026-10-17T10:01:00Z"}],
+      "messages":[],
+      "plans":[{"id":"plan-1","threadId":"thread-1","runId":"run-1","nodeId":"n","status":"active","kind":"proposed_plan","markdown":"# Native Plan\n\n## Summary\nShip **it**\n\n## Steps\n1. Two"}]})
+}
+
+#[test]
+fn plan_workflow_view_follow_up_and_titles() {
+    let p = plan_projection();
+    let view = call("planWorkflow.view", &json!({"projection":p})).unwrap();
+    assert_eq!(keys(&view), ["plans", "ready"]);
+    let plan = &view["plans"][0];
+    assert_eq!(keys(plan), ["blocks", "displayMarkdown", "id", "markdown", "runId", "status", "threadId", "title", "updatedAt"]);
+    assert_eq!((plan["title"].as_str(), plan["displayMarkdown"].as_str()), (Some("Native Plan"), Some("Ship **it**\n\n## Steps\n1. Two")));
+    assert_eq!(plan["blocks"], json!(t3_protocol::markdown::blocks("Ship **it**\n\n## Steps\n1. Two", false)));
+    assert_eq!(view["ready"]["id"], "plan-1");
+    // The same plan view timeline.view returns, blocks and all.
+    let timeline = call("timeline.view", &json!({"projection":p})).unwrap();
+    assert_eq!(view, timeline["planView"]);
+    assert!(call("planWorkflow.view", &json!({"projection":{"thread":{"id":"t"}}})).unwrap()["ready"].is_null());
+
+    let implement = call("planWorkflow.followUp", &json!({"plan":view["ready"],"threadId":"thread-1"})).unwrap();
+    assert_eq!(implement["interactionMode"], "default");
+    assert_eq!(implement["sourcePlanRef"], json!({"threadId":"thread-1","planId":"plan-1"}));
+    assert!(implement["text"].as_str().unwrap().starts_with("PLEASE IMPLEMENT THIS PLAN:\n# Native Plan"));
+    let feedback = call("planWorkflow.followUp", &json!({"plan":view["ready"],"threadId":"thread-1","draft":" Shorter "})).unwrap();
+    assert_eq!(feedback, json!({"text":"Shorter","interactionMode":"plan"}));
+    assert_eq!(call("planWorkflow.followUp", &json!({"plan":view["ready"],"threadId":"thread-2"})).unwrap_err(), "invalid_plan_scope");
+
+    let command = json!({"type":"message.dispatch","threadId":"thread-9","text":implement["text"]});
+    let attached = call("planWorkflow.attachSourceRef", &json!({"command":command,"followUp":implement})).unwrap();
+    assert_eq!(attached["sourcePlanRef"], json!({"threadId":"thread-1","planId":"plan-1"}));
+    assert_eq!(call("planWorkflow.attachSourceRef", &json!({"command":{"type":"thread.create"},"followUp":implement})).unwrap_err(), "invalid_plan_command");
+    assert_eq!(call("planWorkflow.implementationTitle", &json!({"markdown":plan["markdown"]})).unwrap(), "Implement Native Plan");
+    assert_eq!(call("planWorkflow.implementationTitle", &json!({"markdown":"no heading"})).unwrap(), "Implement plan");
+    assert_eq!(call("planWorkflow.mode", &json!({"planModeEnabled":true,"provider":{"showInteractionModeToggle":true},"requested":"plan"})).unwrap(), json!({"enabled":true,"interactionMode":"plan"}));
+    assert_eq!(call("planWorkflow.mode", &json!({"planModeEnabled":true,"requested":"plan"})).unwrap()["interactionMode"], "default");
+}
