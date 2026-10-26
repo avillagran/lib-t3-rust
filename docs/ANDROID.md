@@ -15,7 +15,7 @@ operations, Strings). It has no UI, account configuration or background service.
 to the Android application's dependencies:
 
 ```kotlin
-implementation(files("libs/lib-t3-rust-android-v0.3.4.aar"))
+implementation(files("libs/lib-t3-rust-android-v0.3.5.aar"))
 ```
 
 The application supplies its existing INTERNET permission and Kotlin standard
@@ -269,12 +269,17 @@ envelope); other operations keep 8 MiB.
   first one also translates the English sources other functions return
   (`statusLabel`, subagent labels, summary parts) without a name table.
 
-Kotlin wrappers under `T3Api(client).domain` (108):
+- **Notifications.** `awareness.view` turns the followed environments' shells
+  into the ongoing card, its chip, alerts and summaries, with T3's phases and
+  lifetimes and ot3's alert key; see [Following threads](#following-threads-notifications-and-live-updates).
+
+Kotlin wrappers under `T3Api(client).domain` (109):
 
 | Module | Functions |
 | --- | --- |
 | `projection` (1) | `apply` |
 | `sidebar` (8) | `status`, `metadata`, `sortTimestamps`, `command`, `threadAction`, `snapshot`, `view`, `detail` |
+| `awareness` (1) | `view` |
 | `projects` (2) | `identity`, `monogram` |
 | `timeline` (4) | `view`, `liveActivity`, `minimap`, `minimapIndex` |
 | `activity` (1) | `describe` |
@@ -302,6 +307,63 @@ Kotlin wrappers under `T3Api(client).domain` (108):
 | `scopedSettings` (10) | `effective`, `projectPatch`, `projectFile`, `validatedTargets`, `writePatch`, `writeWasDropped`, `targetView`, `aggregate`, `page`, `projectCatalogConfig` |
 | `subagents` (4) | `buckets`, `describe`, `cards`, `fromThread` |
 | `theme` (1) | `tokens` |
+
+### Following threads: notifications and Live Updates
+
+The follow service (a foreground service whose notification is the ongoing
+card) keeps no rule of its own: one `awareness.view` call per change gives it
+everything it posts. Shapes are in the README's Domain operations; `card` and
+`alerts` are what ot3-Android's `NotificationContract` parses.
+
+```kotlin
+// On a worker, after every shell change, at nextDeadline and when the screen changes.
+fun refresh(now: Long = System.currentTimeMillis()) {
+    val environments = JSONArray().apply {
+        for (e in followed) put(JSONObject().put("id", e.id).put("name", e.name)
+            .put("shell", e.shell /* the supervisor's shell state */)
+            .put("state", e.connectionState /* null when connected */))
+    }
+    val view = api.domain.awareness.view(environments, now,
+        baseline = baselineStore.load(),               // null the first time
+        onScreen = visibleThread?.let { JSONObject().put("environmentId", it.environmentId).put("threadId", it.threadId) },
+        preferences = JSONObject().put("approval", true).put("input", true).put("completion", true).put("failure", true),
+        lifecycle = lifecycle, locale = appLocales /* "es-CL:en" */) as JSONObject
+    lifecycle = "running"
+    postCard(view.optJSONObject("card"))               // null: cancel the card
+    postAlerts(view.getJSONArray("alerts"), view.getJSONArray("summaries"))
+    baselineStore.save(view.getJSONObject("baseline")) // after posting
+    scheduleTick(if (view.isNull("nextDeadline")) null else view.getLong("nextDeadline"))
+}
+```
+
+1. **Environments.** The same objects as `sidebar.view`, only for environments
+   the service follows and is authorised for. While one is not connected, pass
+   its last shell with a non-null `state`: its live rows read `stale` (status
+   Waiting), it raises nothing and its baseline entry is kept. Leave out a
+   revoked or forgotten environment: its rows and baseline entry go, with no
+   Done alert.
+2. **When.** After each shell change (at the stream's `repaint`), when the
+   thread on screen changes, when preferences change and at `nextDeadline`
+   (one delayed tick, rescheduled by every call; none when null). No polling.
+3. **`lifecycle`.** `cold` on the first call after Follow is switched on (or
+   after the user resets notifications): nothing alerts and the baseline is
+   rebuilt. `resumed` on the first call after the process restarted with its
+   stored baseline, or after Doze or a network loss; `running` otherwise. Both
+   use the baseline, so a request that arrived meanwhile alerts and a result
+   older than two minutes does not.
+4. **Posting.** `card` is the foreground notification; `card.expiresAt` its
+   `setTimeoutAfter`; `chip` (only while `active`) its short critical text,
+   worded by the app (`working` → Working, `live` → "N live", `approve`,
+   `answer`). Post each alert with its `id` as the tag, so posting the same alert
+   again replaces it; a finished alert's `expiresAt` is its timeout. Post one
+   summary per entry of `summaries`, in the alert group of its `group`.
+5. **Baseline.** Store the returned `baseline` (DataStore) after the alerts are
+   posted. If the process dies first, the next call with the old baseline returns
+   the same alerts with the same ids, which replace rather than repeat. A lib
+   upgrade that changes its `version` resets it silently (no alerts once).
+6. **Stopping.** When `card` is null or not `active` for the idle period, post
+   the last card (it expires by itself) and stop; nothing needs to run until the
+   app is opened again.
 
 ## Events through the existing JSON ABI
 
