@@ -241,4 +241,25 @@ The rest are ports for hosts without QML; ot3 keeps its JavaScript and QML:
 `T3ThreadRow.qml`, `T3Approvals.qml`, `T3Changes.qml`, `T3TextField.qml`,
 `T3Switch.qml` and `T3Composer.qml`, `DocumentTheme.js` and `T3Starfield.qml`)
 and `i18n::t` (`T3I18n.tr`). `data/i18n.json` is a copy of ot3's
-`translations/i18n.json`; when ot3's catalog changes, copy it again.
+`translations/i18n.json` plus the eight strings `awareness.view` adds (0.3.5,
+section 8); when ot3's catalog changes, copy it again and keep those eight
+unless ot3 has them by then.
+
+## 8. Thread awareness (0.3.5)
+
+`t3_protocol::awareness` is new, not a move: it joins ot3's alert key with T3's
+awareness rules for hosts that notify (ot3-Android's follow service first).
+`awareness::phase` is T3's `projectThreadAwarenessV2`
+(`packages/shared/src/agentAwareness.ts`, T3 nightly `680152e27`), checked with a
+temporary node harness outside both repos against T3's own TypeScript on ot3's
+`docs/protocol/fixtures/shell.json`, the lib's sidebar fixtures and a cross
+product of every field it reads: 116,470 threads, no difference.
+
+The alert decision is ot3's `notify` (`src/main.rs:54-144`) with T3's groups,
+2-minute freshness for results, subagents excluded and the thread on screen
+consumed, over a `baseline` the host stores instead of `seen-rust.json`. ot3
+can keep `notify` as it is; to share the rule, call `awareness::view` with the
+snapshot's environments and post `alerts` (and `summaries`) instead of diffing
+`seen-rust.json`, keeping its sound choice (a question outranks a completion)
+and its retry on a failed delivery (save the returned baseline only after
+`notify-send` succeeds).

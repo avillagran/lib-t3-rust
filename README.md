@@ -504,9 +504,9 @@ derives from T3's JSON (the sidebar over several environments, the thread
 timeline and its minimap, Markdown blocks, project chips, subagent cards, the
 queue, approvals, questions, plans, rewind, the tool inspector, the diff, the Git
 sheet and branch picker, pull requests, settings, usage and quotas, models,
-composer suggestions, history pages), the commands and calls it builds, ot3's
-colours for an Omarchy theme and ot3's string catalog. They
-need no connection and never touch the network, so they work before
+composer suggestions, history pages, what to notify about threads), the
+commands and calls it builds, ot3's colours for an Omarchy theme and ot3's
+string catalog. They need no connection and never touch the network, so they work before
 `connectBearer` and while offline; anything that depends on the clock takes `now`
 (milliseconds) as an argument. Through the JSON ABI:
 
@@ -540,6 +540,55 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
   carries `detail` (approval, input, plan, waiting, goal, working, limited,
   failed, woke, done or empty), `state`, `statusLabel`, `statusRole` and `time`
   (`{kind, at, label}`, to recompute the label between views).
+- **`awareness.view`** is what a host needs to notify about threads: the
+  same `environments` as `sidebar.view`, `now`, the `baseline` the previous call
+  returned, the thread on screen (`onScreen: {environmentId, threadId}`), which
+  alerts to raise (`preferences: {approval, input, plan, completion, failure}`,
+  all on by default; `plan` follows `input`), `lifecycle` (`cold` starts over
+  from what it sees; `resumed` and `running`, the default, both use the
+  baseline) and `locale` for the texts. It returns `counts` (the sidebar's),
+  `rows` (every top-level thread T3 would show, in T3's priority order: approval
+  and input, failed, starting and running, the rest), `card` (the ongoing card:
+  `active`, `phase`, `title`, `subtitle`, `status`, `chip` `{kind: working,
+  live, approve or answer, count}` while active, `since` when the phase has a
+  stable start, `expiresAt`, `route` and up to five `rows`), `alerts` (each
+  `{id, group: attention or finished, phase, title, body, status, route,
+  expiresAt?}`), `summaries` (one per group with several alerts: "2 agents need
+  attention", "2 agents finished"), the new `baseline` and `nextDeadline`.
+  - *Phases* are T3's `projectThreadAwarenessV2`: starting, running,
+    waiting_for_approval, waiting_for_input, completed, failed; a live phase of an
+    environment whose `state` says it is not connected is `stale` (status
+    Waiting), and its baseline entry waits untouched.
+  - *Alert key* (the decision of ot3-Android's request U28): ot3's. A thread
+    alerts when its `sidebar.view` row turns `pending` or stays pending with a new
+    `revision`, so ready plans and review completions alert as on the desktop and
+    a second request on a waiting thread alerts again. T3's rules decide the rest:
+    the attention group (approval, question, ready plan, which reads as
+    waiting_for_input) and the finished group (done, failed), a finished alert
+    only while its result is at most 2 minutes old, and T3's lifetimes. The id
+    is `JSON.stringify([environmentId, threadId, phase, revision])`, the same for
+    the same input, so a host that tags notifications with it never doubles one.
+  - *Silence.* No alert without the environment's entry in `baseline` (first
+    observation, cleared data, `lifecycle: "cold"`, a baseline of another
+    `version` or malformed), while an environment is not ready, for subagents,
+    settled or snoozed threads, for `onScreen`, or when a preference is off;
+    the new state still goes into `baseline`, so none of them alerts later. A
+    request wakes a snoozed thread, as in T3.
+  - *Deadlines* are absolute and come from the thread's own stamps, so a replay
+    never extends them: starting and running 2 h after `updatedAt`, waiting 24 h
+    after `updatedAt`, finished 15 min after the result (`latestRunCompletedAt`).
+    A row is gone at its `expiresAt`; the card lasts as long as its longest row.
+    `nextDeadline` is the earliest `expiresAt` of the rows and alerts, or of a
+    snooze that ends with a reason (when the thread may alert), or null:
+    call again then.
+  - *`baseline`* is opaque JSON for the host to store and pass back:
+    `{version, environments}` with one revision per pending thread of each ready
+    environment; threads that left their shell and environments no longer passed
+    are dropped.
+  - *Texts* are in `locale`: statuses are `sidebar.view`'s labels (Plan ready,
+    Goal, Limited…, else T3's word for the phase), alert bodies T3's
+    `Status: project`, titles cut at 120 characters and statuses at 40, as T3
+    does.
 - **`timeline.view`** takes a projection (from a bounded snapshot or a thread
   stream, kept current with `projection.apply`) and returns ot3's conversation:
   user, assistant, activity, changes, context, plan, secret, subagents and error
@@ -570,8 +619,9 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
   `DocumentTheme`'s CSS variables. Goldens cover Omarchy's 22 themes, each
   checked against what ot3 drew for it.
 - **`i18n.t`** is ot3's `T3I18n.tr` over ot3's catalog, which the library
-  carries (20 languages, 1796 English sources): a locale list such as
-  `fr_CA.UTF-8:en`, the English source as key and `{name}` arguments; Arabic
+  carries (20 languages, 1796 English sources, plus the 8 `awareness.view`
+  adds): a locale list such as `fr_CA.UTF-8:en`, the English source as key
+  and `{name}` arguments; Arabic
   gets ot3's U+2068/U+2069 isolates. `i18n.catalog(locale)` returns every string
   at once, `i18n.resolve` the locale ot3 picks and `i18n.languages` its language
   picker. English source strings in other functions' output (`statusLabel`,
@@ -599,6 +649,7 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
 | `sidebar.snapshot` | `environments`, `now` | object {environments [{id, name, state}], stale, projects, threads, working, pending}: each environment {id, name?, shell?, state?} as ot3's rows, newest first |
 | `sidebar.view` | `environments`, `now`, `filter`?, `project`?, `environmentId`?, `query`?, `grouped`?, `subthreadsExpanded`?, `selectedKey`?, `returns`?, `groupingMode`?, `groupingOverrides`?, `nativeGrouping`?, `colors`?, `accent`? | object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, projectIdentities {key: identity}, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time |
 | `sidebar.detail` | `thread`, `now`? | object {detail, state, statusLabel, statusRole, time} of one sidebar row |
+| `awareness.view` | `environments`, `now`, `baseline`?, `onScreen`?, `preferences`?, `lifecycle`?, `locale`? | object {counts, rows [{route {environmentId, threadId}, phase, title, project, host, status, since?, expiresAt}], card {active, phase, title, subtitle, status, chip? {kind working, live, approve or answer, count}, since?, expiresAt, route, rows (at most 5)} or null, alerts [{id, group attention or finished, phase, title, body, status, route, expiresAt?}], summaries [{group, title, body, lines, route}], baseline, nextDeadline}: T3's phases, card and lifetimes and ot3's alert key over sidebar.view's environments; pass baseline back on the next call and call again at nextDeadline (ms); texts in locale |
 | `projects.identity` | `projects`, `colors`?, `accent`? | array of {key, monogram, label, kind, icon, colorSlot, colorKey, color, fill}, one per project, slots over all of them |
 | `projects.monogram` | `name` | string: the two-letter monogram of a project title |
 | `timeline.view` | `projection`, `historyCursor`?, `hasMoreHistory`?, `payloadBudgetExceeded`?, `mathRenderingEnabled`? | object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev; assistant rows and plans carry markdown.blocks], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded} |
@@ -695,7 +746,7 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
 | `subagents.fromThread` | `thread` | object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent |
 | `theme.tokens` | `colors`, `id`? | object {id, name, appearance (light when the background's Rec.709 luminance > 0.5), luminance, mode, base, roles {dim, statusMuted, divider, surface, card, cardBorder, changesCard, rowSelected, rowPressed, rowDraft, field, fieldBorder, switchOff, inlineCode, composerBorder, composerFocus, working, done, waiting, failed, warning, input, onAccent}, layers {role: {color, alpha}}, statusColors {detail: colour}, projectPalette, projectFills, sky {lightSky, star, meteor, ink, header {brightness, nebula, meteorRate, base}, panel}, document {appearance, variables}, mcpTheme}: ot3's colours for an Omarchy colors.toml, each role the opaque #rrggbb ot3 draws |
 | `i18n.t` | `locale`, `key`, `args`? | string: ot3's translation of an English source string for a locale list (fr_CA.UTF-8:en), else the language's, English's or the source; {name} placeholders from args, Arabic isolated with U+2068/U+2069 |
-| `i18n.catalog` | `locale` | object {locale, language, rtl, strings {source: translation}}: every string of ot3's catalog for the locale as i18n.t gives it without args (1796 sources, 20 languages) |
+| `i18n.catalog` | `locale` | object {locale, language, rtl, strings {source: translation}}: every string of the catalog for the locale as i18n.t gives it without args (1804 sources: ot3's 1796 and awareness.view's 8; 20 languages) |
 | `i18n.resolve` | `locale` | object {locale, language, rtl}: the first locale of the list the catalog has (by itself or its language), else the first |
 | `i18n.languages` | `locale`? | array of {id, name}: ot3's language picker, system first (its name translated for locale), then each catalog language in its own name |
 
@@ -719,7 +770,7 @@ or real conversations are created by these tests.
 | Native state | `projection`, `history`, `lifecycle`, `stream` |
 | Transport | `ConnectionOptions`, `Connection::rpc`, `Connection::rpc_with_timeout`, `stream` (`subscribe`, `subscribe_probed`), `assets`, `pairing`, `bounded_snapshot` |
 | Chat operations | `composer`, `queue`, `questions`, `approvals`, `tasks` |
-| Presentation | `activity`, `changes`, `documents`, `sidebar` (and `sidebar::view`), `timeline` (and `timeline::minimap`), `subagents`, `markdown`, `projects` (identity), `models`, `theme`, `i18n` (with ot3's catalog) |
+| Presentation | `activity`, `changes`, `documents`, `sidebar` (and `sidebar::view`), `awareness`, `timeline` (and `timeline::minimap`), `subagents`, `markdown`, `projects` (identity), `models`, `theme`, `i18n` (with ot3's catalog) |
 | Domain operations | `domain` (the registry behind `{"op":"domain"}`) |
 | Devices | `device_hub` |
 | Configuration | `connection_catalog`, `projects`, `settings` |
@@ -829,6 +880,19 @@ explicit surface; Kotlin should treat it as Qt-specific. Hosts without Qt use
 renderer-neutral blocks and spans with ot3's link rule, math kept as TeX.
 `plan_workflow` and `timeline` take the renderer as a parameter, so neither is
 tied to Qt.
+
+### Added in 0.3.5
+
+- **`awareness.view`** (109 domain functions): T3's agent phases per thread,
+  the ongoing card and its status bar chip, attention and finished alerts
+  deduplicated against a host-held `baseline`, summaries and absolute
+  deadlines, over the environments `sidebar.view` takes. The alert key is
+  ot3's (`pending` and `revision`); groups, freshness and lifetimes are T3's.
+  Rust: `t3_protocol::awareness` (`view`, `phase`, `priority`, `expires_at`).
+- **Catalog.** Eight English sources for its card titles and summaries
+  (`{n} agents need attention`, `{n} agents finished`, `1 needs you`,
+  `{n} need you`, `Finished, {n} failed`, `All finished`, `{n} active`,
+  `{n} threads`) in the 20 languages: 1804 sources.
 
 ### Added in 0.3.4
 
