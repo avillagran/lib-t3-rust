@@ -658,7 +658,7 @@ impl Command {
                     DispatchMode::StartImmediately => json!({"type":"start_immediately"}),
                 };
                 let mut v = json!({"type":"message.dispatch","commandId":cid(&m.command_id)?,"threadId":tid(&m.thread_id)?,
-                    "messageId":ids::id("messageId", &m.message_id)?,"text":if m.guest_message_id.is_some() { ids::text("text", &m.text, TEXT_MAX)?.to_string() } else { message_text("text", &m.text, &m.attachments)? },
+                    "messageId":ids::id("messageId", &m.message_id)?,"text":if m.guest_message_id.is_some() && m.text.is_empty() { String::new() } else { message_text("text", &m.text, &m.attachments)? },
                     "attachments":attachments("attachments", &m.attachments)?,"createdBy":one_of("createdBy", &m.created_by, ACTORS)?,
                     "creationSource":one_of("creationSource", &m.creation_source, CREATION_SOURCES)?,"dispatchMode":mode});
                 if let Some(c) = &m.context {
