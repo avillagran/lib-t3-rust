@@ -1,4 +1,4 @@
-// Generated from bindings/android/describe.json (t3code@680152e27) by tests/api_describe.rs.
+// Generated from bindings/android/describe.json (t3code@3f9448747) by tests/api_describe.rs.
 // Do not edit: run `T3_UPDATE_FIXTURES=1 cargo test --test api_describe`.
 package dev.avillagran.t3
 
@@ -14,6 +14,7 @@ class T3Api(client: T3Client) {
     val device = Device(client)
     val diagnostics = Diagnostics(client)
     val filesystem = Filesystem(client)
+    val guestShare = GuestShare(client)
     val mcpApps = McpApps(client)
     val orchestration = Orchestration(client)
     val preview = Preview(client)
@@ -50,6 +51,9 @@ class T3Api(client: T3Client) {
     }
 
     class Device internal constructor(private val client: T3Client) {
+        /** `device.easAccount` · read · replay free · scope settings:write · 20000 ms */
+        fun easAccount(hostId: String? = null, accessToken: String? = null): Any? =
+            client.call("device.easAccount", JSONObject().put("hostId", hostId).put("accessToken", accessToken))
         /** `device.list` · read · replay free · scope one of orchestration:read, orchestration:operate · 300000 ms */
         fun list(updateTool: String? = null, inspectOnly: Boolean? = null, retryHostId: String? = null): Any? =
             client.call("device.list", JSONObject().put("updateTool", updateTool).put("inspectOnly", inspectOnly).put("retryHostId", retryHostId))
@@ -117,6 +121,12 @@ class T3Api(client: T3Client) {
             client.call("filesystem.getMetadata", JSONObject().put("paths", paths))
     }
 
+    class GuestShare internal constructor(private val client: T3Client) {
+        /** `guestShare.create` · mutation · replay never · scope access:write · 20000 ms */
+        fun create(threadId: String): Any? =
+            client.call("guestShare.create", JSONObject().put("threadId", threadId))
+    }
+
     class McpApps internal constructor(private val client: T3Client) {
         /** `mcpApps.callTool` · mutation · replay never · scope orchestration:operate · 20000 ms */
         fun callTool(threadId: String, itemId: String, name: String, arguments: JSONObject): Any? =
@@ -130,6 +140,15 @@ class T3Api(client: T3Client) {
     }
 
     class Orchestration internal constructor(private val client: T3Client) {
+        /** `orchestration.getThreadFamily` · read · replay free · scope orchestration:read · 20000 ms */
+        fun getThreadFamily(threadId: String): Any? =
+            client.call("orchestration.getThreadFamily", JSONObject().put("threadId", threadId))
+        /** `orchestration.getWorktreeThreadIds` · read · replay free · scope orchestration:read · 20000 ms */
+        fun getWorktreeThreadIds(worktreePath: String): Any? =
+            client.call("orchestration.getWorktreeThreadIds", JSONObject().put("worktreePath", worktreePath))
+        /** `orchestration.getOlderSettledThreads` · read · replay free · scope orchestration:read · 20000 ms */
+        fun getOlderSettledThreads(before: JSONObject, limit: Long, projectIds: JSONArray? = null): Any? =
+            client.call("orchestration.getOlderSettledThreads", JSONObject().put("before", before).put("projectIds", projectIds).put("limit", limit))
         /** `orchestration.dispatchCommand` · mutation · replay id · scope orchestration:operate · 20000 ms */
         fun dispatchCommand(args: JSONObject): Any? = client.call("orchestration.dispatchCommand", args)
         /** `orchestration.launchThread` · mutation · replay id · scope orchestration:operate · 20000 ms */
@@ -154,17 +173,17 @@ class T3Api(client: T3Client) {
         fun stopWorkflow(threadId: String, subagentId: String): Any? =
             client.call("orchestration.stopWorkflow", JSONObject().put("threadId", threadId).put("subagentId", subagentId))
         /** `orchestration.searchThreads` · read · replay free · scope orchestration:read · 20000 ms */
-        fun searchThreads(query: String, limit: Long? = null): Any? =
-            client.call("orchestration.searchThreads", JSONObject().put("query", query).put("limit", limit))
+        fun searchThreads(query: String, limit: Long? = null, olderSettledBefore: String? = null, projectIds: JSONArray? = null, environmentLabel: String? = null, titlesOnly: Boolean? = null): Any? =
+            client.call("orchestration.searchThreads", JSONObject().put("query", query).put("limit", limit).put("olderSettledBefore", olderSettledBefore).put("projectIds", projectIds).put("environmentLabel", environmentLabel).put("titlesOnly", titlesOnly))
         /** `orchestration.getArchivedShellSnapshot` · read · replay free · scope orchestration:read · 20000 ms */
         fun getArchivedShellSnapshot(): Any? =
             client.call("orchestration.getArchivedShellSnapshot", JSONObject())
         /** `orchestration.subscribeShell` · stream · read · replay free · scope orchestration:read */
-        fun subscribeShell(afterSequence: Long? = null, requestCompletionMarker: Boolean? = null): T3Subscription =
-            client.subscribeFn("orchestration.subscribeShell", JSONObject().put("afterSequence", afterSequence).put("requestCompletionMarker", requestCompletionMarker))
+        fun subscribeShell(afterSequence: Long? = null, requestCompletionMarker: Boolean? = null, omitIdleSubagents: Boolean? = null, omitOlderSettled: Boolean? = null): T3Subscription =
+            client.subscribeFn("orchestration.subscribeShell", JSONObject().put("afterSequence", afterSequence).put("requestCompletionMarker", requestCompletionMarker).put("omitIdleSubagents", omitIdleSubagents).put("omitOlderSettled", omitOlderSettled))
         /** `orchestration.subscribeThread` · stream · read · replay free · scope orchestration:read */
-        fun subscribeThread(threadId: String, afterSequence: Long? = null, requestCompletionMarker: Boolean? = null, acceptBoundedSnapshot: Boolean? = null, acceptCompactTurnItems: Boolean? = null): T3Subscription =
-            client.subscribeFn("orchestration.subscribeThread", JSONObject().put("threadId", threadId).put("afterSequence", afterSequence).put("requestCompletionMarker", requestCompletionMarker).put("acceptBoundedSnapshot", acceptBoundedSnapshot).put("acceptCompactTurnItems", acceptCompactTurnItems))
+        fun subscribeThread(threadId: String, afterSequence: Long? = null, requestCompletionMarker: Boolean? = null, acceptBoundedSnapshot: Boolean? = null, acceptCompactTurnItems: Boolean? = null, acceptDedupedBodies: Boolean? = null, acceptCompactIds: Boolean? = null): T3Subscription =
+            client.subscribeFn("orchestration.subscribeThread", JSONObject().put("threadId", threadId).put("afterSequence", afterSequence).put("requestCompletionMarker", requestCompletionMarker).put("acceptBoundedSnapshot", acceptBoundedSnapshot).put("acceptCompactTurnItems", acceptCompactTurnItems).put("acceptDedupedBodies", acceptDedupedBodies).put("acceptCompactIds", acceptCompactIds))
         /** `orchestration.subscribeCommandOutput` · stream · read · replay free · scope orchestration:read */
         fun subscribeCommandOutput(threadId: String, itemId: String): T3Subscription =
             client.subscribeFn("orchestration.subscribeCommandOutput", JSONObject().put("threadId", threadId).put("itemId", itemId))
@@ -216,6 +235,9 @@ class T3Api(client: T3Client) {
     }
 
     class Projects internal constructor(private val client: T3Client) {
+        /** `projects.listIgnoredFiles` · read · replay free · scope filesystem:read · 20000 ms */
+        fun listIgnoredFiles(cwd: String): Any? =
+            client.call("projects.listIgnoredFiles", JSONObject().put("cwd", cwd))
         /** `projects.readFile` · read · replay free · scope filesystem:read · 20000 ms */
         fun readFile(cwd: String, relativePath: String, allowMissing: Boolean? = null): Any? =
             client.call("projects.readFile", JSONObject().put("cwd", cwd).put("relativePath", relativePath).put("allowMissing", allowMissing))
@@ -272,6 +294,12 @@ class T3Api(client: T3Client) {
     }
 
     class PullRequests internal constructor(private val client: T3Client) {
+        /** `pullRequests.changeBreakdown` · read · replay free · scope orchestration:read · 20000 ms */
+        fun changeBreakdown(projectId: String, repository: String, number: Long, host: String? = null, expectedAccountId: String? = null, allowStale: Boolean? = null): Any? =
+            client.call("pullRequests.changeBreakdown", JSONObject().put("projectId", projectId).put("repository", repository).put("number", number).put("host", host).put("expectedAccountId", expectedAccountId).put("allowStale", allowStale))
+        /** `pullRequests.filterOptions` · read · replay free · scope orchestration:read · 20000 ms */
+        fun filterOptions(kind: String, projectId: String? = null, projectIds: JSONArray? = null, host: String? = null, query: String? = null): Any? =
+            client.call("pullRequests.filterOptions", JSONObject().put("kind", kind).put("projectId", projectId).put("projectIds", projectIds).put("host", host).put("query", query))
         /** `pullRequests.list` · read · replay free · scope orchestration:read · 20000 ms */
         fun list(state: String, involvement: String? = null, filters: JSONObject? = null, projectId: String? = null, projectIds: JSONArray? = null, host: String? = null, limit: Long? = null, cursors: JSONObject? = null, query: String? = null): Any? =
             client.call("pullRequests.list", JSONObject().put("state", state).put("involvement", involvement).put("filters", filters).put("projectId", projectId).put("projectIds", projectIds).put("host", host).put("limit", limit).put("cursors", cursors).put("query", query))

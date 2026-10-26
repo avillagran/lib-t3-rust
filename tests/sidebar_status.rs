@@ -55,3 +55,11 @@ fn only_a_request_or_a_fresh_failure_wakes_a_snooze_early() {
     failed["lastVisitedAt"] = json!(iso(now - 500));
     assert_eq!(metadata(&failed, now)["woke"], false, "visited after it woke");
 }
+
+#[test]
+fn background_monitors_and_commands_hold_only_when_awaited() {
+ use t3_protocol::sidebar::background_work_holds as holds;
+ assert!(!holds(&json!([{"kind":"monitor"}])));assert!(!holds(&json!([{"kind":"command"}])));
+ assert!(holds(&json!([{"kind":"monitor","awaited":true}])));assert!(holds(&json!([{"kind":"command","awaited":true}])));
+ assert!(holds(&json!([{"kind":"subagent"}])));assert!(holds(&json!([{"kind":"background_task"}])));
+}

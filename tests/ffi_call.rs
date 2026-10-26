@@ -61,7 +61,7 @@ fn describe_needs_no_connection_and_lists_every_function() {
     );
     let dispatch = functions.iter().find(|f| f["fn"] == "orchestration.dispatchCommand").unwrap();
     assert_eq!((dispatch["kind"].as_str(), dispatch["replay"].as_str()), (Some("mutation"), Some("id")));
-    assert_eq!(dispatch["variants"].as_array().unwrap().len(), 34);
+    assert_eq!(dispatch["variants"].as_array().unwrap().len(), 36);
     let settings = functions.iter().find(|f| f["fn"] == "server.updateSettings").unwrap();
     assert_eq!((&settings["scope"], &settings["scopes"]), (&json!("dynamic"), &json!(["settings:write", "providers:manage"])));
 }

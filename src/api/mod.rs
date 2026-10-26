@@ -12,6 +12,7 @@ pub mod ids;
 pub(crate) mod reader;
 pub mod assets;
 pub mod orchestration;
+pub mod guest_share;
 pub mod preview;
 pub mod projects;
 pub mod review;
@@ -37,7 +38,7 @@ pub mod streams;
 pub use orchestration::{Command, ThreadLaunch};
 
 /// T3 checkout the registry was verified against (`tests/fixtures/t3-contract.json`).
-pub const CONTRACT: &str = "t3code@680152e27";
+pub const CONTRACT: &str = "t3code@3f9448747";
 /// Version of the `describe` document.
 pub const API_VERSION: u64 = 1;
 /// Deadline of `Connection::rpc`; functions with another deadline declare it.
@@ -343,7 +344,7 @@ impl<'a> Args<'a> {
 
 const MODULES: &[&[Function]] = &[
     server::FUNCTIONS,
-    orchestration::FUNCTIONS,
+    orchestration::FUNCTIONS, guest_share::FUNCTIONS,
     preview::FUNCTIONS,
     assets::FUNCTIONS,
     vcs::FUNCTIONS,

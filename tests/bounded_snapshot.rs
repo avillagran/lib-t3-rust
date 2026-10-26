@@ -118,9 +118,9 @@ fn restores_exact_native_local_prefix_before_inherited_tail_only_when_marked() {
 #[test]
 fn bounded_thread_path_validates_and_encodes_the_id() {
     use t3_protocol::bounded_snapshot::path;
-    assert_eq!(path("t-1").unwrap(), "/api/orchestration/threads/t-1/bounded?compactTurnItems=1");
+    assert_eq!(path("t-1").unwrap(), "/api/orchestration/threads/t-1/bounded?compactTurnItems=1&dedupeBodies=1&compactIds=1");
     // Segment encoding, as ot3 did: a literal % is escaped, never decoded into a slash.
-    assert_eq!(path("a:b%2F.c_d").unwrap(), "/api/orchestration/threads/a:b%252F.c_d/bounded?compactTurnItems=1");
+    assert_eq!(path("a:b%2F.c_d").unwrap(), "/api/orchestration/threads/a:b%252F.c_d/bounded?compactTurnItems=1&dedupeBodies=1&compactIds=1");
     let long = "a".repeat(2049);
     for bad in ["", "-t", "a/b", "a?b", "a b", "../x", long.as_str()] {
         assert_eq!(path(bad).unwrap_err(), "invalid_id", "{bad}");
@@ -136,7 +136,7 @@ fn bounded_thread_reads_a_large_compact_snapshot_and_restores_it() {
     let server = thread::spawn(move || {
         let (mut s, _) = listener.accept().unwrap();
         let h = header(&mut s);
-        assert!(h.starts_with("GET /api/orchestration/threads/t/bounded?compactTurnItems=1 HTTP"), "{h}");
+        assert!(h.starts_with("GET /api/orchestration/threads/t/bounded?compactTurnItems=1&dedupeBodies=1&compactIds=1 HTTP"), "{h}");
         assert!(h.to_lowercase().contains("x-t3-orchestration-protocol: 2"));
         write!(s, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", compact.len()).unwrap();
         let _ = s.write_all(compact.as_bytes());

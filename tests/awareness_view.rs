@@ -128,7 +128,7 @@ fn phases_follow_t3_on_the_shared_shells() {
     assert_eq!(with(json!({"status":"preparing"})), Some("starting"));
     assert_eq!(with(json!({"status":"idle","activityRunStatus":"waiting"})), Some("running"));
     assert_eq!(with(json!({"status":"completed","latestRunStopRequested":true})), None);
-    assert_eq!(with(json!({"status":"completed","pendingBackgroundTasks":[{"kind":"monitor"}]})), Some("running"));
+    assert_eq!(with(json!({"status":"completed","pendingBackgroundTasks":[{"kind":"monitor"}]})), Some("completed"));
     assert_eq!(with(json!({"status":"completed","pendingBackgroundTasks":[{"kind":"command"}]})), Some("completed"));
     assert_eq!(with(json!({"status":"failed","settledOverride":"settled","pendingBackgroundTasks":[{"kind":"subagent"}]})), Some("failed"));
     assert_eq!(with(json!({"status":"failed","settledOverride":"settled"})), None);
