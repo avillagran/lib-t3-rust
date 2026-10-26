@@ -24,6 +24,7 @@ pub mod models;
 pub mod terminal;
 pub mod code_blocks;
 pub mod sidebar;
+pub mod awareness;
 pub mod compaction;
 pub mod changes;
 pub mod composer;
