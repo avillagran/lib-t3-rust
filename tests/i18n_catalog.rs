@@ -11,7 +11,7 @@ fn the_catalog_is_ot3s_twenty_languages() {
     expected.sort();
     assert_eq!(locales, expected);
     let sources = c["en"].as_object().unwrap();
-    assert_eq!(sources.len(), 1796);
+    assert_eq!(sources.len(), 1804, "ot3's 1796 and awareness.view's 8");
     for (locale, strings) in c.as_object().unwrap() {
         let strings = strings.as_object().unwrap();
         assert_eq!(strings.len(), sources.len(), "{locale}");
@@ -34,7 +34,7 @@ fn t_catalog_resolve_and_languages() {
     keys.sort();
     assert_eq!(keys, ["language", "locale", "rtl", "strings"]);
     assert_eq!((fr["locale"].as_str(), fr["language"].as_str(), fr["rtl"].as_bool()), (Some("fr-ca"), Some("fr"), Some(false)));
-    assert_eq!(fr["strings"].as_object().unwrap().len(), 1796);
+    assert_eq!(fr["strings"].as_object().unwrap().len(), 1804);
     assert_eq!(fr["strings"]["Close"], call("i18n.t", &json!({"locale":"fr","key":"Close"})).unwrap());
     assert_eq!(call("i18n.resolve", &json!({"locale":"zz:nb_NO"})).unwrap(), json!({"locale":"nb-no","language":"no","rtl":false}));
     assert_eq!(call("i18n.resolve", &json!({"locale":"ar_EG"})).unwrap()["rtl"], true);

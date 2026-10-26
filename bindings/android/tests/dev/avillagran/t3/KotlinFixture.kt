@@ -70,6 +70,17 @@ fun main() {
         val working = sidebar.getJSONObject("sections").getJSONArray("working").getJSONObject(0)
         check(working.getString("key") == "laptop/t-1" && working.getString("detail") == "working" && working.getString("statusLabel") == "Working")
         check(sidebar.getBoolean("stale") && sidebar.getJSONObject("projectIdentities").getJSONObject("laptop/p").getString("monogram") == "OC")
+        val aware = api.domain.awareness.view(environments, 1792036800000L, locale = "es") as JSONObject
+        val liveCard = aware.getJSONObject("card")
+        check(liveCard.getBoolean("active") && liveCard.getJSONObject("chip").getString("kind") == "working" && aware.getJSONArray("alerts").length() == 0) { aware.toString() }
+        val asking = JSONObject(shell.toString())
+        asking.getJSONArray("threads").getJSONObject(0).put("pendingRuntimeRequest", JSONObject().put("id", "req-1").put("kind", "command_approval").put("createdAt", "2026-10-15T04:00:30Z"))
+        val askEnvironments = org.json.JSONArray().put(JSONObject().put("id", "laptop").put("name", "Laptop").put("shell", asking))
+        val alerted = api.domain.awareness.view(askEnvironments, 1792036860000L, baseline = aware.getJSONObject("baseline"), locale = "es") as JSONObject
+        val approvalAlert = alerted.getJSONArray("alerts").getJSONObject(0)
+        check(approvalAlert.getString("group") == "attention" && approvalAlert.getString("body") == "Aprobación: omarchy-t3-code" && alerted.getJSONObject("card").getJSONObject("chip").getString("kind") == "approve") { alerted.toString() }
+        val seenAgain = api.domain.awareness.view(askEnvironments, 1792036860000L, baseline = alerted.getJSONObject("baseline")) as JSONObject
+        check(seenAgain.getJSONArray("alerts").length() == 0 && seenAgain.getLong("nextDeadline") == 1792036800000L + 24 * 60 * 60 * 1000L) { seenAgain.toString() }
         val projection = JSONObject().put("thread", JSONObject().put("id", "t-1"))
             .put("messages", org.json.JSONArray().put(JSONObject().put("id", "m").put("role", "assistant").put("text", "**Done** in `src/lib.rs`").put("createdAt", 1)))
         val applied = api.domain.projection.apply(projection, events = org.json.JSONArray()
@@ -133,7 +144,7 @@ fun main() {
         check(api.domain.i18n.t("es", "Close") == "Cerrar")
         check(api.domain.i18n.t("de", "{n} subagents", JSONObject().put("n", 3)) == "3 Unteragenten")
         val catalog = api.domain.i18n.catalog("fr_CA.UTF-8") as JSONObject
-        check(catalog.getString("language") == "fr" && catalog.getJSONObject("strings").length() == 1796)
+        check(catalog.getString("language") == "fr" && catalog.getJSONObject("strings").length() == 1804)
         val noDomain = runCatching { client.domain("queue.nope") }.exceptionOrNull()
         check(noDomain is T3Exception && noDomain.code == "unknown_function")
         val badDomain = runCatching { client.domain("sidebar.command", JSONObject().put("action", "nap").put("threadId", "t")) }.exceptionOrNull()
