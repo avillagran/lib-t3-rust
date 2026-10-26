@@ -157,7 +157,7 @@ pub const FUNCTIONS: &[DomainFn] = &[
             if events.is_empty() {
                 return Err("invalid_event".into());
             }
-            let applied = events.into_iter().filter(|e| projection::apply(&mut p, e)).count();
+            let mut applied=0;for e in events {if projection::try_apply(&mut p,&e)? {applied+=1;}}
             Ok(json!({"projection":p,"changed":applied > 0,"applied":applied}))
         },
     },

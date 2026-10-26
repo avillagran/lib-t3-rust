@@ -65,7 +65,7 @@ fn identical() -> Vec<Value> {
 #[test]
 fn every_typed_variant_round_trips_to_the_contract_shape() {
     let mut types = vec![];
-    for command in identical() {
+    for command in identical().into_iter().chain([ids("thread.guest-share.close"),with(ids("thread.guest-message.dismiss"),json!({"guestMessageId":"g"}))]) {
         let typed = Command::from_json(&command).unwrap_or_else(|e| panic!("{e}: {command}"));
         assert!(!matches!(typed, Command::Raw(_)), "{command}");
         assert_eq!(typed.payload().unwrap(), command);

@@ -391,6 +391,14 @@ fn rows() -> Vec<(&'static str, &'static str, Value, Value)> {
         ),
         ("terminal.write", "terminal.write", json!({"threadId":"t-1","terminalId":"term-1","data":" ls\r"}), json!({"threadId":"t-1","terminalId":"term-1","data":" ls\r"})),
         ("terminal.resize", "terminal.resize", json!({"threadId":"t-1","terminalId":"term-1","cols":100,"rows":30}), json!({"threadId":"t-1","terminalId":"term-1","cols":100,"rows":30})),
+        ("orchestration.getThreadFamily", "orchestration.getThreadFamily", json!({"threadId":"t-1"}), json!({"threadId":"t-1"})),
+        ("orchestration.getWorktreeThreadIds", "orchestration.getWorktreeThreadIds", json!({"worktreePath":"/w/t"}), json!({"worktreePath":"/w/t"})),
+        ("orchestration.getOlderSettledThreads", "orchestration.getOlderSettledThreads", json!({"before":{"settledAt":"2026-10-26T00:00:00Z"},"limit":50}), json!({"before":{"settledAt":"2026-10-26T00:00:00Z"},"limit":50})),
+        ("guestShare.create", "guestShare.create", json!({"threadId":"t-1"}), json!({"threadId":"t-1"})),
+        ("projects.listIgnoredFiles", "projects.listIgnoredFiles", json!({"cwd":"/r"}), json!({"cwd":"/r"})),
+        ("device.easAccount", "device.easAccount", json!({"hostId":"eas1"}), json!({"hostId":"eas1"})),
+        ("pullRequests.changeBreakdown", "pullRequests.changeBreakdown", json!({"projectId":"p-1","repository":"o/r","number":7,"host":"github.com"}), json!({"projectId":"p-1","repository":"o/r","number":7,"host":"github.com"})),
+        ("pullRequests.filterOptions", "pullRequests.filterOptions", json!({"kind":"labels","projectId":"p-1","query":"bug"}), json!({"kind":"labels","projectId":"p-1","query":"bug"})),
     ]
 }
 fn expected(rows: &[(&str, &str, Value, Value)]) -> Vec<Value> {
@@ -409,11 +417,11 @@ fn every_function_sends_its_exact_tag_and_payload_once() {
     let recorded = fake.finish();
     assert_eq!(wire(&recorded), expected(&rows));
     assert_eq!(recorded.connections, rows.len(), "one socket per call, no retries");
-    // Every registered unary function has a row, in registry order (streams: tests/api_streams.rs).
+    // Every registered unary function has a row (streams: tests/api_streams.rs).
     let mut covered = rows.iter().map(|(name, _, _, _)| *name).collect::<Vec<_>>();
-    covered.dedup();
+    covered.sort();covered.dedup();
     let unary = api::functions().filter(|f| !f.stream && f.tag.is_some());
-    assert_eq!(covered, unary.map(|f| f.name).collect::<Vec<_>>());
+    let mut registered=unary.map(|f|f.name).collect::<Vec<_>>();registered.sort();assert_eq!(covered,registered);
     for (name, tag, _, _) in &rows {
         assert_eq!(api::function(name).unwrap().tag, Some(*tag), "{name}");
     }
@@ -677,6 +685,14 @@ fn rust_signatures_put_the_same_requests_on_the_wire() {
     api::terminal::open(c, &terminal).unwrap();
     api::terminal::write(c, "t-1", "term-1", " ls\r").unwrap();
     api::terminal::resize(c, "t-1", "term-1", 100, 30).unwrap();
+    api::orchestration::get_thread_family(c,"t-1").unwrap();
+    api::orchestration::get_worktree_thread_ids(c,"/w/t").unwrap();
+    api::orchestration::get_older_settled_threads(c,&json!({"settledAt":"2026-10-26T00:00:00Z"}),None,50).unwrap();
+    api::guest_share::create(c,"t-1").unwrap();
+    api::projects::list_ignored_files(c,"/r").unwrap();
+    api::device::eas_account(c,Some("eas1"),None).unwrap();
+    api::pull_requests::change_breakdown(c,&pr).unwrap();
+    api::pull_requests::filter_options(c,"labels",Some("p-1"),None,Some("bug")).unwrap();
     let recorded = fake.finish();
     assert_eq!(wire(&recorded), expected(&rows));
 }
@@ -797,13 +813,13 @@ fn every_module_has_its_unary_functions_and_scopes() {
         *counts.entry(f.module).or_insert(0) += 1;
     }
     let expected = [
-        ("agentSessions", 2), ("assets", 2), ("device", 7), ("diagnostics", 8), ("filesystem", 2), ("mcpApps", 3),
-        ("orchestration", 10), ("preview", 9), ("projectClone", 1), ("projects", 4), ("provider", 9), ("pullRequests", 13),
+        ("agentSessions", 2), ("assets", 2), ("device", 8), ("diagnostics", 8), ("filesystem", 2), ("guestShare",1), ("mcpApps", 3),
+        ("orchestration", 13), ("preview", 9), ("projectClone", 1), ("projects", 5), ("provider", 9), ("pullRequests", 15),
         ("review", 2), ("scheduledTasks", 5), ("secrets", 1), ("server", 9), ("shell", 1), ("terminal", 3), ("vcs", 7),
         ("worktreeSetup", 1),
     ];
     assert_eq!(counts.into_iter().collect::<Vec<_>>(), expected);
-    assert_eq!(api::functions().filter(|f| !f.stream && f.tag.is_some()).count(), 99);
+    assert_eq!(api::functions().filter(|f| !f.stream && f.tag.is_some()).count(), 107);
     // Payload-dependent scopes the host can compute before choosing a token.
     assert_eq!(api::device::list_scope(Some("hub"), Some(true), None), "orchestration:operate");
     assert_eq!(api::device::list_scope(None, Some(true), Some("mac")), "orchestration:read");

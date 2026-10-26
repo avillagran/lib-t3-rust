@@ -47,7 +47,7 @@ pub fn active_run_id(p: &Value) -> &str {
         .into_iter()
         .flatten()
         .rev()
-        .find(|r| matches!(text(r, "status"), "preparing" | "starting" | "running" | "waiting"))
+        .find(|r| matches!(text(r, "status"), "preparing" | "starting" | "running" | "waiting") && !crate::compaction::idle_run(p,text(r,"id")))
         .map(|r| text(r, "id"))
         .unwrap_or_else(|| if p["runs"].as_array().is_some_and(|r| !r.is_empty()) { "" } else { text(&p["thread"], "activeRunId") })
 }
@@ -130,6 +130,7 @@ pub fn view(p: &Value, history: &Value, r: &Render) -> Result<Value> {
         thread_state[key] = value.clone();
     }
     thread_state["contextWindow"] = context_window(p);
+    thread_state["guestShare"] = p["thread"]["guestShare"].clone();
     // This thread's subagents, newest first: the composer bar shows the live
     // ones, the conversation cards and the Agents panel all of them.
     thread_state["subagents"] = json!(p["subagents"].as_array().into_iter().flatten().rev().take(48).map(subagent_summary).collect::<Vec<_>>());
@@ -402,6 +403,7 @@ pub fn conversation(projection: &Value, messages: &[Value], plan: &dyn Fn(&str) 
         }
         grouped.push(row)
     }
+    crate::compaction::timeline(projection,&mut grouped);
     // A content fingerprint per row lets a view skip unchanged rows on each
     // streamed update without comparing whole rows.
     for row in grouped.iter_mut() {

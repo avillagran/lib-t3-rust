@@ -115,7 +115,7 @@ fn rust_subscribe_functions_put_the_same_requests_on_the_wire() {
     macro_rules! sub {
         ($f:ident($($arg:expr),*)) => {{ let (cancel, receive) = once(); run($f(&conn, $($arg,)* cancel, || false, receive)); }};
     }
-    let shell = ShellSub { after_sequence: Some(41), request_completion_marker: Some(true) };
+    let shell = ShellSub { after_sequence: Some(41), request_completion_marker: Some(true), ..Default::default() };
     sub!(subscribe_shell(&shell));
     let thread = ThreadSub {
         after_sequence: Some(SAFE_MAX),

@@ -30,6 +30,8 @@
   "thread.created.record",
   "thread.delete",
   "thread.fork",
+  "thread.guest-message.dismiss",
+  "thread.guest-share.close",
   "thread.interaction-mode.set",
   "thread.mark-unread",
   "thread.merge_back",
@@ -54,7 +56,7 @@
   "thread.user-input.dismiss",
   "thread.visit"
  ],
- "contract": "t3code@680152e27",
+ "contract": "t3code@3f9448747",
  "methods": {
   "agentSessions.import": {
    "dynamic": false,
@@ -166,6 +168,11 @@
    "scope": "source-control:write",
    "stream": true
   },
+  "guestShare.create": {
+   "dynamic": false,
+   "scope": "access:write",
+   "stream": false
+  },
   "mcpApps.callTool": {
    "dynamic": false,
    "scope": "orchestration:operate",
@@ -201,6 +208,16 @@
    "scope": "orchestration:read",
    "stream": false
   },
+  "orchestration.getOlderSettledThreads": {
+   "dynamic": false,
+   "scope": "orchestration:read",
+   "stream": false
+  },
+  "orchestration.getThreadFamily": {
+   "dynamic": false,
+   "scope": "orchestration:read",
+   "stream": false
+  },
   "orchestration.getThreadProjection": {
    "dynamic": false,
    "scope": "orchestration:read",
@@ -217,6 +234,11 @@
    "stream": false
   },
   "orchestration.getWorkflowScript": {
+   "dynamic": false,
+   "scope": "orchestration:read",
+   "stream": false
+  },
+  "orchestration.getWorktreeThreadIds": {
    "dynamic": false,
    "scope": "orchestration:read",
    "stream": false
@@ -487,6 +509,11 @@
    "stream": false
   },
   "pullRequests.filesViewed": {
+   "dynamic": false,
+   "scope": "orchestration:read",
+   "stream": false
+  },
+  "pullRequests.filterOptions": {
    "dynamic": false,
    "scope": "orchestration:read",
    "stream": false

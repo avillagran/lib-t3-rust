@@ -86,7 +86,7 @@ fn existing_pure_modules_answer_through_domain() {
     assert_eq!(c.domain("composer.paths", json!({"result":{"entries":[{"path":"src","kind":"directory"}]}}))["data"][0]["icon"], "folder-plus");
     assert_eq!(c.domain("composer.catalog", json!({"provider":{"slashCommands":[{"name":"compact"}]},"cwd":"/r","kind":"command","query":"comp"}))["data"][0]["insert"], "/compact ");
     assert_eq!(c.domain("composer.attachmentReference", json!({"attachment":{"type":"file","id":"f","name":"a.txt"}}))["data"], "[a.txt](t3-context://v1/file/f)");
-    assert_eq!(c.domain("history.path", json!({"threadId":"t","cursor":"c+1"}))["data"], "/api/orchestration/threads/t/history?cursor=c%2B1");
+    assert_eq!(c.domain("history.path", json!({"threadId":"t","cursor":"c+1"}))["data"], "/api/orchestration/threads/t/history?cursor=c%2B1&compactIds=1");
     assert_eq!(c.domain("history.envelope", json!({"page":{"items":[],"nextCursor":null,"hasMoreHistory":false},"threadId":"t"}))["data"]["hasMoreHistory"], false);
     assert_eq!(c.domain("i18n.translate", json!({"catalog":{"fr":{"Close":"Fermer"}},"locale":"fr_CA","source":"Close"}))["data"], "Fermer");
 }
