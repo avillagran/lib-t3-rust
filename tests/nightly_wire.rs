@@ -61,3 +61,10 @@ fn compact_snapshot_decodes_through_the_actual_websocket_transport() {
  let got=got.into_inner().unwrap();assert_eq!(got["projection"]["thread"]["id"],"t");assert_eq!(got["projection"]["turnItems"][0]["text"],"hello");
  assert_eq!(server.finish().connections,1);
 }
+
+#[test]
+fn owner_approval_of_stored_guest_body_round_trips_with_empty_local_text() {
+ let command=json!({"type":"message.dispatch","commandId":"c","threadId":"t","messageId":"m","text":"","attachments":[],"createdBy":"user","creationSource":"web","dispatchMode":{"type":"start_immediately"},"deliveryIntent":"auto","guestMessageId":"g"});
+ assert_eq!(api::Command::from_json(&command).unwrap().payload().unwrap(),command);
+ let mut ordinary=command;ordinary.as_object_mut().unwrap().remove("guestMessageId");assert!(api::Command::from_json(&ordinary).is_err());
+}
