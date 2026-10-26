@@ -1,6 +1,6 @@
 {
   "apiVersion": 1,
-  "contract": "t3code@680152e27",
+  "contract": "t3code@3f9448747",
   "domain": [
     {
       "args": [
@@ -2503,6 +2503,70 @@
     {
       "args": [
         {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "orchestration.getThreadFamily",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "orchestration.getThreadFamily",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "worktreePath",
+          "required": true,
+          "type": "path"
+        }
+      ],
+      "fn": "orchestration.getWorktreeThreadIds",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "orchestration.getWorktreeThreadIds",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "before",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "projectIds",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "limit",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "orchestration.getOlderSettledThreads",
+      "kind": "read",
+      "module": "orchestration",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "orchestration.getOlderSettledThreads",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
           "name": "type",
           "required": true,
           "type": "command"
@@ -2542,6 +2606,8 @@
         "thread.auto-settle",
         "thread.auto-settle.set",
         "thread.pin",
+        "thread.guest-share.close",
+        "thread.guest-message.dismiss",
         "thread.unpin",
         "thread.pin.reorder",
         "thread.mark-unread",
@@ -2813,6 +2879,26 @@
           "name": "limit",
           "required": false,
           "type": "integer"
+        },
+        {
+          "name": "olderSettledBefore",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "projectIds",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "environmentLabel",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "titlesOnly",
+          "required": false,
+          "type": "bool"
         }
       ],
       "fn": "orchestration.searchThreads",
@@ -2835,6 +2921,24 @@
       "scope": "orchestration:read",
       "stream": false,
       "tag": "orchestration.getArchivedShellSnapshot",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "guestShare.create",
+      "kind": "mutation",
+      "module": "guestShare",
+      "openArgs": false,
+      "replay": "never",
+      "scope": "access:write",
+      "stream": false,
+      "tag": "guestShare.create",
       "timeoutMs": 20000
     },
     {
@@ -3456,6 +3560,24 @@
       "scope": "filesystem:read",
       "stream": false,
       "tag": "review.getDiffFileContents",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "cwd",
+          "required": true,
+          "type": "path"
+        }
+      ],
+      "fn": "projects.listIgnoredFiles",
+      "kind": "read",
+      "module": "projects",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "filesystem:read",
+      "stream": false,
+      "tag": "projects.listIgnoredFiles",
       "timeoutMs": 20000
     },
     {
@@ -4099,6 +4221,91 @@
       "scope": "filesystem:read",
       "stream": false,
       "tag": "filesystem.getMetadata",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "projectId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "repository",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "number",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "expectedAccountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "allowStale",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "pullRequests.changeBreakdown",
+      "kind": "read",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "pullRequests.changeBreakdown",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "kind",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "labels",
+            "authors"
+          ]
+        },
+        {
+          "name": "projectId",
+          "required": false,
+          "type": "id"
+        },
+        {
+          "name": "projectIds",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "host",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "query",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "pullRequests.filterOptions",
+      "kind": "read",
+      "module": "pullRequests",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": false,
+      "tag": "pullRequests.filterOptions",
       "timeoutMs": 20000
     },
     {
@@ -4751,6 +4958,29 @@
       "scope": "source-control:write",
       "stream": false,
       "tag": "pullRequests.setLabels",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "hostId",
+          "required": false,
+          "type": "token"
+        },
+        {
+          "name": "accessToken",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "device.easAccount",
+      "kind": "read",
+      "module": "device",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "settings:write",
+      "stream": false,
+      "tag": "device.easAccount",
       "timeoutMs": 20000
     },
     {
@@ -5558,6 +5788,16 @@
           "name": "requestCompletionMarker",
           "required": false,
           "type": "bool"
+        },
+        {
+          "name": "omitIdleSubagents",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "omitOlderSettled",
+          "required": false,
+          "type": "bool"
         }
       ],
       "fn": "orchestration.subscribeShell",
@@ -5594,6 +5834,16 @@
         },
         {
           "name": "acceptCompactTurnItems",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "acceptDedupedBodies",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "acceptCompactIds",
           "required": false,
           "type": "bool"
         }

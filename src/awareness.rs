@@ -68,7 +68,7 @@ const STATUS_MAX: usize = 40;
 
 /// T3 `backgroundWorkHoldsCompletion`: a subagent, monitor or background task.
 fn background_holds(t: &Value) -> bool {
-    t["pendingBackgroundTasks"].as_array().is_some_and(|tasks| tasks.iter().any(|task| matches!(task["kind"].as_str(), Some("subagent" | "monitor" | "background_task"))))
+    crate::sidebar::background_work_holds(&t["pendingBackgroundTasks"])
 }
 fn run_status(t: &Value) -> &str {
     t["activityRunStatus"].as_str().or_else(|| t["status"].as_str()).unwrap_or("")
