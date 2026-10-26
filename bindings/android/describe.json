@@ -272,6 +272,53 @@
     {
       "args": [
         {
+          "name": "environments",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "now",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "baseline",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "onScreen",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "preferences",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "lifecycle",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "cold",
+            "resumed",
+            "running"
+          ]
+        },
+        {
+          "name": "locale",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "awareness.view",
+      "module": "awareness",
+      "returns": "object {counts, rows [{route {environmentId, threadId}, phase, title, project, host, status, since?, expiresAt}], card {active, phase, title, subtitle, status, chip? {kind working, live, approve or answer, count}, since?, expiresAt, route, rows (at most 5)} or null, alerts [{id, group attention or finished, phase, title, body, status, route, expiresAt?}], summaries [{group, title, body, lines, route}], baseline, nextDeadline}: T3's phases, card and lifetimes and ot3's alert key over sidebar.view's environments; pass baseline back on the next call and call again at nextDeadline (ms); texts in locale"
+    },
+    {
+      "args": [
+        {
           "name": "projects",
           "required": true,
           "type": "array"
@@ -2159,7 +2206,7 @@
       ],
       "fn": "i18n.catalog",
       "module": "i18n",
-      "returns": "object {locale, language, rtl, strings {source: translation}}: every string of ot3's catalog for the locale as i18n.t gives it without args (1796 sources, 20 languages)"
+      "returns": "object {locale, language, rtl, strings {source: translation}}: every string of the catalog for the locale as i18n.t gives it without args (1804 sources: ot3's 1796 and awareness.view's 8; 20 languages)"
     },
     {
       "args": [

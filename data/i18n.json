@@ -1795,7 +1795,15 @@
     "Recordings of this thread": "Recordings of this thread",
     "No recordings kept for this thread yet.": "No recordings kept for this thread yet.",
     "Delete recording": "Delete recording",
-    "Play the recording · the text went into the draft": "Play the recording · the text went into the draft"
+    "Play the recording · the text went into the draft": "Play the recording · the text went into the draft",
+    "{n} agents need attention": "{n} agents need attention",
+    "{n} agents finished": "{n} agents finished",
+    "1 needs you": "1 needs you",
+    "{n} need you": "{n} need you",
+    "Finished, {n} failed": "Finished, {n} failed",
+    "All finished": "All finished",
+    "{n} active": "{n} active",
+    "{n} threads": "{n} threads"
   },
   "es": {
     "{activity} · {title}": "{activity} · {title}",
@@ -3593,7 +3601,15 @@
     "Recordings of this thread": "Grabaciones de este hilo",
     "No recordings kept for this thread yet.": "Aún no hay grabaciones guardadas de este hilo.",
     "Delete recording": "Eliminar grabación",
-    "Play the recording · the text went into the draft": "Reproducir la grabación · el texto fue al borrador"
+    "Play the recording · the text went into the draft": "Reproducir la grabación · el texto fue al borrador",
+    "{n} agents need attention": "{n} agentes necesitan atención",
+    "{n} agents finished": "{n} agentes terminaron",
+    "1 needs you": "1 te necesita",
+    "{n} need you": "{n} te necesitan",
+    "Finished, {n} failed": "Terminado, {n} fallidos",
+    "All finished": "Todo terminado",
+    "{n} active": "{n} activos",
+    "{n} threads": "{n} hilos"
   },
   "pt": {
     "{activity} · {title}": "{activity} · {title}",
@@ -5391,7 +5407,15 @@
     "Recordings of this thread": "Gravações deste tópico",
     "No recordings kept for this thread yet.": "Ainda não há gravações guardadas deste tópico.",
     "Delete recording": "Excluir gravação",
-    "Play the recording · the text went into the draft": "Reproduzir a gravação · o texto foi para o rascunho"
+    "Play the recording · the text went into the draft": "Reproduzir a gravação · o texto foi para o rascunho",
+    "{n} agents need attention": "{n} agentes precisam de atenção",
+    "{n} agents finished": "{n} agentes terminaram",
+    "1 needs you": "1 precisa de você",
+    "{n} need you": "{n} precisam de você",
+    "Finished, {n} failed": "Concluído, {n} falharam",
+    "All finished": "Tudo concluído",
+    "{n} active": "{n} ativos",
+    "{n} threads": "{n} conversas"
   },
   "fr": {
     "{activity} · {title}": "{activity} · {title}",
@@ -7189,7 +7213,15 @@
     "Recordings of this thread": "Enregistrements de ce fil",
     "No recordings kept for this thread yet.": "Aucun enregistrement conservé pour ce fil pour l'instant.",
     "Delete recording": "Supprimer l'enregistrement",
-    "Play the recording · the text went into the draft": "Lire l'enregistrement · le texte est allé dans le brouillon"
+    "Play the recording · the text went into the draft": "Lire l'enregistrement · le texte est allé dans le brouillon",
+    "{n} agents need attention": "{n} agents demandent votre attention",
+    "{n} agents finished": "{n} agents ont terminé",
+    "1 needs you": "1 vous attend",
+    "{n} need you": "{n} vous attendent",
+    "Finished, {n} failed": "Terminé, {n} en échec",
+    "All finished": "Tout est terminé",
+    "{n} active": "{n} actifs",
+    "{n} threads": "{n} conversations"
   },
   "de": {
     "{activity} · {title}": "{activity} · {title}",
@@ -8987,7 +9019,15 @@
     "Recordings of this thread": "Aufnahmen dieses Threads",
     "No recordings kept for this thread yet.": "Für diesen Thread sind noch keine Aufnahmen gespeichert.",
     "Delete recording": "Aufnahme löschen",
-    "Play the recording · the text went into the draft": "Aufnahme abspielen · der Text ging in den Entwurf"
+    "Play the recording · the text went into the draft": "Aufnahme abspielen · der Text ging in den Entwurf",
+    "{n} agents need attention": "{n} Agenten brauchen Aufmerksamkeit",
+    "{n} agents finished": "{n} Agenten sind fertig",
+    "1 needs you": "1 braucht Sie",
+    "{n} need you": "{n} brauchen Sie",
+    "Finished, {n} failed": "Beendet, {n} fehlgeschlagen",
+    "All finished": "Alle fertig",
+    "{n} active": "{n} aktiv",
+    "{n} threads": "{n} Threads"
   },
   "it": {
     "{activity} · {title}": "{activity} · {title}",
@@ -10785,7 +10825,15 @@
     "Recordings of this thread": "Registrazioni di questo thread",
     "No recordings kept for this thread yet.": "Nessuna registrazione conservata per questo thread finora.",
     "Delete recording": "Elimina registrazione",
-    "Play the recording · the text went into the draft": "Riproduci la registrazione · il testo è andato nella bozza"
+    "Play the recording · the text went into the draft": "Riproduci la registrazione · il testo è andato nella bozza",
+    "{n} agents need attention": "{n} agenti richiedono attenzione",
+    "{n} agents finished": "{n} agenti hanno terminato",
+    "1 needs you": "1 ha bisogno di te",
+    "{n} need you": "{n} hanno bisogno di te",
+    "Finished, {n} failed": "Terminato, {n} non riusciti",
+    "All finished": "Tutto completato",
+    "{n} active": "{n} attivi",
+    "{n} threads": "{n} conversazioni"
   },
   "nl": {
     "{activity} · {title}": "{activity} · {title}",
@@ -12583,7 +12631,15 @@
     "Recordings of this thread": "Opnames van deze thread",
     "No recordings kept for this thread yet.": "Nog geen opnames bewaard voor deze thread.",
     "Delete recording": "Opname verwijderen",
-    "Play the recording · the text went into the draft": "Opname afspelen · de tekst ging naar het concept"
+    "Play the recording · the text went into the draft": "Opname afspelen · de tekst ging naar het concept",
+    "{n} agents need attention": "{n} agents hebben aandacht nodig",
+    "{n} agents finished": "{n} agents zijn klaar",
+    "1 needs you": "1 heeft je nodig",
+    "{n} need you": "{n} hebben je nodig",
+    "Finished, {n} failed": "Klaar, {n} mislukt",
+    "All finished": "Alles klaar",
+    "{n} active": "{n} actief",
+    "{n} threads": "{n} threads"
   },
   "pl": {
     "{activity} · {title}": "{activity} · {title}",
@@ -14381,7 +14437,15 @@
     "Recordings of this thread": "Nagrania tego wątku",
     "No recordings kept for this thread yet.": "Brak zachowanych nagrań tego wątku.",
     "Delete recording": "Usuń nagranie",
-    "Play the recording · the text went into the draft": "Odtwórz nagranie · tekst trafił do szkicu"
+    "Play the recording · the text went into the draft": "Odtwórz nagranie · tekst trafił do szkicu",
+    "{n} agents need attention": "Agenci wymagający uwagi: {n}",
+    "{n} agents finished": "Agenci, którzy zakończyli: {n}",
+    "1 needs you": "1 czeka na ciebie",
+    "{n} need you": "Czekają na ciebie: {n}",
+    "Finished, {n} failed": "Zakończono, nieudane: {n}",
+    "All finished": "Wszystko zakończone",
+    "{n} active": "Aktywne: {n}",
+    "{n} threads": "Wątki: {n}"
   },
   "ru": {
     "{activity} · {title}": "{activity} · {title}",
@@ -16179,7 +16243,15 @@
     "Recordings of this thread": "Записи этого треда",
     "No recordings kept for this thread yet.": "Для этого треда пока нет сохранённых записей.",
     "Delete recording": "Удалить запись",
-    "Play the recording · the text went into the draft": "Воспроизвести запись · текст попал в черновик"
+    "Play the recording · the text went into the draft": "Воспроизвести запись · текст попал в черновик",
+    "{n} agents need attention": "Агенты, требующие внимания: {n}",
+    "{n} agents finished": "Агенты, завершившие работу: {n}",
+    "1 needs you": "1 ждёт вас",
+    "{n} need you": "Ждут вас: {n}",
+    "Finished, {n} failed": "Завершено, с ошибкой: {n}",
+    "All finished": "Всё завершено",
+    "{n} active": "Активные: {n}",
+    "{n} threads": "Ветки: {n}"
   },
   "uk": {
     "{activity} · {title}": "{activity} · {title}",
@@ -17977,7 +18049,15 @@
     "Recordings of this thread": "Записи цього треду",
     "No recordings kept for this thread yet.": "Для цього треду ще немає збережених записів.",
     "Delete recording": "Видалити запис",
-    "Play the recording · the text went into the draft": "Відтворити запис · текст потрапив у чернетку"
+    "Play the recording · the text went into the draft": "Відтворити запис · текст потрапив у чернетку",
+    "{n} agents need attention": "Агенти, що потребують уваги: {n}",
+    "{n} agents finished": "Агенти, що завершили роботу: {n}",
+    "1 needs you": "1 чекає на вас",
+    "{n} need you": "Чекають на вас: {n}",
+    "Finished, {n} failed": "Завершено, з помилкою: {n}",
+    "All finished": "Усе завершено",
+    "{n} active": "Активні: {n}",
+    "{n} threads": "Гілки: {n}"
   },
   "ja": {
     "{activity} · {title}": "{activity} · {title}",
@@ -19775,7 +19855,15 @@
     "Recordings of this thread": "このスレッドの録音",
     "No recordings kept for this thread yet.": "このスレッドにはまだ録音がありません。",
     "Delete recording": "録音を削除",
-    "Play the recording · the text went into the draft": "録音を再生 · テキストは下書きへ"
+    "Play the recording · the text went into the draft": "録音を再生 · テキストは下書きへ",
+    "{n} agents need attention": "{n} 件のエージェントが対応を待っています",
+    "{n} agents finished": "{n} 件のエージェントが完了しました",
+    "1 needs you": "1 件が対応待ち",
+    "{n} need you": "{n} 件が対応待ち",
+    "Finished, {n} failed": "完了、{n} 件失敗",
+    "All finished": "すべて完了",
+    "{n} active": "{n} 件アクティブ",
+    "{n} threads": "{n} 件のスレッド"
   },
   "ko": {
     "{activity} · {title}": "{activity} · {title}",
@@ -21573,7 +21661,15 @@
     "Recordings of this thread": "이 스레드의 녹음",
     "No recordings kept for this thread yet.": "이 스레드에 보관된 녹음이 아직 없습니다.",
     "Delete recording": "녹음 삭제",
-    "Play the recording · the text went into the draft": "녹음 재생 · 텍스트는 초안으로"
+    "Play the recording · the text went into the draft": "녹음 재생 · 텍스트는 초안으로",
+    "{n} agents need attention": "확인이 필요한 에이전트 {n}개",
+    "{n} agents finished": "완료된 에이전트 {n}개",
+    "1 needs you": "1개 확인 필요",
+    "{n} need you": "{n}개 확인 필요",
+    "Finished, {n} failed": "완료, {n}개 실패",
+    "All finished": "모두 완료",
+    "{n} active": "{n}개 활성",
+    "{n} threads": "대화 {n}개"
   },
   "zh": {
     "{activity} · {title}": "{activity} · {title}",
@@ -23371,7 +23467,15 @@
     "Recordings of this thread": "此线程的录音",
     "No recordings kept for this thread yet.": "此线程尚无保留的录音。",
     "Delete recording": "删除录音",
-    "Play the recording · the text went into the draft": "播放录音 · 文本已进入草稿"
+    "Play the recording · the text went into the draft": "播放录音 · 文本已进入草稿",
+    "{n} agents need attention": "{n} 个代理需要关注",
+    "{n} agents finished": "{n} 个代理已完成",
+    "1 needs you": "1 个需要你处理",
+    "{n} need you": "{n} 个需要你处理",
+    "Finished, {n} failed": "已完成，{n} 个失败",
+    "All finished": "全部完成",
+    "{n} active": "{n} 个活动中",
+    "{n} threads": "{n} 个会话"
   },
   "ar": {
     "{activity} · {title}": "{activity} · {title}",
@@ -25169,7 +25273,15 @@
     "Recordings of this thread": "تسجيلات هذه المحادثة",
     "No recordings kept for this thread yet.": "لا توجد تسجيلات محفوظة لهذه المحادثة بعد.",
     "Delete recording": "حذف التسجيل",
-    "Play the recording · the text went into the draft": "تشغيل التسجيل · ذهب النص إلى المسودة"
+    "Play the recording · the text went into the draft": "تشغيل التسجيل · ذهب النص إلى المسودة",
+    "{n} agents need attention": "{n} من الوكلاء بحاجة إلى انتباهك",
+    "{n} agents finished": "انتهى {n} من الوكلاء",
+    "1 needs you": "1 بحاجة إليك",
+    "{n} need you": "{n} بحاجة إليك",
+    "Finished, {n} failed": "انتهى، {n} فشل",
+    "All finished": "انتهى الكل",
+    "{n} active": "{n} نشط",
+    "{n} threads": "{n} محادثات"
   },
   "tr": {
     "{activity} · {title}": "{activity} · {title}",
@@ -26967,7 +27079,15 @@
     "Recordings of this thread": "Bu konunun kayıtları",
     "No recordings kept for this thread yet.": "Bu konu için henüz saklanan kayıt yok.",
     "Delete recording": "Kaydı sil",
-    "Play the recording · the text went into the draft": "Kaydı oynat · metin taslağa gitti"
+    "Play the recording · the text went into the draft": "Kaydı oynat · metin taslağa gitti",
+    "{n} agents need attention": "{n} aracı ilginizi bekliyor",
+    "{n} agents finished": "{n} aracı tamamlandı",
+    "1 needs you": "1 tanesi sizi bekliyor",
+    "{n} need you": "{n} tanesi sizi bekliyor",
+    "Finished, {n} failed": "Bitti, {n} başarısız",
+    "All finished": "Hepsi bitti",
+    "{n} active": "{n} etkin",
+    "{n} threads": "{n} konuşma"
   },
   "sv": {
     "{activity} · {title}": "{activity} · {title}",
@@ -28765,7 +28885,15 @@
     "Recordings of this thread": "Inspelningar i den här tråden",
     "No recordings kept for this thread yet.": "Inga inspelningar sparade för den här tråden ännu.",
     "Delete recording": "Ta bort inspelning",
-    "Play the recording · the text went into the draft": "Spela upp inspelningen · texten gick till utkastet"
+    "Play the recording · the text went into the draft": "Spela upp inspelningen · texten gick till utkastet",
+    "{n} agents need attention": "{n} agenter behöver uppmärksamhet",
+    "{n} agents finished": "{n} agenter är klara",
+    "1 needs you": "1 behöver dig",
+    "{n} need you": "{n} behöver dig",
+    "Finished, {n} failed": "Klart, {n} misslyckades",
+    "All finished": "Allt klart",
+    "{n} active": "{n} aktiva",
+    "{n} threads": "{n} trådar"
   },
   "da": {
     "{activity} · {title}": "{activity} · {title}",
@@ -30563,7 +30691,15 @@
     "Recordings of this thread": "Optagelser i denne tråd",
     "No recordings kept for this thread yet.": "Ingen optagelser gemt for denne tråd endnu.",
     "Delete recording": "Slet optagelse",
-    "Play the recording · the text went into the draft": "Afspil optagelsen · teksten gik til kladden"
+    "Play the recording · the text went into the draft": "Afspil optagelsen · teksten gik til kladden",
+    "{n} agents need attention": "{n} agenter kræver opmærksomhed",
+    "{n} agents finished": "{n} agenter er færdige",
+    "1 needs you": "1 har brug for dig",
+    "{n} need you": "{n} har brug for dig",
+    "Finished, {n} failed": "Færdig, {n} mislykkedes",
+    "All finished": "Alt er færdigt",
+    "{n} active": "{n} aktive",
+    "{n} threads": "{n} tråde"
   },
   "no": {
     "{activity} · {title}": "{activity} · {title}",
@@ -32361,7 +32497,15 @@
     "Recordings of this thread": "Opptak i denne tråden",
     "No recordings kept for this thread yet.": "Ingen opptak lagret for denne tråden ennå.",
     "Delete recording": "Slett opptak",
-    "Play the recording · the text went into the draft": "Spill av opptaket · teksten gikk til utkastet"
+    "Play the recording · the text went into the draft": "Spill av opptaket · teksten gikk til utkastet",
+    "{n} agents need attention": "{n} agenter trenger oppmerksomhet",
+    "{n} agents finished": "{n} agenter er ferdige",
+    "1 needs you": "1 trenger deg",
+    "{n} need you": "{n} trenger deg",
+    "Finished, {n} failed": "Ferdig, {n} mislyktes",
+    "All finished": "Alt er ferdig",
+    "{n} active": "{n} aktive",
+    "{n} threads": "{n} tråder"
   },
   "fi": {
     "{activity} · {title}": "{activity} · {title}",
@@ -34159,7 +34303,15 @@
     "Recordings of this thread": "Tämän ketjun tallenteet",
     "No recordings kept for this thread yet.": "Tälle ketjulle ei ole vielä tallenteita.",
     "Delete recording": "Poista tallenne",
-    "Play the recording · the text went into the draft": "Toista tallenne · teksti meni luonnokseen"
+    "Play the recording · the text went into the draft": "Toista tallenne · teksti meni luonnokseen",
+    "{n} agents need attention": "{n} agenttia tarvitsee huomiota",
+    "{n} agents finished": "{n} agenttia valmiina",
+    "1 needs you": "1 tarvitsee sinua",
+    "{n} need you": "{n} tarvitsee sinua",
+    "Finished, {n} failed": "Valmis, {n} epäonnistui",
+    "All finished": "Kaikki valmiina",
+    "{n} active": "{n} aktiivista",
+    "{n} threads": "{n} keskustelua"
   },
   "cs": {
     "{activity} · {title}": "{activity} · {title}",
@@ -35957,6 +36109,14 @@
     "Recordings of this thread": "Nahrávky tohoto vlákna",
     "No recordings kept for this thread yet.": "Pro toto vlákno zatím nejsou uložené nahrávky.",
     "Delete recording": "Smazat nahrávku",
-    "Play the recording · the text went into the draft": "Přehrát nahrávku · text šel do konceptu"
+    "Play the recording · the text went into the draft": "Přehrát nahrávku · text šel do konceptu",
+    "{n} agents need attention": "Agenti vyžadující pozornost: {n}",
+    "{n} agents finished": "Agenti, kteří skončili: {n}",
+    "1 needs you": "1 čeká na vás",
+    "{n} need you": "Čekají na vás: {n}",
+    "Finished, {n} failed": "Dokončeno, selhalo: {n}",
+    "All finished": "Vše dokončeno",
+    "{n} active": "Aktivní: {n}",
+    "{n} threads": "Vlákna: {n}"
   }
 }

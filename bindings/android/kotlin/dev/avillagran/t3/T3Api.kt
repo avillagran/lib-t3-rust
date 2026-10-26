@@ -440,6 +440,7 @@ class T3Api(client: T3Client) {
     class Domain internal constructor(client: T3Client) {
         val activity = Activity(client)
         val approvals = Approvals(client)
+        val awareness = Awareness(client)
         val branchPicker = BranchPicker(client)
         val changes = Changes(client)
         val checkpointRevert = CheckpointRevert(client)
@@ -481,6 +482,12 @@ class T3Api(client: T3Client) {
             /** `approvals.command` · command runtime-request.respond, only for a pending live request and an offered decision */
             fun command(thread: String, runtimeRequestId: String, decision: String, projection: JSONObject): Any? =
                 client.domain("approvals.command", JSONObject().put("thread", thread).put("runtimeRequestId", runtimeRequestId).put("decision", decision).put("projection", projection))
+        }
+
+        class Awareness internal constructor(private val client: T3Client) {
+            /** `awareness.view` · object {counts, rows [{route {environmentId, threadId}, phase, title, project, host, status, since?, expiresAt}], card {active, phase, title, subtitle, status, chip? {kind working, live, approve or answer, count}, since?, expiresAt, route, rows (at most 5)} or null, alerts [{id, group attention or finished, phase, title, body, status, route, expiresAt?}], summaries [{group, title, body, lines, route}], baseline, nextDeadline}: T3's phases, card and lifetimes and ot3's alert key over sidebar.view's environments; pass baseline back on the next call and call again at nextDeadline (ms); texts in locale */
+            fun view(environments: JSONArray, now: Long, baseline: JSONObject? = null, onScreen: JSONObject? = null, preferences: JSONObject? = null, lifecycle: String? = null, locale: String? = null): Any? =
+                client.domain("awareness.view", JSONObject().put("environments", environments).put("now", now).put("baseline", baseline).put("onScreen", onScreen).put("preferences", preferences).put("lifecycle", lifecycle).put("locale", locale))
         }
 
         class BranchPicker internal constructor(private val client: T3Client) {
@@ -616,7 +623,7 @@ class T3Api(client: T3Client) {
             /** `i18n.t` · string: ot3's translation of an English source string for a locale list (fr_CA.UTF-8:en), else the language's, English's or the source; {name} placeholders from args, Arabic isolated with U+2068/U+2069 */
             fun t(locale: String, key: String, args: JSONObject? = null): Any? =
                 client.domain("i18n.t", JSONObject().put("locale", locale).put("key", key).put("args", args))
-            /** `i18n.catalog` · object {locale, language, rtl, strings {source: translation}}: every string of ot3's catalog for the locale as i18n.t gives it without args (1796 sources, 20 languages) */
+            /** `i18n.catalog` · object {locale, language, rtl, strings {source: translation}}: every string of the catalog for the locale as i18n.t gives it without args (1804 sources: ot3's 1796 and awareness.view's 8; 20 languages) */
             fun catalog(locale: String): Any? =
                 client.domain("i18n.catalog", JSONObject().put("locale", locale))
             /** `i18n.resolve` · object {locale, language, rtl}: the first locale of the list the catalog has (by itself or its language), else the first */

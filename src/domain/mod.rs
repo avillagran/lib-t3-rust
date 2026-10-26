@@ -5,7 +5,7 @@
 //! The JSON ABI reaches them with `{"op":"domain","fn":"queue.derive","args":{…}}`
 //! and `describe` lists them under `domain`.
 use crate::api::{ids, Arg, ArgType, Args};
-use crate::{activity, approvals, changes, code_blocks, composer, connection_catalog, history, i18n, markdown, models, projection, projects, questions, queue, sidebar, timeline, Result};
+use crate::{activity, approvals, awareness, changes, code_blocks, composer, connection_catalog, history, i18n, markdown, models, projection, projects, questions, queue, sidebar, timeline, Result};
 use serde_json::{json, Value};
 
 mod git;
@@ -127,6 +127,25 @@ fn sidebar_view(a: &Args) -> Result<Value> {
     Ok(view)
 }
 
+fn awareness_view(a: &Args) -> Result<Value> {
+    let on_screen = match a.get("onScreen") {
+        None => None,
+        Some(s) => {
+            let id = |k: &str| s[k].as_str().filter(|v| !v.is_empty());
+            Some(id("environmentId").zip(id("threadId")).ok_or("invalid_onScreen")?)
+        }
+    };
+    awareness::view(&awareness::Input {
+        environments: a.req_array("environments")?,
+        now: a.i64("now")?.unwrap_or(0),
+        baseline: a.get("baseline"),
+        on_screen,
+        preferences: awareness::Preferences::from_json(a.get("preferences"))?,
+        lifecycle: a.str("lifecycle")?.unwrap_or("running"),
+        locale: a.str("locale")?.unwrap_or("en"),
+    })
+}
+
 pub const FUNCTIONS: &[DomainFn] = &[
     domain_fn! {
         name: "projection.apply", module: "projection",
@@ -203,6 +222,15 @@ pub const FUNCTIONS: &[DomainFn] = &[
             Ok(json!({"detail":detail,"state":sidebar::view::state(t),"statusLabel":sidebar::view::label(detail),
                 "statusRole":sidebar::view::role(detail),"time":sidebar::view::time(t, a.i64("now")?.unwrap_or(0))}))
         },
+    },
+    domain_fn! {
+        name: "awareness.view", module: "awareness",
+        args: [
+            (environments, Array, required), (now, Integer, required), (baseline, Object, optional), (onScreen, Object, optional),
+            (preferences, Object, optional), (lifecycle, Enum(awareness::LIFECYCLES), optional), (locale, Text, optional),
+        ],
+        returns: "object {counts, rows [{route {environmentId, threadId}, phase, title, project, host, status, since?, expiresAt}], card {active, phase, title, subtitle, status, chip? {kind working, live, approve or answer, count}, since?, expiresAt, route, rows (at most 5)} or null, alerts [{id, group attention or finished, phase, title, body, status, route, expiresAt?}], summaries [{group, title, body, lines, route}], baseline, nextDeadline}: T3's phases, card and lifetimes and ot3's alert key over sidebar.view's environments; pass baseline back on the next call and call again at nextDeadline (ms); texts in locale",
+        run: awareness_view,
     },
     domain_fn! {
         name: "projects.identity", module: "projects",
