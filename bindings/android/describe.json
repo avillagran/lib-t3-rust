@@ -733,6 +733,55 @@
     {
       "args": [
         {
+          "name": "view",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "authorized",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "endpoints",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "context",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "connectionCatalog.publishBridge",
+      "module": "connectionCatalog",
+      "returns": "client-scoped credential-free manifest; authorized must come from authenticated grant"
+    },
+    {
+      "args": [
+        {
+          "name": "snapshot",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "cache",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "context",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "connectionCatalog.reconcileBridge",
+      "module": "connectionCatalog",
+      "returns": "credential-free bridge cache; authenticate publisher/client before calling; initial cache {}"
+    },
+    {
+      "args": [
+        {
           "name": "link",
           "required": true,
           "type": "text"
