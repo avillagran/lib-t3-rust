@@ -122,7 +122,7 @@ fn bounded_thread_restores_through_the_abi() {
     c.call(json!({"op":"connectBearer","httpBaseUrl":base,"token":"synthetic-token"}));
     let r = c.call(json!({"op":"boundedThread","threadId":"t"}));
     assert_eq!(r["data"]["projection"]["turnItems"], json!([{"id":"local"},{"id":"tail"}]));
-    assert!(server.join().unwrap()[0].head.starts_with("GET /api/orchestration/threads/t/bounded?compactTurnItems=1 HTTP"));
+    assert!(server.join().unwrap()[0].head.starts_with("GET /api/orchestration/threads/t/bounded?compactTurnItems=1&dedupeBodies=1&compactIds=1 HTTP"));
     assert_eq!(c.call(json!({"op":"boundedThread","threadId":"../x"}))["error"], "invalid_id");
 }
 /// A grant over RPC, then one signed GET answered with `answer` (if any).

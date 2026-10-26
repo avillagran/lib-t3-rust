@@ -43,7 +43,7 @@ pub fn rows(d: &Value, env: &str, now: i64) -> Result<Vec<Value>> {
         let run_active = active(status) || active(text(t, "activityRunStatus"));
         let blocked_on_wait = t["blockedOnThreadWait"] == true;
         let working = run_active && !blocked_on_wait;
-        let background = status != "failed" && t["pendingBackgroundTasks"].as_array().is_some_and(|tasks| tasks.iter().any(|task| task["kind"] != "command"));
+        let background = status != "failed" && t["pendingBackgroundTasks"].as_array().is_some_and(|tasks| tasks.iter().any(|task| task["awaited"] == true || matches!(task["kind"].as_str(),Some("subagent"|"background_task")|None)));
         // An async question (blocking:false) does not stop a working run.
         let request = !t["pendingRuntimeRequest"].is_null() && !(t["pendingRuntimeRequest"]["blocking"] == false && run_active);
         let mut reason = if request {
