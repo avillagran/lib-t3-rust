@@ -1,5 +1,5 @@
 {
-  "upstreamCommit": "680152e27b2a961686389ca69a1557cbb2c55f08",
+  "upstreamCommit": "7c3b3b3605efa695e9948051b569937fc1482c0f",
   "drivers": [
     {"id":"codex","label":"Codex","defaultEnabled":true,"fields":[{"key":"binaryPath","label":"Binary path","placeholder":"codex"},{"key":"homePath","label":"CODEX_HOME path","placeholder":"~/.codex"},{"key":"shadowHomePath","label":"Shadow home path","placeholder":"~/.codex-t3/personal"},{"key":"launchArgs","label":"Launch arguments"}]},
     {"id":"claudeAgent","label":"Claude","defaultEnabled":true,"fields":[{"key":"binaryPath","label":"Binary path","placeholder":"claude"},{"key":"homePath","label":"CLAUDE_CONFIG_DIR path","placeholder":"~/.claude"},{"key":"autoCompactWindow","label":"Auto-compact after","placeholder":"300000"},{"key":"launchArgs","label":"Launch arguments"}]},
