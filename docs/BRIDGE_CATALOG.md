@@ -34,9 +34,24 @@ Output expires after ten minutes and contains only:
 A trusted transport must authenticate publisher and recipient before invoking
 `connectionCatalog.reconcileBridge(snapshot, cache, context)`. Initial domain cache
 is `{}` (Rust API accepts null). Reconcile context is `{bridgeId, clientId, now}`.
-Cross-identity input, expired/future snapshots, revision rollback, changed equal revisions,
+Cross-identity input, expired snapshots, excessive future timestamps, revision rollback, changed equal revisions,
 duplicate identities/routes, excessive sizes, and unrecognized fields are rejected.
 Error codes never echo document contents or credentials.
+
+Catalog admission tolerates `issuedAt` up to 30,000 ms ahead of the receiver's
+clock, inclusive. This fixed allowance handles small clock differences between
+devices; callers cannot override it. It does not rewrite timestamps or add grace
+to `expiresAt`: a snapshot is rejected exactly at its absolute expiration.
+The declared `expiresAt - issuedAt` window must remain positive and at most
+600,000 ms. A receiver behind the publisher can therefore observe up to that
+window plus the clock allowance before the original absolute deadline.
+
+After identity validation, invalid windows return `bridge_catalog_invalid_window`,
+oversized windows return `bridge_catalog_ttl_exceeded`, issue timestamps more than
+30,000 ms ahead return `bridge_catalog_from_future`, and actual expiration returns
+`bridge_catalog_expired`, in that order. Revision and route guards remain unchanged.
+Discovery is credential-free; this allowance never extends enrollment or T3 session
+authorization and must not be applied to their independent lifetime checks.
 
 ## Persistence and authorization
 

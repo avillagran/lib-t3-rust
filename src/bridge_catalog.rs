@@ -3,6 +3,7 @@
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 type Result<T> = std::result::Result<T, String>;
+const MAX_FUTURE_ISSUED_AT_SKEW_MS: u64 = 30_000;
 fn error<T>() -> Result<T> {
     Err("invalid_bridge_catalog".into())
 }
@@ -173,7 +174,16 @@ pub fn reconcile(snapshot: &Value, cached: &Value, context: &Value) -> Result<Va
     let now = number(context, "now")?;
     let issued = number(snapshot, "issuedAt")?;
     let expires = number(snapshot, "expiresAt")?;
-    if issued > now || expires <= now || expires <= issued || expires - issued > 600_000 {
+    if expires <= issued {
+        return Err("bridge_catalog_invalid_window".into());
+    }
+    if expires - issued > 600_000 {
+        return Err("bridge_catalog_ttl_exceeded".into());
+    }
+    if issued.saturating_sub(now) > MAX_FUTURE_ISSUED_AT_SKEW_MS {
+        return Err("bridge_catalog_from_future".into());
+    }
+    if expires <= now {
         return Err("bridge_catalog_expired".into());
     }
     let revision = number(snapshot, "revision")?;
@@ -277,6 +287,95 @@ mod tests {
             {"environmentId":"vq","label":"VQ","routes":[{"id":"public","url":"https://vq.example/","priority":1}]},
             {"environmentId":"node","label":"NODE","routes":[{"id":"gateway","url":"https://node.example:39670/","priority":1}]}
         ]})
+    }
+    #[test]
+    fn bounded_future_issue_time_does_not_extend_expiration() {
+        let mut c = context();
+        c["now"] = json!(100_000);
+        for ahead in [0, 1, 764, 30_000] {
+            let mut s = snapshot();
+            s["issuedAt"] = json!(100_000 + ahead);
+            s["expiresAt"] = json!(160_000);
+            let cache = reconcile(&s, &Value::Null, &c)
+                .unwrap_or_else(|error| panic!("ahead={ahead}: {error}"));
+            assert_eq!(cache["revision"], 1);
+            let mut at_deadline = c.clone();
+            at_deadline["now"] = s["expiresAt"].clone();
+            assert_eq!(
+                reconcile(&s, &cache, &at_deadline).unwrap_err(),
+                "bridge_catalog_expired"
+            );
+        }
+    }
+    #[test]
+    fn future_issue_limit_and_numeric_boundaries_are_strict() {
+        let mut c = context();
+        c["now"] = json!(100_000);
+        let mut s = snapshot();
+        s["issuedAt"] = json!(130_001);
+        s["expiresAt"] = json!(160_000);
+        assert_eq!(
+            reconcile(&s, &Value::Null, &c).unwrap_err(),
+            "bridge_catalog_from_future"
+        );
+        c["now"] = json!(u64::MAX - 60_000);
+        s["issuedAt"] = json!(u64::MAX - 30_000);
+        s["expiresAt"] = json!(u64::MAX);
+        assert!(reconcile(&s, &Value::Null, &c).is_ok());
+        c["now"] = json!(u64::MAX);
+        assert_eq!(
+            reconcile(&s, &Value::Null, &c).unwrap_err(),
+            "bridge_catalog_expired"
+        );
+    }
+    #[test]
+    fn validity_window_errors_are_distinct_from_expiration() {
+        let c = context();
+        for (issued, expires, expected) in [
+            (900, 1_000, "bridge_catalog_expired"),
+            (1_000, 1_000, "bridge_catalog_invalid_window"),
+            (1_001, 1_000, "bridge_catalog_invalid_window"),
+            (900, 600_901, "bridge_catalog_ttl_exceeded"),
+        ] {
+            let mut s = snapshot();
+            s["issuedAt"] = json!(issued);
+            s["expiresAt"] = json!(expires);
+            assert_eq!(reconcile(&s, &Value::Null, &c).unwrap_err(), expected);
+        }
+        let mut s = snapshot();
+        s["issuedAt"] = json!(1_000);
+        s["expiresAt"] = json!(601_000);
+        assert!(reconcile(&s, &Value::Null, &c).is_ok());
+    }
+    #[test]
+    fn clock_tolerance_keeps_identity_revision_and_field_guards() {
+        let c = context();
+        let mut s = snapshot();
+        let cache = reconcile(&s, &Value::Null, &c).unwrap();
+        s["issuedAt"] = json!(1_764);
+        assert_eq!(reconcile(&s, &cache, &c).unwrap(), cache);
+        s["revision"] = json!(0);
+        assert_eq!(
+            reconcile(&s, &cache, &c).unwrap_err(),
+            "bridge_catalog_rollback"
+        );
+        s["revision"] = json!(1);
+        s["environments"][0]["label"] = json!("changed");
+        assert_eq!(
+            reconcile(&s, &cache, &c).unwrap_err(),
+            "bridge_catalog_revision_reused"
+        );
+        s["clientId"] = json!("another-client");
+        assert_eq!(
+            reconcile(&s, &cache, &c).unwrap_err(),
+            "bridge_catalog_identity_mismatch"
+        );
+        let mut override_context = c.clone();
+        override_context["futureSkewMs"] = json!(u64::MAX);
+        assert_eq!(
+            reconcile(&snapshot(), &cache, &override_context).unwrap_err(),
+            "invalid_bridge_catalog"
+        );
     }
     #[test]
     fn publisher_grant_is_not_inherited_from_desktop_access() {
