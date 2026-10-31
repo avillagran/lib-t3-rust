@@ -609,6 +609,12 @@ class T3Api(client: T3Client) {
         }
 
         class ConnectionCatalog internal constructor(private val client: T3Client) {
+            /** `connectionCatalog.publishBridge` · client-scoped credential-free manifest; authorized must come from authenticated grant */
+            fun publishBridge(view: JSONArray, authorized: JSONArray, endpoints: JSONArray, context: JSONObject): Any? =
+                client.domain("connectionCatalog.publishBridge", JSONObject().put("view", view).put("authorized", authorized).put("endpoints", endpoints).put("context", context))
+            /** `connectionCatalog.reconcileBridge` · credential-free bridge cache; authenticate publisher/client before calling; initial cache {} */
+            fun reconcileBridge(snapshot: JSONObject, cache: JSONObject, context: JSONObject): Any? =
+                client.domain("connectionCatalog.reconcileBridge", JSONObject().put("snapshot", snapshot).put("cache", cache).put("context", context))
             /** `connectionCatalog.pairingTarget` · object {httpBaseUrl, pairingCode}: a pairing link, QR payload or host plus code */
             fun pairingTarget(link: String, pairingCode: String? = null): Any? =
                 client.domain("connectionCatalog.pairingTarget", JSONObject().put("link", link).put("pairingCode", pairingCode))

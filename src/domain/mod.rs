@@ -390,6 +390,21 @@ pub const FUNCTIONS: &[DomainFn] = &[
         run: |a| history::envelope(a.req_object("page")?, a.req("threadId")?),
     },
     domain_fn! {
+        name: "connectionCatalog.publishBridge", module: "connectionCatalog",
+        args: [(view, Array, required), (authorized, Array, required), (endpoints, Array, required), (context, Object, required)],
+        returns: "client-scoped credential-free manifest; authorized must come from authenticated grant",
+        run: |a| crate::bridge_catalog::publish(a.get("view").unwrap(), a.get("authorized").unwrap(), a.get("endpoints").unwrap(), a.req_object("context")?),
+    },
+    domain_fn! {
+        name: "connectionCatalog.reconcileBridge", module: "connectionCatalog",
+        args: [(snapshot, Object, required), (cache, Object, required), (context, Object, required)],
+        returns: "credential-free bridge cache; authenticate publisher/client before calling; initial cache {}",
+        run: |a| {
+            let cache = a.req_object("cache")?;
+            crate::bridge_catalog::reconcile(a.req_object("snapshot")?, if cache.as_object().is_some_and(|o|o.is_empty()) { &Value::Null } else { cache }, a.req_object("context")?)
+        },
+    },
+    domain_fn! {
         name: "connectionCatalog.pairingTarget", module: "connectionCatalog",
         args: [(link, Text, required), (pairingCode, Text, optional)],
         returns: "object {httpBaseUrl, pairingCode}: a pairing link, QR payload or host plus code",
