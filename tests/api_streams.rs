@@ -30,6 +30,7 @@ fn rows() -> Vec<(&'static str, Value, Value)> {
         ),
         ("orchestration.subscribeCommandOutput", json!({"threadId":"t-1","itemId":"item:1"}), json!({"threadId":"t-1","itemId":"item:1"})),
         ("terminal.attach", terminal.clone(), terminal),
+        ("terminal.observe", json!({"threadId":"t-1","terminalId":"term 1"}), json!({"threadId":"t-1","terminalId":"term 1"})),
         ("device.subscribeDeviceState", json!({}), json!({})),
         (
             "preview.subscribeDiscoveredLocalServers",
@@ -92,7 +93,7 @@ fn every_stream_sends_its_exact_tag_and_payload_once() {
     // Every registered stream has a row, in registry order.
     let streams = api::functions().filter(|f| f.stream).map(|f| f.name).collect::<Vec<_>>();
     assert_eq!(rows.iter().map(|r| r.0).collect::<Vec<_>>(), streams);
-    assert_eq!(streams.len(), 13);
+    assert_eq!(streams.len(), 14);
 }
 
 #[test]
@@ -141,6 +142,7 @@ fn rust_subscribe_functions_put_the_same_requests_on_the_wire() {
         ..TerminalAttach::new("t-1", "term 1")
     };
     sub!(subscribe_terminal_attach(&attach));
+    sub!(subscribe_terminal_observe("t-1", "term 1"));
     sub!(subscribe_device_state());
     let urls = [" http://localhost:3000 ".to_string(), "http://127.0.0.1:8080/app".to_string()];
     sub!(subscribe_local_servers(Some(&urls[..])));
@@ -297,7 +299,7 @@ fn describe_lists_every_stream_with_its_shape() {
     let streams = d["streams"].as_array().unwrap();
     let flagged = functions.iter().filter(|f| f["stream"] == true).map(|f| f["fn"].clone()).collect::<Vec<_>>();
     assert_eq!(streams.iter().map(|s| s["fn"].clone()).collect::<Vec<_>>(), flagged);
-    assert_eq!(SHAPES.len(), 13);
+    assert_eq!(SHAPES.len(), 14);
     let shape = |name: &str| streams.iter().find(|s| s["fn"] == name).unwrap().clone();
     assert_eq!(
         shape("orchestration.subscribeThread"),

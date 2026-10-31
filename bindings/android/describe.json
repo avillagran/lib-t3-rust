@@ -2551,6 +2551,82 @@
       "fn": "reader.reference",
       "module": "reader",
       "returns": "tagged external/thread/document/anchor/unsupported destination; remote paths never expand local HOME"
+    },
+    {
+      "args": [
+        {
+          "name": "shell",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "fallback",
+          "required": true,
+          "type": "path"
+        }
+      ],
+      "fn": "terminal.context",
+      "module": "terminal",
+      "returns": "object {cwd,worktreePath?,providerInstanceId?}: selected server paths"
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "terminalId",
+          "required": true,
+          "type": "token"
+        },
+        {
+          "name": "context",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "cols",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "rows",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "resume",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "terminal.attach",
+      "module": "terminal",
+      "returns": "object: validated terminal.attach args; resume=true preserves stopped terminals, never use an ordering cursor as afterSequence"
+    },
+    {
+      "args": [
+        {
+          "name": "state",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "event",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "terminal.output",
+      "module": "terminal",
+      "returns": "object {state,text,replace,finished,error,exitCode,exitSignal}: exact ordered ANSI/Unicode strings; snapshot replaces renderer history; remote error retained with state"
     }
   ],
   "functions": [
@@ -6265,6 +6341,29 @@
       "timeoutMs": 20000
     },
     {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "terminalId",
+          "required": true,
+          "type": "token"
+        }
+      ],
+      "fn": "terminal.observe",
+      "kind": "read",
+      "module": "terminal",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "terminal:read",
+      "stream": true,
+      "tag": "terminal.observe",
+      "timeoutMs": 20000
+    },
+    {
       "args": [],
       "fn": "device.subscribeDeviceState",
       "kind": "read",
@@ -6604,6 +6703,27 @@
         "snapshot"
       ],
       "tag": "terminal.attach"
+    },
+    {
+      "cursor": "sequence",
+      "ends": [],
+      "firstItem": null,
+      "fn": "terminal.observe",
+      "itemKey": "type",
+      "items": [
+        "snapshot",
+        "output",
+        "exited",
+        "closed",
+        "error",
+        "cleared",
+        "restarted",
+        "activity"
+      ],
+      "starts": [
+        "snapshot"
+      ],
+      "tag": "terminal.observe"
     },
     {
       "cursor": null,

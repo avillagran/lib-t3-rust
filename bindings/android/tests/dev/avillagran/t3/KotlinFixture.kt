@@ -150,6 +150,18 @@ fun main() {
         check(permission.getJSONArray("rows").length() == 4)
         val output = api.domain.commandOutput.apply(JSONObject().put("threadId", "t").put("itemId", "i"), JSONArray().put(JSONObject().put("kind", "append").put("text", "🦀"))) as JSONObject
         check(output.getString("text") == "🦀")
+        val terminalContext = api.domain.terminal.context(JSONObject().put("threads", JSONArray().put(JSONObject().put("id", "t").put("worktreePath", "/remote/🦀"))), "t", "/fallback") as JSONObject
+        check(terminalContext.getString("cwd") == "/remote/🦀")
+        val reconnect = api.domain.terminal.attach("t", "term-1", terminalContext, 80, 24, resume = true) as JSONObject
+        check(reconnect.getBoolean("resume") && !reconnect.getBoolean("restartIfNotRunning"))
+        val terminalSnapshot = api.domain.terminal.output(JSONObject().put("type", "snapshot").put("snapshot", JSONObject().put("history", "\u001b[31m🦀").put("sequence", 3).put("status", "running"))) as JSONObject
+        check(terminalSnapshot.getBoolean("replace") && terminalSnapshot.getString("text") == "\u001b[31m🦀")
+        val terminalDuplicate = api.domain.terminal.output(JSONObject().put("type", "output").put("sequence", 3).put("data", "duplicate"), state = terminalSnapshot.getJSONObject("state")) as JSONObject
+        check(terminalDuplicate.isNull("text"))
+        val terminalExit = api.domain.terminal.output(JSONObject().put("type", "exited").put("exitCode", 7), state = terminalDuplicate.getJSONObject("state")) as JSONObject
+        check(terminalExit.getBoolean("finished") && terminalExit.getInt("exitCode") == 7)
+        val observe = runCatching { api.terminal.observe("t", "term-1") }.exceptionOrNull()
+        check(observe is T3Exception && observe.code == "not_connected")
         val noDomain = runCatching { client.domain("queue.nope") }.exceptionOrNull()
         check(noDomain is T3Exception && noDomain.code == "unknown_function")
         val badDomain = runCatching { client.domain("sidebar.command", JSONObject().put("action", "nap").put("threadId", "t")) }.exceptionOrNull()
