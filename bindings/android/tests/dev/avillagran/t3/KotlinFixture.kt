@@ -6,6 +6,7 @@ import java.net.InetSocketAddress
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import org.json.JSONArray
 import org.json.JSONObject
 
 /** Executes the canonical Kotlin wrapper against the real JNI shared library. */
@@ -144,7 +145,11 @@ fun main() {
         check(api.domain.i18n.t("es", "Close") == "Cerrar")
         check(api.domain.i18n.t("de", "{n} subagents", JSONObject().put("n", 3)) == "3 Unteragenten")
         val catalog = api.domain.i18n.catalog("fr_CA.UTF-8") as JSONObject
-        check(catalog.getString("language") == "fr" && catalog.getJSONObject("strings").length() == 1804)
+        check(catalog.getString("language") == "fr" && catalog.getJSONObject("strings").length() == 2027)
+        val permission = api.domain.models.permissionView(JSONObject()) as JSONObject
+        check(permission.getJSONArray("rows").length() == 4)
+        val output = api.domain.commandOutput.apply(JSONObject().put("threadId", "t").put("itemId", "i"), JSONArray().put(JSONObject().put("kind", "append").put("text", "🦀"))) as JSONObject
+        check(output.getString("text") == "🦀")
         val noDomain = runCatching { client.domain("queue.nope") }.exceptionOrNull()
         check(noDomain is T3Exception && noDomain.code == "unknown_function")
         val badDomain = runCatching { client.domain("sidebar.command", JSONObject().put("action", "nap").put("threadId", "t")) }.exceptionOrNull()

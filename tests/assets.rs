@@ -154,3 +154,12 @@ fn project_favicon_reads_the_icon_and_reports_a_missing_one_without_fetching_it(
     assert_eq!(c.project_favicon("/repo", None).err().unwrap(), "asset_too_large");
     server.join().unwrap();
 }
+#[test]
+fn scoped_document_text_is_utf8_bounded_and_never_base64() {
+ let resource=t3_protocol::documents::resource("thread","/remote/🦀.md").unwrap();
+ let(c,server)=asset_server(json!("/api/assets/signed/doc"),vec![ok("text/markdown; charset=utf-8","hello 🦀".as_bytes())]);
+ let out=c.document_text(resource.clone()).unwrap();assert_eq!(out["contents"],"hello 🦀");assert!(out.get("imageData").is_none());
+ let served=server.join().unwrap();assert_eq!(served.resource,resource);assert!(served.gets[0].header("authorization").is_none());
+ let(c,server)=asset_server(json!("/api/assets/signed/image"),vec![ok("image/png",b"fake")]);assert_eq!(c.document_text(resource.clone()).unwrap_err(),"binary_operation");server.join().unwrap();
+ let(c,server)=asset_server(json!("/api/assets/signed/large"),vec![ok("text/plain",&vec![b'x';4*1024*1024+1])]);assert_eq!(c.document_text(resource).unwrap_err(),"asset_too_large");server.join().unwrap();
+}

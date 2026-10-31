@@ -2206,7 +2206,7 @@
       ],
       "fn": "i18n.catalog",
       "module": "i18n",
-      "returns": "object {locale, language, rtl, strings {source: translation}}: every string of the catalog for the locale as i18n.t gives it without args (1804 sources: ot3's 1796 and awareness.view's 8; 20 languages)"
+      "returns": "object {locale, language, rtl, strings {source: translation}}: every string of the catalog for the locale as i18n.t gives it without args (2027 sources: Desktop additions and retained compatible sources; 20 languages)"
     },
     {
       "args": [
@@ -2231,6 +2231,326 @@
       "fn": "i18n.languages",
       "module": "i18n",
       "returns": "array of {id, name}: ot3's language picker, system first (its name translated for locale), then each catalog language in its own name"
+    },
+    {
+      "args": [
+        {
+          "name": "plan",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "commandIds",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "sidebar.pinCommands",
+      "module": "sidebar",
+      "returns": "array of validated thread.pin.reorder commands using caller-persisted commandIds keyed by thread id"
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "reader.threadReference",
+      "module": "reader",
+      "returns": "string: canonical t3-thread://v1 reference with percent-encoded id"
+    },
+    {
+      "args": [
+        {
+          "name": "environments",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "now",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "fn": "quotaSources.present",
+      "module": "quotaSources",
+      "returns": "object {providers,notices,external}: workspace-aware fresh account pooling, pace, missing segments and reset translation keys"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "composer.newThread",
+      "module": "composer",
+      "returns": "object {projects,project,modelSelection,runtimeMode,workspaceStrategy,missing,ready,request?}: source/project/sibling/catalog/draft defaults and validated durable launch recipe; automatic host route requires host support"
+    },
+    {
+      "args": [
+        {
+          "name": "catalog",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "selection",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "runtimeMode",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "models.permissionView",
+      "module": "models",
+      "returns": "object {current, rows}: advertised runtime modes; absent/empty advertisement uses all definitions"
+    },
+    {
+      "args": [
+        {
+          "name": "older",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "recent",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "page",
+          "required": false,
+          "type": "array"
+        },
+        {
+          "name": "owner",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "pageOwner",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "cursor",
+          "required": false,
+          "type": "opaque"
+        },
+        {
+          "name": "pageCursor",
+          "required": false,
+          "type": "opaque"
+        },
+        {
+          "name": "nextCursor",
+          "required": false,
+          "type": "opaque"
+        },
+        {
+          "name": "hasMoreHistory",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "history.mergeView",
+      "module": "history",
+      "returns": "object {older,timeline,cursor,hasMoreHistory,applied}: presentation only; reject stale owner/cursor, recent wins"
+    },
+    {
+      "args": [
+        {
+          "name": "pages",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "pullRequests.listView",
+      "module": "pullRequests",
+      "returns": "object {items}: later pages replace matching environment/host/repository/number, newest updatedAt first"
+    },
+    {
+      "args": [
+        {
+          "name": "state",
+          "required": false,
+          "type": "object"
+        },
+        {
+          "name": "reference",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "frames",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "closed",
+          "required": false,
+          "type": "bool"
+        },
+        {
+          "name": "error",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "commandOutput.apply",
+      "module": "commandOutput",
+      "returns": "object {state,text,running,truncated,error}: incremental ANSI/VT stripping, CR overwrite, UTF-8 safe 64KiB tail; reference changes reset"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "commandId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "projects.mutation",
+      "module": "projects",
+      "returns": "validated project mutation including durable caller commandId for projects.mutate"
+    },
+    {
+      "args": [
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "config",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "writable",
+          "required": true,
+          "type": "bool"
+        }
+      ],
+      "fn": "providerInstances.projection",
+      "module": "providerInstances",
+      "returns": "safe provider instance fields and secret presence flags; never credentials"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "settings",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "providerInstances.mutation",
+      "module": "providerInstances",
+      "returns": "object {patch,providerInstanceMutation}: validated atomic server.updateSettings arguments"
+    },
+    {
+      "args": [
+        {
+          "name": "action",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "payload",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "saved",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "providerInstances.confirmTarget",
+      "module": "providerInstances",
+      "returns": "bool: mutation persisted in authoritative settings readback"
+    },
+    {
+      "args": [
+        {
+          "name": "orderedIds",
+          "required": true,
+          "type": "array"
+        },
+        {
+          "name": "keys",
+          "required": true,
+          "type": "object"
+        },
+        {
+          "name": "movedId",
+          "required": true,
+          "type": "id"
+        }
+      ],
+      "fn": "sidebar.pinPlan",
+      "module": "sidebar",
+      "returns": "array of {id,orderKey}: fractional move or deterministic rebalance; persist caller commandIds before dispatch"
+    },
+    {
+      "args": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "object"
+        }
+      ],
+      "fn": "composer.transform",
+      "module": "composer",
+      "returns": "object: completion/replace/list/recall transform; offsets are UTF-16, stale expectedText rejected; host owns IME and undo"
+    },
+    {
+      "args": [
+        {
+          "name": "href",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "name": "environmentId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "environments",
+          "required": true,
+          "type": "array"
+        }
+      ],
+      "fn": "reader.reference",
+      "module": "reader",
+      "returns": "tagged external/thread/document/anchor/unsupported destination; remote paths never expand local HOME"
     }
   ],
   "functions": [
