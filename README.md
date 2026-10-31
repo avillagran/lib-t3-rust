@@ -967,6 +967,9 @@ Behaviour hosts take over from their own HTTP code, and what stays theirs:
 
 ## Development
 
+See [Android/Desktop parity contracts](docs/ANDROID_PARITY.md) for the additive
+shared presentation helpers and the remaining automatic-routing host gap.
+
 Run `cargo test --locked` and `tools/test-c-abi` before changes are consumed by
 either app. Native CI runs on Linux x86_64 and aarch64. Keep platform integrations
 outside this crate. Fix shared behavior here, tag a version, then update each
