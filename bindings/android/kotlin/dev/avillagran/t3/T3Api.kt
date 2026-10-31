@@ -426,6 +426,9 @@ class T3Api(client: T3Client) {
         /** `terminal.attach` · stream · mutation · replay set · scope terminal:operate */
         fun attach(threadId: String, terminalId: String, cwd: String? = null, worktreePath: String? = null, cols: Long? = null, rows: Long? = null, env: JSONObject? = null, providerInstanceId: String? = null, restartIfNotRunning: Boolean? = null, resume: Boolean? = null): T3Subscription =
             client.subscribeFn("terminal.attach", JSONObject().put("threadId", threadId).put("terminalId", terminalId).put("cwd", cwd).put("worktreePath", worktreePath).put("cols", cols).put("rows", rows).put("env", env).put("providerInstanceId", providerInstanceId).put("restartIfNotRunning", restartIfNotRunning).put("resume", resume))
+        /** `terminal.observe` · stream · read · replay free · scope terminal:read */
+        fun observe(threadId: String, terminalId: String): T3Subscription =
+            client.subscribeFn("terminal.observe", JSONObject().put("threadId", threadId).put("terminalId", terminalId))
     }
 
     class Vcs internal constructor(private val client: T3Client) {
@@ -495,6 +498,7 @@ class T3Api(client: T3Client) {
         val scopedSettings = ScopedSettings(client)
         val sidebar = Sidebar(client)
         val subagents = Subagents(client)
+        val terminal = Terminal(client)
         val theme = Theme(client)
         val timeline = Timeline(client)
         val toolInspector = ToolInspector(client)
@@ -921,6 +925,18 @@ class T3Api(client: T3Client) {
             /** `subagents.fromThread` · object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent */
             fun fromThread(thread: JSONObject): Any? =
                 client.domain("subagents.fromThread", JSONObject().put("thread", thread))
+        }
+
+        class Terminal internal constructor(private val client: T3Client) {
+            /** `terminal.context` · object {cwd,worktreePath?,providerInstanceId?}: selected server paths */
+            fun context(shell: JSONObject, threadId: String, fallback: String): Any? =
+                client.domain("terminal.context", JSONObject().put("shell", shell).put("threadId", threadId).put("fallback", fallback))
+            /** `terminal.attach` · object: validated terminal.attach args; resume=true preserves stopped terminals, never use an ordering cursor as afterSequence */
+            fun attach(threadId: String, terminalId: String, context: JSONObject, cols: Long, rows: Long, resume: Boolean? = null): Any? =
+                client.domain("terminal.attach", JSONObject().put("threadId", threadId).put("terminalId", terminalId).put("context", context).put("cols", cols).put("rows", rows).put("resume", resume))
+            /** `terminal.output` · object {state,text,replace,finished,error,exitCode,exitSignal}: exact ordered ANSI/Unicode strings; snapshot replaces renderer history; remote error retained with state */
+            fun output(event: JSONObject, state: JSONObject? = null): Any? =
+                client.domain("terminal.output", JSONObject().put("state", state).put("event", event))
         }
 
         class Theme internal constructor(private val client: T3Client) {
