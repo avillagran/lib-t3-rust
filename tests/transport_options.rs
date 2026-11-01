@@ -39,7 +39,7 @@ fn content_type_is_case_insensitive_and_may_carry_parameters() {
         response("200 OK", &[("Content-Type", "Application/JSON; charset=UTF-8")], b"{\"a\":1}"),
         response("200 OK", &[("Content-Type", "application/json"), ("Content-Encoding", "Identity")], b"{\"b\":2}"),
         response("200 OK", &[("Content-Type", "text/plain")], b"{}"),
-        response("200 OK", &[("Content-Type", "application/json"), ("Content-Encoding", "gzip")], b"{}"),
+        response("200 OK", &[("Content-Type", "application/json"), ("Content-Encoding", "zstd")], b"{}"),
     ]);
     let c = Connection::new(&base, None, bearer()).unwrap();
     assert_eq!(c.request_json("GET", "/api/one", None, false).unwrap(), json!({"a":1}));
@@ -67,7 +67,8 @@ fn status_codes_map_to_stable_errors_and_redirects_are_not_followed() {
     assert!(seen[0].head.starts_with("GET /api/a HTTP"));
     assert_eq!(seen[0].header("authorization").unwrap(), "Bearer synthetic-token");
     assert_eq!(seen[0].header("accept").unwrap(), "application/json");
-    assert_eq!(seen[0].header("accept-encoding").unwrap(), "identity");
+    let accepted = seen[0].header("accept-encoding").unwrap();
+    assert!(accepted.contains("gzip") && accepted.contains("br"), "{accepted}");
     assert!(seen[0].header("x-t3-orchestration-protocol").is_none());
 }
 #[test]
