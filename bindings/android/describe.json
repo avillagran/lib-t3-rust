@@ -246,6 +246,11 @@
           "name": "accent",
           "required": false,
           "type": "text"
+        },
+        {
+          "name": "compact",
+          "required": false,
+          "type": "bool"
         }
       ],
       "fn": "sidebar.view",
