@@ -169,8 +169,8 @@ fn the_limit_is_exact_after_decoding() {
 
 #[test]
 fn a_compression_bomb_fails_cleanly_at_the_default_limit() {
-    // 64 MiB of zeros in a body that would pass any check on its wire size.
-    let bomb = vec![0; 64 * MIB];
+    // 65 MiB of zeros in a body that would pass any check on its wire size.
+    let bomb = vec![0; 65 * MIB];
     for encoder in ENCODERS {
         let answer = json_answer(encoder, &bomb);
         assert!(answer.len() < MIB, "{} bytes on the wire", answer.len());

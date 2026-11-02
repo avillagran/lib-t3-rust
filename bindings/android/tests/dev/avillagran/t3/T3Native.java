@@ -12,6 +12,23 @@ public final class T3Native {
     static native byte[][] image(long handle, byte[] metadata);
     static String invoke(long handle, String request) { return new String(call(handle, request.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8); }
     public static void main(String[] args) throws Exception {
+        if (args.length > 0) {
+            int mib = Integer.parseInt(args[0]);
+            long h = create();
+            try {
+                String title = "x".repeat(mib * 1024 * 1024 / 10000);
+                StringBuilder shell = new StringBuilder();
+                for (int n=0;n<10000;n++) {
+                    if(n>0) shell.append(',');
+                    shell.append("{\"id\":\"t").append(n).append("\",\"title\":\"").append(title).append("\"}");
+                }
+                String request = "{\"op\":\"domain\",\"fn\":\"sidebar.view\",\"args\":{\"now\":0,\"environments\":[{\"id\":\"fixture\",\"shell\":{\"threads\":[" + shell + "]}}]}}";
+                String result = invoke(h, request);
+                if (!result.contains("\"ok\":true") || !result.contains("t9999")) throw new AssertionError(result.substring(0, Math.min(200,result.length())));
+                System.out.println("SIDEBAR_PASS input="+request.length()+" output="+result.length());
+            } finally { free(h); }
+            return;
+        }
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/fixture", exchange -> {
             if (!"Bearer fixture-token".equals(exchange.getRequestHeaders().getFirst("Authorization"))) throw new AssertionError("missing auth");

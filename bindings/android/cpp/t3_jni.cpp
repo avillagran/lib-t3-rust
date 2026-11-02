@@ -19,8 +19,9 @@ void fail(JNIEnv *env, const char *code) {
     jclass type = env->FindClass("java/lang/IllegalStateException");
     if (type) env->ThrowNew(type, code);
 }
+// Match Rust DOMAIN_MAX_BYTES. Rust still enforces 8 MiB for non-domain calls.
 bool input(JNIEnv *env, jbyteArray bytes, std::vector<uint8_t> &out) {
-    if (!bytes || env->GetArrayLength(bytes) > 8 * 1024 * 1024) { fail(env, "invalid_input"); return false; }
+    if (!bytes || env->GetArrayLength(bytes) > 72 * 1024 * 1024) { fail(env, "invalid_input"); return false; }
     out.resize(static_cast<size_t>(env->GetArrayLength(bytes)));
     env->GetByteArrayRegion(bytes, 0, static_cast<jsize>(out.size()), reinterpret_cast<jbyte *>(out.data()));
     return !env->ExceptionCheck();

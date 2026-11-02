@@ -293,10 +293,11 @@ fn eight_streams_per_handle_and_the_ninth_fails_with_a_stable_code() {
         client.subscribe("orchestration.subscribeShell", json!({})),
         client.subscribe("orchestration.subscribeThread", bounded.clone()),
     ];
-    // At most two streams in the 64 MiB mode, whatever the free slots.
+    // Shell is separate from the two bounded-thread slots.
     let third = client.call(json!({"op":"subscribe","tag":"orchestration.subscribeThread","payload":bounded}));
-    assert_eq!(third, json!({"ok":false,"error":"subscription_limit"}));
-    for tag in ["subscribeWorktreeSetup", "subscribeServerConfig", "subscribeDeviceState", "subscribePreviewEvents", "terminal.attach", "orchestration.subscribeThread"] {
+    ids.push(third["data"]["subscriptionId"].as_str().unwrap().into());
+    assert_eq!(client.call(json!({"op":"subscribe","tag":"orchestration.subscribeThread","payload":{"threadId":"t","acceptBoundedSnapshot":true}}))["error"], "subscription_limit");
+    for tag in ["subscribeServerConfig", "subscribeDeviceState", "subscribePreviewEvents", "terminal.attach", "orchestration.subscribeThread"] {
         ids.push(client.subscribe(tag, json!({"threadId":"t"})));
     }
     let ninth = client.call(json!({"op":"subscribe","tag":"orchestration.subscribeShell","payload":{}}));
@@ -315,7 +316,7 @@ fn eight_streams_per_handle_and_the_ninth_fails_with_a_stable_code() {
     }
     let requests = server.join().unwrap();
     assert_eq!(requests.len(), 9);
-    assert_eq!(requests.iter().filter(|r| r["payload"]["acceptBoundedSnapshot"] == true).count(), 1);
+    assert_eq!(requests.iter().filter(|r| r["payload"]["acceptBoundedSnapshot"] == true).count(), 2);
 }
 
 #[test]
