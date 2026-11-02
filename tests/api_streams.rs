@@ -227,13 +227,14 @@ fn stream_arguments_are_rejected_before_any_socket() {
 }
 
 #[test]
-fn a_bounded_thread_spec_gets_the_large_item_limit_and_nothing_else_does() {
+fn shell_and_bounded_thread_specs_get_the_large_item_limit() {
     let bounded = spec("orchestration.subscribeThread", &json!({"threadId":"t","acceptBoundedSnapshot":true})).unwrap();
     assert_eq!(bounded.item_limit(), 64 << 20);
+    assert_eq!(spec("orchestration.subscribeShell", &json!({})).unwrap().item_limit(), 64 << 20);
     for (name, args) in [
         ("orchestration.subscribeThread", json!({"threadId":"t","acceptBoundedSnapshot":false})),
         ("orchestration.subscribeThread", json!({"threadId":"t"})),
-        ("orchestration.subscribeShell", json!({})),
+        ("terminal.attach", json!({"threadId":"t","terminalId":"term"})),
     ] {
         assert_eq!(spec(name, &args).unwrap().item_limit(), 8 << 20, "{name} {args}");
     }

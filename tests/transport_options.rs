@@ -99,10 +99,10 @@ fn response_limit_is_configurable_per_connection_and_per_call() {
     let small = ConnectionOptions::default().with_max_bytes(32);
     let c = Connection::with_options(&base, None, bearer(), &small).unwrap();
     assert_eq!(c.max_bytes(), 32);
-    assert_eq!(c.request_json("GET", "/api/orchestration/shell", None, true).unwrap_err(), "too_large");
+    assert_eq!(c.request_json("GET", "/api/server/config", None, true).unwrap_err(), "too_large");
     // A bounded thread snapshot keeps its own 64 MiB allowance.
     assert!(c.request_json("GET", "/api/orchestration/threads/t/bounded?compactTurnItems=1", None, true).is_ok());
-    assert!(c.request_json_with_limit("GET", "/api/orchestration/shell", None, true, 1024).is_ok());
+    assert!(c.request_json_with_limit("GET", "/api/server/config", None, true, 1024).is_ok());
     assert_eq!(
         c.request_json_with_limit("GET", "/api/orchestration/threads/t/bounded", None, true, 16).unwrap_err(),
         "too_large"

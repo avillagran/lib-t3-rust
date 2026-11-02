@@ -70,8 +70,8 @@ fn connect_options_are_validated_and_applied() {
     let (base, server) = serve(vec![json(&body), json(&body), response("204 No Content", &[], b"")]);
     let options = json!({"requestTimeoutMs":8000,"connectTimeoutMs":3000,"poolIdleTimeoutMs":90000,"maxBytes":32});
     assert_eq!(c.call(json!({"op":"connectBearer","httpBaseUrl":base,"token":"synthetic-token","options":options}))["ok"], true);
-    assert_eq!(c.call(json!({"op":"request","method":"GET","path":"/api/orchestration/shell"}))["error"], "too_large");
-    assert_eq!(c.call(json!({"op":"request","method":"GET","path":"/api/orchestration/shell","maxBytes":1024}))["ok"], true);
+    assert_eq!(c.call(json!({"op":"request","method":"GET","path":"/api/server/config"}))["error"], "too_large");
+    assert_eq!(c.call(json!({"op":"request","method":"GET","path":"/api/server/config","maxBytes":1024}))["ok"], true);
     assert_eq!(c.call(json!({"op":"request","method":"GET","path":"/api/x","maxBytes":-1}))["error"], "invalid_max_bytes");
     assert_eq!(
         c.call(json!({"op":"requestOk","method":"POST","path":"/api/auth/clients/revoke","body":{"sessionId":"s"},"protocol":false})),

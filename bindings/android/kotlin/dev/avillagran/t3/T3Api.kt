@@ -635,11 +635,11 @@ class T3Api(client: T3Client) {
             fun resolveScripts(settings: JSONObject, project: JSONObject): Any? =
                 client.domain("gitControls.resolveScripts", JSONObject().put("settings", settings).put("project", project))
             /** `gitControls.actions` · object {commit, push, pull, create_pr, commit_push, commit_push_pr} of bools: what the Git menu offers for a vcs.refreshStatus result */
-            fun actions(status: JSONObject): Any? =
-                client.domain("gitControls.actions", JSONObject().put("status", status))
+            fun actions(status: JSONObject, serverConfig: JSONObject? = null): Any? =
+                client.domain("gitControls.actions", JSONObject().put("status", status).put("serverConfig", serverConfig))
             /** `gitControls.present` · object {scope, status, scripts, actions, revision}: the Git & changes sheet; revision fingerprints checkout, status and scripts (not the requestId) */
-            fun present(scope: JSONObject, status: JSONObject, scripts: JSONArray): Any? =
-                client.domain("gitControls.present", JSONObject().put("scope", scope).put("status", status).put("scripts", scripts))
+            fun present(scope: JSONObject, status: JSONObject, scripts: JSONArray, serverConfig: JSONObject? = null): Any? =
+                client.domain("gitControls.present", JSONObject().put("scope", scope).put("status", status).put("scripts", scripts).put("serverConfig", serverConfig))
             /** `gitControls.scopedResult` · the receipt's result for the sheet's still-open scope and request, null for a late or other checkout; the receipt's error otherwise */
             fun scopedResult(expected: JSONObject, receipt: JSONObject): Any? =
                 client.domain("gitControls.scopedResult", JSONObject().put("expected", expected).put("receipt", receipt))

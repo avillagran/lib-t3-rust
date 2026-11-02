@@ -1627,6 +1627,11 @@
           "name": "status",
           "required": true,
           "type": "object"
+        },
+        {
+          "name": "serverConfig",
+          "required": false,
+          "type": "object"
         }
       ],
       "fn": "gitControls.actions",
@@ -1649,6 +1654,11 @@
           "name": "scripts",
           "required": true,
           "type": "array"
+        },
+        {
+          "name": "serverConfig",
+          "required": false,
+          "type": "object"
         }
       ],
       "fn": "gitControls.present",

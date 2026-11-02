@@ -7,9 +7,9 @@ pub const STREAM_PING_INTERVAL:Duration=Duration::from_secs(5);
 pub const STREAM_IDLE_TIMEOUT:Duration=Duration::from_secs(20);
 pub const STREAM_PROBE_TIMEOUT:Duration=Duration::from_secs(3);
 /// Largest single frame (and so item) a subscription accepts: 64 MiB only for a thread
-/// subscription that asked for bounded snapshots, the generic 8 MiB otherwise.
+/// subscription that asked for bounded snapshots, or shell; the generic 8 MiB otherwise.
 pub(crate) fn item_limit(tag:&str,payload:&Value)->u64{
- if tag=="orchestration.subscribeThread" && payload["acceptBoundedSnapshot"]==true {THREAD_SNAPSHOT_MAX_BYTES}else{MAX_BYTES}
+ if tag=="orchestration.subscribeShell" {SHELL_SNAPSHOT_MAX_BYTES}else if tag=="orchestration.subscribeThread" && payload["acceptBoundedSnapshot"]==true {THREAD_SNAPSHOT_MAX_BYTES}else{MAX_BYTES}
 }
 /// Where `item` sits in its stream's sequence: `snapshotSequence` of a shell or
 /// thread `snapshot`, else the item's `sequence` (also for thread events this

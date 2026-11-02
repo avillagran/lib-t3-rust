@@ -23,7 +23,7 @@ fn http_keeps_the_generic_limit_and_accepts_large_bounded_thread_snapshots() {
     assert!(body.len() > 8 * 1024 * 1024);
     let server = thread::spawn(move || {
         for path in [
-            "GET /api/orchestration/shell HTTP",
+            "GET /api/server/config HTTP",
             "GET /api/orchestration/threads/t/bounded?compactTurnItems=1 HTTP",
             "GET /api/orchestration/threads/t/bounded HTTP",
         ] {
@@ -35,7 +35,7 @@ fn http_keeps_the_generic_limit_and_accepts_large_bounded_thread_snapshots() {
         }
     });
     let c = Connection::new(&base, None, Credential::bearer("synthetic").unwrap()).unwrap();
-    assert_eq!(c.request_json("GET", "/api/orchestration/shell", None, true).unwrap_err(), "too_large");
+    assert_eq!(c.request_json("GET", "/api/server/config", None, true).unwrap_err(), "too_large");
     let snapshot = c.request_json("GET", "/api/orchestration/threads/t/bounded?compactTurnItems=1", None, true).unwrap();
     assert_eq!(snapshot["projection"]["turnItems"][0]["text"].as_str().unwrap().len(), 9_000_000);
     // Only protocol reads of a thread snapshot get the larger allowance.

@@ -290,13 +290,13 @@ fn eight_streams_per_handle_and_the_ninth_fails_with_a_stable_code() {
     let client = Client::connected(&base);
     let bounded = json!({"threadId":"t","acceptBoundedSnapshot":true});
     let mut ids = vec![
-        client.subscribe("orchestration.subscribeThread", bounded.clone()),
+        client.subscribe("orchestration.subscribeShell", json!({})),
         client.subscribe("orchestration.subscribeThread", bounded.clone()),
     ];
     // At most two streams in the 64 MiB mode, whatever the free slots.
     let third = client.call(json!({"op":"subscribe","tag":"orchestration.subscribeThread","payload":bounded}));
     assert_eq!(third, json!({"ok":false,"error":"subscription_limit"}));
-    for tag in ["orchestration.subscribeShell", "subscribeServerConfig", "subscribeDeviceState", "subscribePreviewEvents", "terminal.attach", "orchestration.subscribeThread"] {
+    for tag in ["subscribeWorktreeSetup", "subscribeServerConfig", "subscribeDeviceState", "subscribePreviewEvents", "terminal.attach", "orchestration.subscribeThread"] {
         ids.push(client.subscribe(tag, json!({"threadId":"t"})));
     }
     let ninth = client.call(json!({"op":"subscribe","tag":"orchestration.subscribeShell","payload":{}}));
@@ -307,7 +307,7 @@ fn eight_streams_per_handle_and_the_ninth_fails_with_a_stable_code() {
         assert_eq!(batch["closed"], false, "{batch}");
     }
     // Cancelling frees the slot.
-    assert_eq!(client.call(json!({"op":"cancelSubscription","subscriptionId":ids.remove(2)}))["data"]["cancelled"], true);
+    assert_eq!(client.call(json!({"op":"cancelSubscription","subscriptionId":ids.remove(0)}))["data"]["cancelled"], true);
     ids.push(client.subscribe("orchestration.subscribeShell", json!({})));
     client.poll_until(ids.last().unwrap(), |b| b["idle"] == true);
     for id in &ids {
@@ -315,7 +315,7 @@ fn eight_streams_per_handle_and_the_ninth_fails_with_a_stable_code() {
     }
     let requests = server.join().unwrap();
     assert_eq!(requests.len(), 9);
-    assert_eq!(requests.iter().filter(|r| r["payload"]["acceptBoundedSnapshot"] == true).count(), 2);
+    assert_eq!(requests.iter().filter(|r| r["payload"]["acceptBoundedSnapshot"] == true).count(), 1);
 }
 
 #[test]

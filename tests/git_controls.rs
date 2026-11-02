@@ -261,3 +261,46 @@ fn fresh_read_compares_content_not_request_identity_and_preserves_literal_filena
         i["filePaths"]
     );
 }
+
+#[test]
+fn server_pull_request_capability_gates_plans_and_preserves_legacy_behavior() {
+    let old = snapshot();
+    for capability in [Some(true), Some(false), None] {
+        let config = capability.map_or(
+            json!({}),
+            |v| json!({"environment":{"capabilities":{"pullRequests":v}}}),
+        );
+        let current =
+            git_controls::present_with_config(&old["scope"], &status(), &old["scripts"], &config)
+                .unwrap();
+        let enabled = capability != Some(false);
+        for operation in ["create_pr", "commit_push_pr"] {
+            assert_eq!(current["actions"][operation], enabled);
+            let result = git_controls::build_action(&current, &intent(&current, operation));
+            if enabled {
+                assert!(result.is_ok());
+            } else {
+                assert_eq!(result.unwrap_err(), "git_action_unavailable");
+            }
+        }
+        for operation in ["commit", "push", "commit_push"] {
+            assert_eq!(current["actions"][operation], true);
+        }
+        let domain = t3_protocol::domain::call("gitControls.present", &json!({"scope":old["scope"],"status":status(),"scripts":old["scripts"],"serverConfig":config})).unwrap();
+        assert_eq!(domain, current);
+        if capability.is_none() {
+            assert_eq!(current, old);
+        }
+        if capability == Some(false) {
+            assert_eq!(
+                git_controls::build_verified_action(
+                    &old,
+                    &current,
+                    &intent(&old, "commit_push_pr")
+                )
+                .unwrap_err(),
+                "git_stale_result"
+            );
+        }
+    }
+}
