@@ -231,6 +231,15 @@ pub struct Shape {
 const STATE: &[&str] = &["snapshot"];
 pub const SHAPES: &[Shape] = &[
     Shape {
+        function: &super::scheduled_tasks::SUBSCRIBE,
+        item_key: None,
+        items: &[],
+        starts: STATE,
+        cursor: None,
+        ends: &[],
+        first_item: Some("scheduledTasks.list"),
+    },
+    Shape {
         function: &SUBSCRIBE_SHELL,
         item_key: Some("kind"),
         items: &["synchronized", "snapshot", "project.updated", "project.removed", "thread.updated", "thread.removed"],
@@ -346,7 +355,7 @@ impl std::fmt::Debug for StreamSpec {
     }
 }
 impl StreamSpec {
-    fn new(function: &'static Function, payload: Value) -> Self {
+    pub(crate) fn new(function: &'static Function, payload: Value) -> Self {
         Self { function, payload }
     }
     pub fn tag(&self) -> &'static str {
@@ -711,6 +720,7 @@ pub(crate) fn read_first(conn: &Connection, f: &Function, payload: Value, timeou
         "provider.installState" => (&PROVIDER_INSTALL, |_| true),
         "provider.authState" => (&PROVIDER_AUTH, |_| true),
         "diagnostics.storageCleanupReport" => (&STORAGE_CLEANUP_REPORT, |_| true),
+        "scheduledTasks.list" => return super::scheduled_tasks::read_list(conn, timeout),
         "preview.discoveredServers" => {
             (&SUBSCRIBE_DISCOVERED_LOCAL_SERVERS, |v| v["servers"].as_array().is_some_and(|s| !s.is_empty()))
         }

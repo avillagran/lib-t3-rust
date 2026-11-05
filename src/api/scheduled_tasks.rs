@@ -14,10 +14,24 @@ const MAX_WEBHOOK_FILTERS: usize = 16;
 const TITLE_MAX: usize = 255;
 const PROMPT_MAX: usize = 120_000;
 
+/// T3 nightly reads tasks only through this stream: `{tasks}` at once, then the whole list
+/// after every change (a busy reader may only see the newest).
+pub const SUBSCRIBE: Function = Function {
+    stream: true,
+    ..api_fn! {
+        name: "scheduledTasks.subscribe", module: "scheduledTasks", tag: Some("scheduledTasks.subscribe"),
+        kind: Read, scope: Fixed("orchestration:read"),
+        args: [], payload: |_| Ok(json!({})),
+    }
+};
+/// `{tasks}` from the first `scheduledTasks.subscribe` item. T3 nightly has no
+/// `scheduledTasks.list` RPC (it answers `Unknown request tag`); only a server that also
+/// lacks the stream, such as an older o3, gets the old RPC instead.
 pub const LIST: Function = api_fn! {
-    name: "scheduledTasks.list", module: "scheduledTasks", tag: Some("scheduledTasks.list"),
+    name: "scheduledTasks.list", module: "scheduledTasks", tag: None,
     kind: Read, scope: Fixed("orchestration:read"),
     args: [], payload: |_| Ok(json!({})),
+    timeout_ms: 20_000,
 };
 /// Deduplicated through `commandId`: the server derives the task id
 /// `scheduled-task:<commandId>` and upserts it. The library requires `commandId`
@@ -52,11 +66,31 @@ pub const RUN_NOW: Function = api_fn! {
     args: [(id, Id, required)],
     payload: |a| id_payload(a.req("id")?),
 };
-pub const FUNCTIONS: &[Function] = &[LIST, UPSERT, SET_ENABLED, DELETE, RUN_NOW];
+pub const FUNCTIONS: &[Function] = &[LIST, SUBSCRIBE, UPSERT, SET_ENABLED, DELETE, RUN_NOW];
 
-/// `scheduledTasks.list`: `{tasks[]}`.
+/// `scheduledTasks.list`: `{tasks[]}`, read from `scheduledTasks.subscribe`.
 pub fn list(conn: &Connection) -> Result<Value> {
     send(conn, &LIST, json!({}))
+}
+/// The stream behind `list`: every item is the whole `{tasks}`.
+pub fn subscribe(
+    conn: &Connection,
+    cancel: impl Fn() -> bool,
+    probe: impl FnMut() -> bool,
+    receive: impl FnMut(Option<Value>) -> Result<()>,
+) -> Result<()> {
+    super::streams::StreamSpec::new(&SUBSCRIBE, json!({})).subscribe(conn, cancel, probe, receive)
+}
+pub(crate) fn read_list(conn: &Connection, timeout: std::time::Duration) -> Result<Value> {
+    let spec = super::streams::StreamSpec::new(&SUBSCRIBE, json!({}));
+    match crate::stream::first_item(conn, &spec, timeout, |_| true) {
+        Ok(Some(list)) => Ok(list),
+        Ok(None) => Err("stream_timeout".into()),
+        Err(e) if e.starts_with("rpc_rejected") && e.contains("scheduledTasks.subscribe") => {
+            conn.rpc_with_timeout("scheduledTasks.list", json!({}), timeout)
+        }
+        Err(e) => Err(e),
+    }
 }
 
 /// `ScheduledTaskUpsertInput`. `Debug` hides the schedule (a webhook may carry

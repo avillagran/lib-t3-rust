@@ -345,11 +345,12 @@ thread adds `orchestration:operate`) and `device::list_scope` (`updateTool` or
 | `device.detail` | same | `device::detail(conn, device_id, host_id?)` | read · free | `orchestration:read` | 20 s | `deviceId`, `hostId`? |
 | `device.action` | same | `device::action(conn, &DeviceAction)` | mutation · never | `orchestration:operate` | 30 s | the variant: `type`, `deviceId`, `hostId`, … |
 
-**`scheduledTasks`** (5)
+**`scheduledTasks`** (6)
 
 | Function (`fn`) | Tag | Rust (`api::…`) | Kind · replay | Scope | Deadline | Args |
 | --- | --- | --- | --- | --- | --- | --- |
-| `scheduledTasks.list` | same | `scheduled_tasks::list(conn)` | read · free | `orchestration:read` | 20 s | — |
+| `scheduledTasks.list` | first item of `scheduledTasks.subscribe` (old `scheduledTasks.list` RPC only if the server lacks the stream) | `scheduled_tasks::list(conn)` | read · free | `orchestration:read` | 20 s | — |
+| `scheduledTasks.subscribe` (stream) | same | `scheduled_tasks::subscribe(conn, cancel, probe, receive)` | read · free | `orchestration:read` | — | — |
 | `scheduledTasks.upsert` | same | `scheduled_tasks::upsert(conn, &TaskUpsert)` | mutation · id | `orchestration:operate` | 20 s | `title`, `prompt`, `enabled`, `schedule`, `projectId`, `workspaceStrategy`, `modelSelection`, `runtimeMode`, `interactionMode`, `commandId`?, `id`?, `requireExisting`?, `threadId`?, `createdBy`?, `creationSource`? |
 | `scheduledTasks.setEnabled` | same | `scheduled_tasks::set_enabled(conn, id, enabled)` | mutation · set | `orchestration:operate` | 20 s | `id`, `enabled` |
 | `scheduledTasks.delete` | same | `scheduled_tasks::delete(conn, id)` | mutation · set | `orchestration:operate` | 20 s | `id` |

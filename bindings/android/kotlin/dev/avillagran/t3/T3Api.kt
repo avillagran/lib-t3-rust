@@ -354,6 +354,9 @@ class T3Api(client: T3Client) {
         /** `scheduledTasks.list` · read · replay free · scope orchestration:read · 20000 ms */
         fun list(): Any? =
             client.call("scheduledTasks.list", JSONObject())
+        /** `scheduledTasks.subscribe` · stream · read · replay free · scope orchestration:read */
+        fun subscribe(): T3Subscription =
+            client.subscribeFn("scheduledTasks.subscribe", JSONObject())
         /** `scheduledTasks.upsert` · mutation · replay id · scope orchestration:operate · 20000 ms */
         fun upsert(title: String, prompt: String, enabled: Boolean, schedule: JSONObject, projectId: String, workspaceStrategy: JSONObject, modelSelection: JSONObject, runtimeMode: String, interactionMode: String, commandId: String? = null, id: String? = null, requireExisting: Boolean? = null, threadId: String? = null, createdBy: String? = null, creationSource: String? = null): Any? =
             client.call("scheduledTasks.upsert", JSONObject().put("title", title).put("prompt", prompt).put("enabled", enabled).put("schedule", schedule).put("projectId", projectId).put("workspaceStrategy", workspaceStrategy).put("modelSelection", modelSelection).put("runtimeMode", runtimeMode).put("interactionMode", interactionMode).put("commandId", commandId).put("id", id).put("requireExisting", requireExisting).put("threadId", threadId).put("createdBy", createdBy).put("creationSource", creationSource))
