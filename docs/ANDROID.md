@@ -10,7 +10,7 @@ ABI v3 adds the typed API ops `call` and `describe` (see [Typed API](#typed-api)
 
 The Android release provides an AAR with the canonical Kotlin adapter and JNI
 libraries for **arm64-v8a, armeabi-v7a, x86 and x86_64**, targeting API 24+,
-and ot3's string catalog as the asset `lib-t3-rust/i18n.json` (see Domain
+and O3 Code's string catalog as the asset `lib-t3-rust/i18n.json` (see Domain
 operations, Strings). It has no UI, account configuration or background service. Add the verified AAR
 to the Android application's dependencies:
 
@@ -223,7 +223,7 @@ envelope); other operations keep 8 MiB.
   `strong`, `emphasis`, `strikethrough` and `link`; `code` (a path in inline code
   links to the file); `break` (`hard`); `image`; `math`. A `link` is `{href, kind}`
   with kind `github`, `web`, `thread`, `file` (plus `fileType`) or `anchor`;
-  links ot3 would not follow have no `link` at all.
+  links O3 Code would not follow have no `link` at all.
 - **Diff and Git.** Parse `orchestration.getTurnDiff` (and `review.getDiffPreview`)
   results with `diffReview.present`, using `changes.summaries` for the ranges and
   `diffReview.scopedResult` to drop a late answer. The Git & changes sheet is
@@ -255,23 +255,23 @@ envelope); other operations keep 8 MiB.
   `timeline.minimapIndex` maps a touch on the rail. `subagents.cards(row.subagents,
   now, threadState.subagents)` per subagents row (refresh `now` each second while
   `anyLive`).
-- **Theme.** `theme.tokens(colorsToml, id)` returns every ot3 role as an opaque
+- **Theme.** `theme.tokens(colorsToml, id)` returns every O3 Code role as an opaque
   colour (`roles`, `statusColors`, `projectPalette`/`projectFills`, `sky`,
-  `document`), the same values ot3 draws, so the app needs no blending. The
+  `document`), the same values O3 Code draws, so the app needs no blending. The
   `appearance` rule is the sky's (Rec.709 luminance of the background > 0.5).
-- **Strings.** `i18n.t(locale, key, args)` is ot3's lookup with its placeholders;
+- **Strings.** `i18n.t(locale, key, args)` is O3 Code's lookup with its placeholders;
   the key is the English source. Two ways to use the catalog: at run time,
   `i18n.catalog(locale)` once per locale change (pass the app language or the
   device locales joined by `:`) and look strings up in memory, so the app needs
   no generated `strings_ot3.xml`; or at build time, a generator reads
   `assets/lib-t3-rust/i18n.json` from the AAR (the same file, pinned to the lib
-  version) instead of an ot3 checkout and keeps writing `strings_ot3.xml`. The
+  version) instead of an O3 Code checkout and keeps writing `strings_ot3.xml`. The
   first one also translates the English sources other functions return
   (`statusLabel`, subagent labels, summary parts) without a name table.
 
 - **Notifications.** `awareness.view` turns the followed environments' shells
   into the ongoing card, its chip, alerts and summaries, with T3's phases and
-  lifetimes and ot3's alert key; see [Following threads](#following-threads-notifications-and-live-updates).
+  lifetimes and O3 Code's alert key; see [Following threads](#following-threads-notifications-and-live-updates).
 
 Kotlin wrappers under `T3Api(client).domain` (109):
 
@@ -313,7 +313,7 @@ Kotlin wrappers under `T3Api(client).domain` (109):
 The follow service (a foreground service whose notification is the ongoing
 card) keeps no rule of its own: one `awareness.view` call per change gives it
 everything it posts. Shapes are in the README's Domain operations; `card` and
-`alerts` are what ot3-Android's `NotificationContract` parses.
+`alerts` are what O3-Android's `NotificationContract` parses.
 
 ```kotlin
 // On a worker, after every shell change, at nextDeadline and when the screen changes.
@@ -395,7 +395,7 @@ true, or the end of the stream), otherwise after `timeoutMs`:
 |---|---|
 | `items` | Native items in server order, never dropped or reordered. |
 | `boundaries` | Strictly ascending end offsets into this batch's `items`: `n` means a server chunk ended after `items[0..n)`. Apply items and repaint at boundaries, so a replay burst never shows half-applied state. Items after the last boundary belong to a chunk that continues in the next poll; `0` means the chunk that ended the previous batch ended right there. |
-| `idle` | The last chunk is complete and no new frame completed during one 100 ms read tick: caught up for now. A large frame may still be in transit, and it can be `true` before the first item. Stays `true` until the next item; turning `true` wakes one waiting poll. Without `requestCompletionMarker` it is the only catch-up signal (the same rule ot3 uses); with it, wait for `completionMarker`. |
+| `idle` | The last chunk is complete and no new frame completed during one 100 ms read tick: caught up for now. A large frame may still be in transit, and it can be `true` before the first item. Stays `true` until the next item; turning `true` wakes one waiting poll. Without `requestCompletionMarker` it is the only catch-up signal (the same rule O3 Code uses); with it, wait for `completionMarker`. |
 | `completionMarker` | Only with `"requestCompletionMarker":true` in the payload: `true` from the batch that carries the server's `{"kind":"synchronized"}` item (left in `items` at its position) onward. The initial snapshot or replay is complete; paint it. |
 | `closed`, `error`, `errorMessage` | Once `closed` nothing more arrives. `error` is a stable code (`null` after cancel); `errorMessage` an optional one-line reason. |
 | `cursor` | Where to resume: the payload's `afterSequence`, advanced over every item polled so far by the library's rule (a snapshot sets it, any other item only moves it on; thread events this build cannot decode count too). Subscribe again with it as `afterSequence`. `null` until known; for `terminal.attach` and `subscribeWorktreeSetup` it only orders items. |
