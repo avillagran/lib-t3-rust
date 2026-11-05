@@ -7,7 +7,7 @@ repository = "https://github.com/avillagran/lib-t3-rust"
 readme = "README.md"
 keywords = ["t3", "protocol", "android", "ffi"]
 
-description = "Portable native T3 Code transport and DPoP authorization for Omarchy and Omi"
+description = "Portable T3 Code protocol client shared by o3-server, O3 Code (Omarchy desktop) and O3-Android"
 
 [lib]
 crate-type = ["rlib", "staticlib"]
