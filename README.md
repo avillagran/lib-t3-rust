@@ -1,8 +1,22 @@
 # lib-t3-rust
 
-Portable Rust core for [Omarchy T3 Code](https://github.com/avillagran/omarchy-t3-code)
-and Omi. Extracted with source history from ot3; the Cargo package remains
+Portable Rust core of the O3 family. It speaks T3 Code's wire protocol (Effect RPC
+over WebSocket, HTTP routes, signed uploads and assets, DPoP and T3 Connect), so
+the same calls work against a T3 Code nightly server and against o3-server:
+
+| Project | Role | How it uses this crate |
+| --- | --- | --- |
+| [o3-server](https://github.com/avillagran/o3-server) | Rust replacement for the headless T3 Code server | Its OmaBridge integration links `t3-protocol`, and its compatibility and differential tests drive o3 and real T3 through this client. |
+| [O3 Code](https://github.com/avillagran/omarchy-t3-code) | Omarchy desktop client (QML interface, Rust backend) | T3 HTTP reads, Effect RPC writes, signed attachment streaming and T3 Connect authorization. |
+| [O3-Android](https://github.com/avillagran/O3-Android) | Native Android client (Kotlin + Jetpack Compose) | The Kotlin/JNI adapter in [bindings/android](bindings/android) and the four-ABI AAR. |
+
+Extracted with source history from O3 Code; the Cargo package remains
 **`t3-protocol`**, preserving Rust imports and the C ABI.
+
+O3 Code was called Omarchy T3 Code (ot3), and O3-Android was called Omi. Some
+identifiers keep those names because they are part of an API or file layout:
+the `omarchy-t3-code` repository and its `omarchy_t3_client` crate, the
+`omarchy-<requestId>` command ids and the Android `strings_ot3.xml` resource.
 
 ```toml
 [dependencies]
@@ -10,12 +24,14 @@ t3-protocol = { git = "https://github.com/avillagran/lib-t3-rust", tag = "v0.3.0
 ```
 
 For reproducible application builds, pin a full `rev` and commit Cargo.lock.
-The project is not published on crates.io.
+The project is not published on crates.io. The library has no Quickshell,
+Electron, filesystem, SSH, keyring, Python or JavaScript runtime dependency.
 
-Shared Rust library for Omarchy T3 Code and Omi. The desktop plugin now uses this
-library for T3 HTTP reads, Effect RPC writes, signed attachment streaming and
-T3 Connect authorization. The library has no Quickshell, Electron, filesystem,
-SSH, keyring, Python or JavaScript runtime dependency.
+### Servers it talks to
+
+Calls follow the current T3 Code nightly contract and stay compatible with
+o3-server. Where the two differ, the library picks what both accept, so each
+client keeps a single code path for both servers.
 
 ## Rust API
 
@@ -58,7 +74,7 @@ Run blocking calls on a worker thread. Native TLS certificate validation stays o
 Direct bearer endpoints may use HTTP when inherited from T3; relay URLs require
 HTTPS (loopback HTTP is allowed for isolated tests). Redirects are disabled.
 
-## Omi / Kotlin
+## O3-Android / Kotlin
 
 See the [Android integration guide](docs/ANDROID.md) for NDK builds, JNI ownership,
 threading and the current C ABI limitations. Linux packages are not Android binaries.
@@ -69,11 +85,11 @@ and file descriptors; HTTP/RPC/authentication stay in this library. Android
 releases include a four-ABI AAR so applications do not need to compile Rust.
 
 1. Build `t3-protocol` for each Android ABI with the Android NDK/toolchain.
-2. Link `libt3_protocol.a` into Omi's JNI library and include `t3_protocol.h`.
+2. Link `libt3_protocol.a` into O3-Android's JNI library and include `t3_protocol.h`.
 3. Create a handle with `t3_client_new`, call from a worker thread, release each
    response with `t3_string_free`, then release the handle with `t3_client_free`.
-4. Supply Omi's current signed-in cloud session to `connectRelay`; do not read
-   Omarchy's files or duplicate the protocol in Kotlin. The Rust streaming API
+4. Supply the app's current signed-in cloud session to `connectRelay`; do not read
+   O3 Code's files or duplicate the protocol in Kotlin. The Rust streaming API
    accepts a reader supplied by the Android content adapter.
 
 C ABI commands:
@@ -96,7 +112,7 @@ C ABI commands:
 {"op":"request","method":"GET","path":"/api/orchestration/shell","maxBytes":1048576}
 {"op":"requestOk","method":"POST","path":"/api/auth/clients/revoke","body":{"sessionId":"s-1"},"protocol":false}
 {"op":"fetchDescriptor","httpBaseUrl":"https://environment.example","environmentId":"00000000-0000-4000-8000-000000000001"}
-{"op":"pairBearer","httpBaseUrl":"https://environment.example","pairingCode":"from-the-pairing-link","client":{"label":"Omi","deviceType":"mobile","os":"android"},"connect":true}
+{"op":"pairBearer","httpBaseUrl":"https://environment.example","pairingCode":"from-the-pairing-link","client":{"label":"O3-Android","deviceType":"mobile","os":"android"},"connect":true}
 {"op":"boundedThread","threadId":"selected"}
 ```
 
@@ -113,7 +129,7 @@ Connection changes are atomic: a failed connect leaves the prior connection
 intact, so the host must treat the returned error as a failed switch.
 
 The library supplies native Android JNI binaries and a Kotlin adapter. It does
-not modify or publish the Omi application. Host tests and Android cross-builds
+not modify or publish the O3-Android application. Host tests and Android cross-builds
 are separate from Android device/UI validation; see the integration guide.
 
 ## Typed API
@@ -158,7 +174,7 @@ first). `call` checks the function name (`unknown_function`), `timeoutMs`
 `invalid_cwd` or `invalid_command_id`) before it needs a connection.
 `rpc`/`rpcWithTimeout` remain for tags the registry does not wrap yet.
 
-`Command` types the 34 `dispatchCommand` variants ot3 sends. The existing builders
+`Command` types the 34 `dispatchCommand` variants O3 Code sends. The existing builders
 remain the source of truth for the commands they build: `Command::queue`, `answer`,
 `approve`, `runtime_mode`, `sidebar` and `thread_action` wrap `queue`, `questions`,
 `approvals`, `models` and `sidebar`. The other contract types travel as
@@ -171,7 +187,7 @@ missing scope reads `write_not_authorized: [settings:write] <message>`;
 `errors::required_scope` and `errors::message` split it, and the C ABI returns
 `{"ok":false,"error":"write_not_authorized","message":"…","requiredScope":"settings:write"}`.
 
-The registry has 99 unary functions in 20 modules: every unary T3 RPC that ot3
+The registry has 99 unary functions in 20 modules: every unary T3 RPC that O3 Code
 calls, plus `pullRequests.list` and `terminal.resize`, which the library already
 built payloads for. The 13 streams and 4 composed reads are in
 [Typed streams](#typed-streams). A function's `fn` is its wire tag, so
@@ -179,7 +195,7 @@ built payloads for. The 13 streams and 4 composed reads are in
 `provider.authStart`. `module` is the Rust module in camelCase
 (`api::pull_requests` → `pullRequests`); a few tags live in another module
 (`server.getHostResources` in `diagnostics`, `attachments.delete` in `assets`).
-A deadline other than 20 s is ot3's own (`rpc_with_timeout`), and a caller's
+A deadline other than 20 s is O3 Code's own (`rpc_with_timeout`), and a caller's
 `timeoutMs` overrides it.
 
 Four functions take a union through `openArgs`: `orchestration.dispatchCommand`
@@ -434,7 +450,7 @@ set, the same test also re-reads the live sources.
 
 ### Typed streams
 
-The 13 stream tags ot3 uses are registry rows with `"stream": true` in
+The 13 stream tags O3 Code uses are registry rows with `"stream": true` in
 `api::streams`. Each has a `*_spec` that validates the payload with no network
 and returns a `StreamSpec` (registry row plus exact wire payload), and a
 `subscribe_*` that runs the existing `Connection::subscribe_probed` loop with
@@ -476,7 +492,7 @@ streams::subscribe_thread(conn, &sub, cancelled, || false, |item| {
 
 `stream::cursor_of(tag, &item)` is an item's place in its stream:
 `snapshotSequence` of a shell or thread snapshot, otherwise `sequence`, also for
-thread events this build cannot decode. `stream::advance` applies ot3's rule (a
+thread events this build cannot decode. `stream::advance` applies O3 Code's rule (a
 snapshot sets the cursor; any other item only moves it forward), and
 `stream::start_of` tells whether a first item replaces the held state
 (`Snapshot`), resumes it from `afterSequence` (`Resume`) or only carries events
@@ -506,7 +522,7 @@ timeline and its minimap, Markdown blocks, project chips, subagent cards, the
 queue, approvals, questions, plans, rewind, the tool inspector, the diff, the Git
 sheet and branch picker, pull requests, settings, usage and quotas, models,
 composer suggestions, history pages, what to notify about threads), the
-commands and calls it builds, ot3's colours for an Omarchy theme and ot3's
+commands and calls it builds, O3 Code's colours for an Omarchy theme and O3 Code's
 string catalog. They need no connection and never touch the network, so they work before
 `connectBearer` and while offline; anything that depends on the clock takes `now`
 (milliseconds) as an argument. Through the JSON ABI:
@@ -532,9 +548,9 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
   (`shell` is its shell snapshot or the live shell stream's state; `state` is the
   host's connection state, so a cached shell stays listed while `unreachable`)
   and the host's view state: `filter`, `project` (a project or group key),
-  `environmentId`, `query`, `grouped` (ot3's "Group working, snoozed and settled
+  `environmentId`, `query`, `grouped` (O3 Code's "Group working, snoozed and settled
   threads"), `subthreadsExpanded`, `selectedKey`, the grouping settings and the
-  theme's `colors` for project chips. It returns ot3's sections (active,
+  theme's `colors` for project chips. It returns O3 Code's sections (active,
   Working, snoozed, settled; sub-threads nested under their parents), the count
   pills, the filter counts and `returns`, which the host passes back on the next
   call so a thread that leaves Working returns to the top of the inbox. Every row
@@ -560,7 +576,7 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
     waiting_for_approval, waiting_for_input, completed, failed; a live phase of an
     environment whose `state` says it is not connected is `stale` (status
     Waiting), and its baseline entry waits untouched.
-  - *Alert key* (the decision of ot3-Android's request U28): ot3's. A thread
+  - *Alert key* (the decision of O3-Android's request U28): O3 Code's. A thread
     alerts when its `sidebar.view` row turns `pending` or stays pending with a new
     `revision`, so ready plans and review completions alert as on the desktop and
     a second request on a waiting thread alerts again. T3's rules decide the rest:
@@ -591,16 +607,16 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
     `Status: project`, titles cut at 120 characters and statuses at 40, as T3
     does.
 - **`timeline.view`** takes a projection (from a bounded snapshot or a thread
-  stream, kept current with `projection.apply`) and returns ot3's conversation:
+  stream, kept current with `projection.apply`) and returns O3 Code's conversation:
   user, assistant, activity, changes, context, plan, secret, subagents and error
   rows in time order, each with a `rev` fingerprint so a list only redraws the
   rows that changed, plus the thread state, the working pill's live activity,
   approvals, questions, tasks, the queue and the plan view. Assistant rows and
   plans carry `markdown.blocks`.
 - **`markdown.blocks`** returns paragraphs, headings, lists, quotes, tables
-  (with their Markdown and CSV copies), code blocks (language and ot3's run
+  (with their Markdown and CSV copies), code blocks (language and O3 Code's run
   command), images, display math and rules, with flat inline spans. Links keep
-  ot3's rule (http, https, file and t3-thread only) and its classes: github,
+  O3 Code's rule (http, https, file and t3-thread only) and its classes: github,
   web, thread, file (with a file type) and anchor.
 - **Calls to make.** A function that prepares a server call returns
   `{method, payload}`: `payload` is the typed function's arguments, so the host
@@ -612,19 +628,19 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
   derives it (`checkpointRevert.command` uses `omarchy-<requestId>`, which its
   `observation` matches) or the host passes one.
 - **`theme.tokens`** takes an Omarchy `colors.toml` (and the theme's directory
-  name) and returns ot3's roles as opaque `#rrggbb`: the base palette as
+  name) and returns O3 Code's roles as opaque `#rrggbb`: the base palette as
   Omarchy's `Color.qml` reads it, the status colours of `T3Palette.qml`, every
   foreground or accent layer as Qt Quick draws it over the background (`layers`
   keeps each one's colour and opacity), the sidebar detail colours, the project
   palette and fills, the sky (the Rec.709 light rule, star ink, header base) and
   `DocumentTheme`'s CSS variables. Goldens cover Omarchy's 22 themes, each
-  checked against what ot3 drew for it.
-- **`i18n.t`** is ot3's `T3I18n.tr` over ot3's catalog, which the library
+  checked against what O3 Code drew for it.
+- **`i18n.t`** is O3 Code's `T3I18n.tr` over O3 Code's catalog, which the library
   carries (20 languages, 1796 English sources, plus the 8 `awareness.view`
   adds): a locale list such as `fr_CA.UTF-8:en`, the English source as key
   and `{name}` arguments; Arabic
-  gets ot3's U+2068/U+2069 isolates. `i18n.catalog(locale)` returns every string
-  at once, `i18n.resolve` the locale ot3 picks and `i18n.languages` its language
+  gets O3 Code's U+2068/U+2069 isolates. `i18n.catalog(locale)` returns every string
+  at once, `i18n.resolve` the locale O3 Code picks and `i18n.languages` its language
   picker. English source strings in other functions' output (`statusLabel`,
   subagent labels, `header` and `summary` parts `{source, args}`) are keys of
   this catalog.
@@ -632,7 +648,7 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
   `threadState.subagents` and returns each card overlaid with its live copy and
   described (label, tone, detail, elapsed), the group header, the summary parts
   and whether the group opens expanded. `timeline.minimap` takes the timeline
-  rows (and the ids of the rows on screen) and returns ot3's markers.
+  rows (and the ids of the rows on screen) and returns O3 Code's markers.
 - **`checkpointRevert.safety`** reads the live gate as JSON (`canOperate`,
   `connected`, `supportsConversationRollback`, `working`, `sendBusy`,
   `connecting`, `pendingAttachments`, `rewinding`; anything but `true` is false)
@@ -647,10 +663,10 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
 | `sidebar.sortTimestamps` | `thread` | object {inboxAt, activeAnchorAt, lastSentAt, settledSortAt} (ms) |
 | `sidebar.command` | `action`, `threadId`, `snoozedUntil`? | command: thread.settle, thread.unsettle, thread.snooze or thread.unsnooze (without commandId) |
 | `sidebar.threadAction` | `thread`, `action`, `title`?, `enabled`?, `confirmed`?, `working`? | command for the thread actions menu (without commandId) |
-| `sidebar.snapshot` | `environments`, `now` | object {environments [{id, name, state}], stale, projects, threads, working, pending}: each environment {id, name?, shell?, state?} as ot3's rows, newest first |
+| `sidebar.snapshot` | `environments`, `now` | object {environments [{id, name, state}], stale, projects, threads, working, pending}: each environment {id, name?, shell?, state?} as O3 Code's rows, newest first |
 | `sidebar.view` | `environments`, `now`, `filter`?, `project`?, `environmentId`?, `query`?, `grouped`?, `subthreadsExpanded`?, `selectedKey`?, `returns`?, `groupingMode`?, `groupingOverrides`?, `nativeGrouping`?, `colors`?, `accent`? | object {sections {active, working, snoozed, settled}, sectionCounts, counts, filterCounts, projects, projectGroups, projectScope, projectIdentities {key: identity}, environments, stale, working, pending, threads, returns}; rows carry detail, state, statusLabel, statusRole and time |
 | `sidebar.detail` | `thread`, `now`? | object {detail, state, statusLabel, statusRole, time} of one sidebar row |
-| `awareness.view` | `environments`, `now`, `baseline`?, `onScreen`?, `preferences`?, `lifecycle`?, `locale`? | object {counts, rows [{route {environmentId, threadId}, phase, title, project, host, status, since?, expiresAt}], card {active, phase, title, subtitle, status, chip? {kind working, live, approve or answer, count}, since?, expiresAt, route, rows (at most 5)} or null, alerts [{id, group attention or finished, phase, title, body, status, route, expiresAt?}], summaries [{group, title, body, lines, route}], baseline, nextDeadline}: T3's phases, card and lifetimes and ot3's alert key over sidebar.view's environments; pass baseline back on the next call and call again at nextDeadline (ms); texts in locale |
+| `awareness.view` | `environments`, `now`, `baseline`?, `onScreen`?, `preferences`?, `lifecycle`?, `locale`? | object {counts, rows [{route {environmentId, threadId}, phase, title, project, host, status, since?, expiresAt}], card {active, phase, title, subtitle, status, chip? {kind working, live, approve or answer, count}, since?, expiresAt, route, rows (at most 5)} or null, alerts [{id, group attention or finished, phase, title, body, status, route, expiresAt?}], summaries [{group, title, body, lines, route}], baseline, nextDeadline}: T3's phases, card and lifetimes and O3 Code's alert key over sidebar.view's environments; pass baseline back on the next call and call again at nextDeadline (ms); texts in locale |
 | `projects.identity` | `projects`, `colors`?, `accent`? | array of {key, monogram, label, kind, icon, colorSlot, colorKey, color, fill}, one per project, slots over all of them |
 | `projects.monogram` | `name` | string: the two-letter monogram of a project title |
 | `timeline.view` | `projection`, `historyCursor`?, `hasMoreHistory`?, `payloadBudgetExceeded`?, `mathRenderingEnabled`? | object {timeline [rows with role user, assistant, activity, changes, context, plan, secret, subagents or error, each with rev; assistant rows and plans carry markdown.blocks], threadState, activity, approvals, questions, tasks, queue, planView, historyCursor, hasMoreHistory, payloadBudgetExceeded} |
@@ -658,7 +674,7 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
 | `activity.describe` | `row` | object {id, type, category, title, command, runId, status, failed, active} of a turn item (or its projected row), or null for messages, checkpoints, plans and errors; never the tool's input or output |
 | `changes.summaries` | `projection` | array of {id, runId, capturedAt, fromTurnCount, toTurnCount, files [{path, kind, additions, deletions}], additions, deletions}, one per run with ready checkpoint files |
 | `markdown.blocks` | `markdown`, `mathRenderingEnabled`? | array of blocks {type: paragraph, heading, list, quote, code, table, image, math or rule} with flat inline spans (text with strong/emphasis/strikethrough/link, code, break, image, math); links classified github, web, thread, file or anchor; unsafe links dropped |
-| `markdown.link` | `href` | object {href, kind: github, web, thread, file or anchor, fileType?} or null when ot3 would not follow the link |
+| `markdown.link` | `href` | object {href, kind: github, web, thread, file or anchor, fileType?} or null when O3 Code would not follow the link |
 | `queue.derive` | `projection` | object {items, hiddenMessageIds, acknowledgedMessageIds, held, activeRunId, canReorder, canSteer} |
 | `queue.command` | `thread`, `action`, `runId`?, `beforeRunId`?, `targetRunId`?, `text`?, `attachments`?, `context`? | command: queued-run.cancel/reorder/edit, queued-message.promote-to-steer or queue.resume (without commandId) |
 | `approvals.pending` | `projection` | array of {requestId, requestKind, createdAt, responseCapability, detail?, appName?, options}, oldest first |
@@ -745,11 +761,11 @@ keeps the 8 MiB input limit. In Rust the same registry is `t3_protocol::domain`
 | `subagents.describe` | `subagent`, `now` | object {live, settled, label, tone, detail, elapsed}: one subagent row; label is an English source string (Queued, Running, Waiting, Idle · resumable, Completed, Failed, Stopped or Unknown), tone the colour's state (working, waiting, done, failed or idle), elapsed like 4m 09s |
 | `subagents.cards` | `cards`, `threadSubagents`?, `now` | object {subagents [{subagent, view}], group, anyLive, expanded, counts, header {source, args}, summary [{source, args}]}: a timeline subagents row's cards overlaid with threadState.subagents; header and summary parts are catalog sources ({n} subagents; {n} working, done, failed, stopped, idle) joined with " · " |
 | `subagents.fromThread` | `thread` | object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent |
-| `theme.tokens` | `colors`, `id`? | object {id, name, appearance (light when the background's Rec.709 luminance > 0.5), luminance, mode, base, roles {dim, statusMuted, divider, surface, card, cardBorder, changesCard, rowSelected, rowPressed, rowDraft, field, fieldBorder, switchOff, inlineCode, composerBorder, composerFocus, working, done, waiting, failed, warning, input, onAccent}, layers {role: {color, alpha}}, statusColors {detail: colour}, projectPalette, projectFills, sky {lightSky, star, meteor, ink, header {brightness, nebula, meteorRate, base}, panel}, document {appearance, variables}, mcpTheme}: ot3's colours for an Omarchy colors.toml, each role the opaque #rrggbb ot3 draws |
-| `i18n.t` | `locale`, `key`, `args`? | string: ot3's translation of an English source string for a locale list (fr_CA.UTF-8:en), else the language's, English's or the source; {name} placeholders from args, Arabic isolated with U+2068/U+2069 |
-| `i18n.catalog` | `locale` | object {locale, language, rtl, strings {source: translation}}: every string of the catalog for the locale as i18n.t gives it without args (1804 sources: ot3's 1796 and awareness.view's 8; 20 languages) |
+| `theme.tokens` | `colors`, `id`? | object {id, name, appearance (light when the background's Rec.709 luminance > 0.5), luminance, mode, base, roles {dim, statusMuted, divider, surface, card, cardBorder, changesCard, rowSelected, rowPressed, rowDraft, field, fieldBorder, switchOff, inlineCode, composerBorder, composerFocus, working, done, waiting, failed, warning, input, onAccent}, layers {role: {color, alpha}}, statusColors {detail: colour}, projectPalette, projectFills, sky {lightSky, star, meteor, ink, header {brightness, nebula, meteorRate, base}, panel}, document {appearance, variables}, mcpTheme}: O3 Code's colours for an Omarchy colors.toml, each role the opaque #rrggbb O3 Code draws |
+| `i18n.t` | `locale`, `key`, `args`? | string: O3 Code's translation of an English source string for a locale list (fr_CA.UTF-8:en), else the language's, English's or the source; {name} placeholders from args, Arabic isolated with U+2068/U+2069 |
+| `i18n.catalog` | `locale` | object {locale, language, rtl, strings {source: translation}}: every string of the catalog for the locale as i18n.t gives it without args (1804 sources: O3 Code's 1796 and awareness.view's 8; 20 languages) |
 | `i18n.resolve` | `locale` | object {locale, language, rtl}: the first locale of the list the catalog has (by itself or its language), else the first |
-| `i18n.languages` | `locale`? | array of {id, name}: ot3's language picker, system first (its name translated for locale), then each catalog language in its own name |
+| `i18n.languages` | `locale`? | array of {id, name}: O3 Code's language picker, system first (its name translated for locale), then each catalog language in its own name |
 
 ## Validation
 
@@ -771,7 +787,7 @@ or real conversations are created by these tests.
 | Native state | `projection`, `history`, `lifecycle`, `stream` |
 | Transport | `ConnectionOptions`, `Connection::rpc`, `Connection::rpc_with_timeout`, `stream` (`subscribe`, `subscribe_probed`), `assets`, `pairing`, `bounded_snapshot` |
 | Chat operations | `composer`, `queue`, `questions`, `approvals`, `tasks` |
-| Presentation | `activity`, `changes`, `documents`, `sidebar` (and `sidebar::view`), `awareness`, `timeline` (and `timeline::minimap`), `subagents`, `markdown`, `projects` (identity), `models`, `theme`, `i18n` (with ot3's catalog) |
+| Presentation | `activity`, `changes`, `documents`, `sidebar` (and `sidebar::view`), `awareness`, `timeline` (and `timeline::minimap`), `subagents`, `markdown`, `projects` (identity), `models`, `theme`, `i18n` (with O3 Code's catalog) |
 | Domain operations | `domain` (the registry behind `{"op":"domain"}`) |
 | Devices | `device_hub` |
 | Configuration | `connection_catalog`, `projects`, `settings` |
@@ -826,11 +842,11 @@ use local fixture servers, never real conversations or paid provider runs.
   T3's sidebar status and snooze rules, `compaction` leaves settled threads
   asleep, and `queue` keeps a message promoted to steer visible.
 
-### Domain modules shared with ot3
+### Domain modules shared with O3 Code
 
-The pure halves of ot3's domain modules live here so Omi's Kotlin client reuses
+The pure halves of O3 Code's domain modules live here so O3-Android's Kotlin client reuses
 them through JNI instead of reimplementing them. Each one is JSON in, JSON out,
-with the same function names and output bytes ot3 had; ot3 re-exports them (see
+with the same function names and output bytes O3 Code had; O3 Code re-exports them (see
 [OT3_REEXPORTS.md](docs/OT3_REEXPORTS.md)) and keeps the parts that need its
 environment, an RPC, the filesystem or a process.
 
@@ -854,31 +870,31 @@ environment, an RPC, the filesystem or a process.
   an automatic update may run, and `reconnect` holds the backoff and the
   transient-error rule. The host reports resume or network changes with
   `reconnect::notify()`; `Waiter::default()` follows that process-wide counter.
-- **Sidebar, thread and project chips (0.3.3).** `sidebar::view` is ot3's
+- **Sidebar, thread and project chips (0.3.3).** `sidebar::view` is O3 Code's
   sidebar: its shell rows (`normalize` and the enrichment of `snapshot`, now
   over several environments) and its `SidebarModel.js` and `ProjectModel.js`
-  (details, shelves, nesting, order, groups and counts). `timeline` is ot3's
+  (details, shelves, nesting, order, groups and counts). `timeline` is O3 Code's
   `normalize_messages` and `conversation_timeline` with their helpers, the
   renderers passed in through `timeline::Render`. `projects::monogram` and
-  `projects::identities` are ot3's `project_identity` and its palette slot.
-  `markdown` holds the Markdown facts ot3 derives (tables, search text, file
+  `projects::identities` are O3 Code's `project_identity` and its palette slot.
+  `markdown` holds the Markdown facts O3 Code derives (tables, search text, file
   references, image descriptors, inline-code paths) and the neutral `blocks`.
 - **Minimap, subagents, theme and strings (0.3.4).** `timeline::minimap` is
-  ot3's `TimelineModel.js` with the marker rules of `T3TimelineMinimap.qml`;
+  O3 Code's `TimelineModel.js` with the marker rules of `T3TimelineMinimap.qml`;
   `subagents` is `Subagents.js` with `T3SubagentCards.qml`'s header; `theme` is
   what `T3Palette.qml`, `T3Panel.qml`, `DocumentTheme.js` and `T3Starfield.qml`
-  draw for a theme; `i18n` carries ot3's catalog (`data/i18n.json`) and
+  draw for a theme; `i18n` carries O3 Code's catalog (`data/i18n.json`) and
   `T3I18n.tr`. `scoped_settings::write_patch`, `target_view` and `page` are the
-  pure halves of ot3's settings executor.
+  pure halves of O3 Code's settings executor.
 
 ### Rich text
 
-`latex::to_rich_text` and the Markdown that ot3 renders around it emit Qt's rich
+`latex::to_rich_text` and the Markdown that O3 Code renders around it emit Qt's rich
 text subset (`<sup>`, `<sub>`, inline styles, `<p align="center">`), not general
 HTML. `latex::render(tex, display, Surface::Qt)` is the same output behind an
 explicit surface; Kotlin should treat it as Qt-specific. Hosts without Qt use
 `markdown::blocks` (`markdown.blocks`, and the blocks `timeline.view` attaches):
-renderer-neutral blocks and spans with ot3's link rule, math kept as TeX.
+renderer-neutral blocks and spans with O3 Code's link rule, math kept as TeX.
 `plan_workflow` and `timeline` take the renderer as a parameter, so neither is
 tied to Qt.
 
@@ -904,7 +920,7 @@ tied to Qt.
   the ongoing card and its status bar chip, attention and finished alerts
   deduplicated against a host-held `baseline`, summaries and absolute
   deadlines, over the environments `sidebar.view` takes. The alert key is
-  ot3's (`pending` and `revision`); groups, freshness and lifetimes are T3's.
+  O3 Code's (`pending` and `revision`); groups, freshness and lifetimes are T3's.
   Rust: `t3_protocol::awareness` (`view`, `phase`, `priority`, `expires_at`).
 - **Catalog.** Eight English sources for its card titles and summaries
   (`{n} agents need attention`, `{n} agents finished`, `1 needs you`,
@@ -918,7 +934,7 @@ tied to Qt.
   inspector, plans (`planWorkflow.view` with Markdown blocks), the Git sheet
   (`gitControls`), settings (`nativeSettings`, `scopedSettings`) and checkpoint
   rewind, which already lived here, now reachable by name.
-- **Ported from ot3.** `timeline.minimap`, `subagents`, `theme.tokens` and ot3's
+- **Ported from O3 Code.** `timeline.minimap`, `subagents`, `theme.tokens` and O3 Code's
   string catalog with `i18n.t`, `catalog`, `resolve` and `languages`.
 - **AAR asset.** The Android package carries the catalog as
   `assets/lib-t3-rust/i18n.json`.
@@ -929,7 +945,7 @@ tied to Qt.
   functions by name, offline, listed in `describe` (see Domain operations).
   `T3Client.domain(fn, args)` and `T3Api(client).domain.<module>` in Kotlin.
 - **New presentation modules.** `sidebar::view`, `timeline`, `markdown` (with
-  `markdown::blocks`) and project identity in `projects`, ported from ot3.
+  `markdown::blocks`) and project identity in `projects`, ported from O3 Code.
 - **Input limit.** A `domain` request may be up to 72 MiB; every other
   operation keeps 8 MiB.
 
@@ -989,11 +1005,11 @@ See [Android/Desktop parity contracts](docs/ANDROID_PARITY.md) for the additive
 shared presentation helpers and the remaining automatic-routing host gap.
 
 Run `cargo test --locked` and `tools/test-c-abi` before changes are consumed by
-either app. Native CI runs on Linux x86_64 and aarch64. Keep platform integrations
+o3-server, O3 Code or O3-Android. Native CI runs on Linux x86_64 and aarch64. Keep platform integrations
 outside this crate. Fix shared behavior here, tag a version, then update each
 consumer's pinned revision instead of copying source trees between applications.
 
-The initial extraction preserves the source from ot3 commit
+The initial extraction preserves the source from O3 Code (then ot3) commit
 `fbe3dc94ba4d4f84dddea9424eb0913b27f34e64`. The [upstream contract reference](docs/UPSTREAM.md) records the original T3 code
 used for the Android/event extension. Device/UI validation remains consumer work.
 
