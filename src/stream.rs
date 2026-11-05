@@ -73,6 +73,14 @@ pub fn first_item(conn:&Connection,spec:&crate::api::streams::StreamSpec,timeout
  });
  match (last,result){(Some(v),_)=>Ok(Some(v)),(None,Err(e))=>Err(e),(None,Ok(()))=>Ok(None)}
 }
+/// A stream the server does not have (Effect's `Unknown request tag: …` defect, o3's
+/// `does not implement …`) ends as `rpc_rejected: <reason>`, so callers can tell it from a
+/// stream that closed; every other end stays `stream_closed`. Neither is retried.
+fn unsupported(exit:&Value)->Option<String>{
+ if exit["_tag"]!="Failure"{return None}
+ let reason=crate::rejection(&exit["cause"]);
+ (reason.contains("Unknown request tag: ")||reason.contains("does not implement ")).then_some(reason)
+}
 /// What a subscription worker sees, one level finer than `subscribe`'s `Option<Value>`
 /// (where both `ChunkEnd` and `Idle` arrive as `None`).
 pub(crate) enum Tick {
@@ -107,7 +115,7 @@ impl Connection {
      let kind=v["_tag"].as_str().unwrap_or("").to_owned();
      match kind.as_str(){
       "Chunk" if v["requestId"]=="1"=>{let Value::Array(values)=v["values"].take() else {return Err("malformed_stream".into())};for mut item in values{if tag=="orchestration.subscribeThread"{crate::wire::expand_ids(&mut item)?;}receive(Tick::Item(item))?;}receive(Tick::ChunkEnd)?;ws.send(Message::Text(json!({"_tag":"Ack","requestId":"1"}).to_string().into())).map_err(|_|"disconnected")?;},
-      "Exit" if v["requestId"]=="1"=>return Err("stream_closed".into()),
+      "Exit" if v["requestId"]=="1"=>return Err(unsupported(&v["exit"]).unwrap_or_else(||"stream_closed".into())),
       "Ping"=>ws.send(Message::Text(json!({"_tag":"Pong"}).to_string().into())).map_err(|_|"disconnected")?,
       _=>{}
      }

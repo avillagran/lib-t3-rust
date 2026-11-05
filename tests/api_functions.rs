@@ -345,7 +345,7 @@ fn rows() -> Vec<(&'static str, &'static str, Value, Value)> {
             json!({"type":"sendPush","deviceId":"booted","hostId":"mac-mini","appId":"com.example","payload":{"aps":{"alert":"hi"}}}),
         ),
         // scheduledTasks
-        ("scheduledTasks.list", "scheduledTasks.list", json!({}), json!({})),
+        // scheduledTasks.list is a first-item read of scheduledTasks.subscribe (tests/api_streams.rs).
         ("scheduledTasks.upsert", "scheduledTasks.upsert", task_args(), task_args()),
         ("scheduledTasks.upsert", "scheduledTasks.upsert", webhook_task_args(), webhook_task_args()),
         ("scheduledTasks.setEnabled", "scheduledTasks.setEnabled", json!({"id":"scheduled-task:omarchy-s1","enabled":false}), json!({"id":"scheduled-task:omarchy-s1","enabled":false})),
@@ -639,7 +639,6 @@ fn rust_signatures_put_the_same_requests_on_the_wire() {
     };
     api::device::action(c, &push).unwrap();
     // scheduledTasks
-    api::scheduled_tasks::list(c).unwrap();
     api::scheduled_tasks::upsert(c, &TaskUpsert::from_json(&task_args()).unwrap()).unwrap();
     let hook = TaskUpsert {
         command_id: None,
@@ -815,11 +814,11 @@ fn every_module_has_its_unary_functions_and_scopes() {
     let expected = [
         ("agentSessions", 2), ("assets", 2), ("device", 8), ("diagnostics", 8), ("filesystem", 2), ("guestShare",1), ("mcpApps", 3),
         ("orchestration", 13), ("preview", 9), ("projectClone", 1), ("projects", 5), ("provider", 9), ("pullRequests", 15),
-        ("review", 2), ("scheduledTasks", 5), ("secrets", 1), ("server", 9), ("shell", 1), ("terminal", 3), ("vcs", 7),
+        ("review", 2), ("scheduledTasks", 4), ("secrets", 1), ("server", 9), ("shell", 1), ("terminal", 3), ("vcs", 7),
         ("worktreeSetup", 1),
     ];
     assert_eq!(counts.into_iter().collect::<Vec<_>>(), expected);
-    assert_eq!(api::functions().filter(|f| !f.stream && f.tag.is_some()).count(), 107);
+    assert_eq!(api::functions().filter(|f| !f.stream && f.tag.is_some()).count(), 106);
     // Payload-dependent scopes the host can compute before choosing a token.
     assert_eq!(api::device::list_scope(Some("hub"), Some(true), None), "orchestration:operate");
     assert_eq!(api::device::list_scope(None, Some(true), Some("mac")), "orchestration:read");

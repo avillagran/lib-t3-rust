@@ -5671,7 +5671,19 @@
       "replay": "free",
       "scope": "orchestration:read",
       "stream": false,
-      "tag": "scheduledTasks.list",
+      "tag": null,
+      "timeoutMs": 20000
+    },
+    {
+      "args": [],
+      "fn": "scheduledTasks.subscribe",
+      "kind": "read",
+      "module": "scheduledTasks",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "scheduledTasks.subscribe",
       "timeoutMs": 20000
     },
     {
@@ -6646,6 +6658,18 @@
     }
   ],
   "streams": [
+    {
+      "cursor": null,
+      "ends": [],
+      "firstItem": "scheduledTasks.list",
+      "fn": "scheduledTasks.subscribe",
+      "itemKey": null,
+      "items": [],
+      "starts": [
+        "snapshot"
+      ],
+      "tag": "scheduledTasks.subscribe"
+    },
     {
       "cursor": "afterSequence",
       "ends": [],

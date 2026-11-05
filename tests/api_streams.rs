@@ -22,6 +22,7 @@ fn rows() -> Vec<(&'static str, Value, Value)> {
     let terminal = json!({"threadId":"t-1","terminalId":"term 1","cwd":"/r","worktreePath":"/r/wt","cols":80,"rows":24,
         "env":{"TERM":"xterm-256color","_X1":""},"providerInstanceId":"codex","restartIfNotRunning":true,"resume":true});
     vec![
+        ("scheduledTasks.subscribe", json!({}), json!({})),
         ("orchestration.subscribeShell", json!({"afterSequence":41,"requestCompletionMarker":true}), json!({"afterSequence":41,"requestCompletionMarker":true})),
         (
             "orchestration.subscribeThread",
@@ -89,11 +90,11 @@ fn every_stream_sends_its_exact_tag_and_payload_once() {
     assert_eq!(wire(&recorded), expected);
     assert_eq!(recorded.connections, rows.len(), "one socket per stream, no retries");
     // afterSequence crosses as the same integer, never through a float.
-    assert_eq!(recorded.requests[1]["payload"]["afterSequence"].as_u64(), Some(SAFE_MAX));
+    assert_eq!(recorded.requests[2]["payload"]["afterSequence"].as_u64(), Some(SAFE_MAX));
     // Every registered stream has a row, in registry order.
     let streams = api::functions().filter(|f| f.stream).map(|f| f.name).collect::<Vec<_>>();
     assert_eq!(rows.iter().map(|r| r.0).collect::<Vec<_>>(), streams);
-    assert_eq!(streams.len(), 14);
+    assert_eq!(streams.len(), 15);
 }
 
 #[test]
@@ -115,6 +116,10 @@ fn rust_subscribe_functions_put_the_same_requests_on_the_wire() {
     };
     macro_rules! sub {
         ($f:ident($($arg:expr),*)) => {{ let (cancel, receive) = once(); run($f(&conn, $($arg,)* cancel, || false, receive)); }};
+    }
+    {
+        let (cancel, receive) = once();
+        run(api::scheduled_tasks::subscribe(&conn, cancel, || false, receive));
     }
     let shell = ShellSub { after_sequence: Some(41), request_completion_marker: Some(true), ..Default::default() };
     sub!(subscribe_shell(&shell));
@@ -300,7 +305,7 @@ fn describe_lists_every_stream_with_its_shape() {
     let streams = d["streams"].as_array().unwrap();
     let flagged = functions.iter().filter(|f| f["stream"] == true).map(|f| f["fn"].clone()).collect::<Vec<_>>();
     assert_eq!(streams.iter().map(|s| s["fn"].clone()).collect::<Vec<_>>(), flagged);
-    assert_eq!(SHAPES.len(), 14);
+    assert_eq!(SHAPES.len(), 15);
     let shape = |name: &str| streams.iter().find(|s| s["fn"] == name).unwrap().clone();
     assert_eq!(
         shape("orchestration.subscribeThread"),
@@ -317,4 +322,58 @@ fn describe_lists_every_stream_with_its_shape() {
     }
     let stacked = functions.iter().find(|f| f["fn"] == "git.runStackedAction").unwrap();
     assert_eq!((&stacked["replay"], &stacked["scopes"]), (&json!("never"), &json!(["source-control:write", "orchestration:read"])));
+}
+
+#[test]
+fn scheduled_task_list_reads_the_subscribe_stream_t3_nightly_serves() {
+    let tasks = json!({"tasks":[{"id":"scheduled-task:a","title":"Nightly"}]});
+    let unknown = |tag: &str| Reply::Fail(json!([{"_tag":"Die","defect":format!("Unknown request tag: {tag}")}]));
+    let fake = FakeT3::spawn(vec![
+        // T3 nightly: the stream's first item is the list.
+        Reply::Chunks(vec![vec![tasks.clone()], vec![json!({"tasks":[]})]]),
+        // An o3 without the stream: its rejection falls back to the old RPC once.
+        Reply::Fail(json!([{"_tag":"Fail","error":{"_tag":"RpcNotImplemented","message":"o3-server does not implement scheduledTasks.subscribe"}}])),
+        Reply::Ok(json!({"tasks":[]})),
+        // A server with neither keeps the rejection Android already explains.
+        unknown("scheduledTasks.subscribe"),
+        unknown("scheduledTasks.list"),
+        // Any other end of the stream is not a reason to call a method T3 does not have.
+        Reply::Fail(json!([{"_tag":"Fail","error":{"_tag":"ScheduledTaskError","message":"Could not list schedule tasks."}}])),
+    ]);
+    let conn = fake.connection();
+    assert_eq!(api::scheduled_tasks::list(&conn).unwrap(), tasks);
+    assert_eq!(api::call(&conn, "scheduledTasks.list", &json!({}), None).unwrap(), json!({"tasks":[]}));
+    assert_eq!(
+        api::scheduled_tasks::list(&conn).unwrap_err(),
+        "rpc_rejected: Unknown request tag: scheduledTasks.list"
+    );
+    assert_eq!(api::scheduled_tasks::list(&conn).unwrap_err(), "stream_closed");
+    let recorded = fake.finish();
+    assert_eq!(
+        wire(&recorded),
+        vec![
+            json!({"tag":"scheduledTasks.subscribe","payload":{}}),
+            json!({"tag":"scheduledTasks.subscribe","payload":{}}),
+            json!({"tag":"scheduledTasks.list","payload":{}}),
+            json!({"tag":"scheduledTasks.subscribe","payload":{}}),
+            json!({"tag":"scheduledTasks.list","payload":{}}),
+            json!({"tag":"scheduledTasks.subscribe","payload":{}}),
+        ]
+    );
+    let shape = api::describe()["streams"].as_array().unwrap().iter().find(|s| s["fn"] == "scheduledTasks.subscribe").unwrap().clone();
+    assert_eq!(shape["firstItem"], "scheduledTasks.list");
+}
+
+#[test]
+fn an_unknown_stream_ends_as_a_rejection_other_ends_stay_closed() {
+    let fake = FakeT3::spawn(vec![
+        Reply::Fail(json!([{"_tag":"Die","defect":"Unknown request tag: device.subscribeDeviceState"}])),
+        Reply::Fail(json!([{"_tag":"Fail","error":{"_tag":"DeviceError","message":"busy"}}])),
+    ]);
+    let conn = fake.connection();
+    let spec = device_state_spec().unwrap();
+    let run = || spec.subscribe(&conn, || false, || false, |_| Ok(())).unwrap_err();
+    assert_eq!(run(), "rpc_rejected: Unknown request tag: device.subscribeDeviceState");
+    assert_eq!(run(), "stream_closed");
+    fake.finish();
 }
