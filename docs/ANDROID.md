@@ -1,4 +1,4 @@
-# Android / Omi integration
+# Android integration ([O3-Android](https://github.com/avillagran/O3-Android))
 
 `lib-t3-rust` keeps the Cargo package/import names `t3-protocol` / `t3_protocol`
 and the static archive `libt3_protocol.a`. ABI v2 and v3 are additive: the original
@@ -54,7 +54,7 @@ batch with `stream_timeout` in about 3 s instead of 20 s, and the host subscribe
 again from its cursor. Besides `errorMessage`, `T3Batch` carries `boundaries`,
 `idle` and `completionMarker`; `T3Chunks` regroups items into whole server chunks.
 
-Omi owns endpoint discovery, login, Android secure storage, lifecycle, cursor
+O3-Android owns endpoint discovery, login, Android secure storage, lifecycle, cursor
 persistence and UI. It connects directly to T3. Omarchy-Link is not a T3 message
 relay. A current T3 cloud JWT can instead be supplied to `connectRelay`; a browser
 access token bound to a different DPoP key cannot be reused. The C-handle proof
@@ -568,7 +568,7 @@ All of this is additive to ABI v2; `capabilities` lists it in `operations`,
 ```json
 {"op":"connectBearer","httpBaseUrl":"https://environment.example","token":"stored-token","options":{"requestTimeoutMs":8000,"connectTimeoutMs":3000,"poolIdleTimeoutMs":90000,"maxBytes":8388608}}
 {"op":"fetchDescriptor","httpBaseUrl":"https://environment.example"}
-{"op":"pairBearer","httpBaseUrl":"https://environment.example","pairingCode":"from-the-link","environmentId":"optional-expected-id","client":{"label":"Omi","deviceType":"mobile","os":"android"},"connect":true}
+{"op":"pairBearer","httpBaseUrl":"https://environment.example","pairingCode":"from-the-link","environmentId":"optional-expected-id","client":{"label":"O3-Android","deviceType":"mobile","os":"android"},"connect":true}
 {"op":"boundedThread","threadId":"selected"}
 {"op":"requestOk","method":"POST","path":"/api/auth/clients/revoke","body":{"sessionId":"s-1"},"protocol":false}
 ```
@@ -624,7 +624,7 @@ throw `T3Exception` with that code, like every other operation.
 
 On an x86_64 Linux build host, explicitly install Rust's four Android targets and
 the application's Android NDK. The build helper does not install or download SDKs
-or targets. Omi's checked build uses NDK 28.2.13676358 and API 24:
+or targets. O3-Android's checked build uses NDK 28.2.13676358 and API 24:
 
 ```sh
 rustup target add aarch64-linux-android x86_64-linux-android armv7-linux-androideabi i686-linux-android

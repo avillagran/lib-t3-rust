@@ -1,7 +1,16 @@
 # lib-t3-rust
 
-Portable Rust core for [Omarchy T3 Code](https://github.com/avillagran/omarchy-t3-code)
-and Omi. Extracted with source history from ot3; the Cargo package remains
+Portable Rust core of the O3 family. It speaks T3 Code's wire protocol (Effect RPC
+over WebSocket, HTTP routes, signed uploads and assets, DPoP and T3 Connect), so
+the same calls work against a T3 Code nightly server and against o3-server:
+
+| Project | Role | How it uses this crate |
+| --- | --- | --- |
+| [o3-server](https://github.com/avillagran/o3-server) | Rust replacement for the headless T3 Code server | Its OmaBridge integration links `t3-protocol`, and its compatibility and differential tests drive o3 and real T3 through this client. |
+| [O3 Code](https://github.com/avillagran/omarchy-t3-code) | Omarchy desktop client (QML interface, Rust backend) | T3 HTTP reads, Effect RPC writes, signed attachment streaming and T3 Connect authorization. |
+| [O3-Android](https://github.com/avillagran/O3-Android) | Native Android client (Kotlin + Jetpack Compose) | The Kotlin/JNI adapter in [bindings/android](bindings/android) and the four-ABI AAR. |
+
+Extracted with source history from ot3; the Cargo package remains
 **`t3-protocol`**, preserving Rust imports and the C ABI.
 
 ```toml
@@ -10,12 +19,17 @@ t3-protocol = { git = "https://github.com/avillagran/lib-t3-rust", tag = "v0.3.0
 ```
 
 For reproducible application builds, pin a full `rev` and commit Cargo.lock.
-The project is not published on crates.io.
+The project is not published on crates.io. The library has no Quickshell,
+Electron, filesystem, SSH, keyring, Python or JavaScript runtime dependency.
 
-Shared Rust library for Omarchy T3 Code and Omi. The desktop plugin now uses this
-library for T3 HTTP reads, Effect RPC writes, signed attachment streaming and
-T3 Connect authorization. The library has no Quickshell, Electron, filesystem,
-SSH, keyring, Python or JavaScript runtime dependency.
+### Servers it talks to
+
+Calls follow the current T3 Code nightly contract and stay compatible with
+o3-server. Where the two differ, the library picks what both accept. For example,
+T3 nightly has no `scheduledTasks.list` RPC and reads tasks only through the
+`scheduledTasks.subscribe` stream. `scheduled_tasks::list` therefore reads that
+stream and falls back to the old RPC only on servers that lack it, such as older
+o3 builds.
 
 ## Rust API
 
@@ -58,7 +72,7 @@ Run blocking calls on a worker thread. Native TLS certificate validation stays o
 Direct bearer endpoints may use HTTP when inherited from T3; relay URLs require
 HTTPS (loopback HTTP is allowed for isolated tests). Redirects are disabled.
 
-## Omi / Kotlin
+## O3-Android / Kotlin
 
 See the [Android integration guide](docs/ANDROID.md) for NDK builds, JNI ownership,
 threading and the current C ABI limitations. Linux packages are not Android binaries.
@@ -69,10 +83,10 @@ and file descriptors; HTTP/RPC/authentication stay in this library. Android
 releases include a four-ABI AAR so applications do not need to compile Rust.
 
 1. Build `t3-protocol` for each Android ABI with the Android NDK/toolchain.
-2. Link `libt3_protocol.a` into Omi's JNI library and include `t3_protocol.h`.
+2. Link `libt3_protocol.a` into O3-Android's JNI library and include `t3_protocol.h`.
 3. Create a handle with `t3_client_new`, call from a worker thread, release each
    response with `t3_string_free`, then release the handle with `t3_client_free`.
-4. Supply Omi's current signed-in cloud session to `connectRelay`; do not read
+4. Supply the app's current signed-in cloud session to `connectRelay`; do not read
    Omarchy's files or duplicate the protocol in Kotlin. The Rust streaming API
    accepts a reader supplied by the Android content adapter.
 
@@ -96,7 +110,7 @@ C ABI commands:
 {"op":"request","method":"GET","path":"/api/orchestration/shell","maxBytes":1048576}
 {"op":"requestOk","method":"POST","path":"/api/auth/clients/revoke","body":{"sessionId":"s-1"},"protocol":false}
 {"op":"fetchDescriptor","httpBaseUrl":"https://environment.example","environmentId":"00000000-0000-4000-8000-000000000001"}
-{"op":"pairBearer","httpBaseUrl":"https://environment.example","pairingCode":"from-the-pairing-link","client":{"label":"Omi","deviceType":"mobile","os":"android"},"connect":true}
+{"op":"pairBearer","httpBaseUrl":"https://environment.example","pairingCode":"from-the-pairing-link","client":{"label":"O3-Android","deviceType":"mobile","os":"android"},"connect":true}
 {"op":"boundedThread","threadId":"selected"}
 ```
 
@@ -113,7 +127,7 @@ Connection changes are atomic: a failed connect leaves the prior connection
 intact, so the host must treat the returned error as a failed switch.
 
 The library supplies native Android JNI binaries and a Kotlin adapter. It does
-not modify or publish the Omi application. Host tests and Android cross-builds
+not modify or publish the O3-Android application. Host tests and Android cross-builds
 are separate from Android device/UI validation; see the integration guide.
 
 ## Typed API
@@ -829,7 +843,7 @@ use local fixture servers, never real conversations or paid provider runs.
 
 ### Domain modules shared with ot3
 
-The pure halves of ot3's domain modules live here so Omi's Kotlin client reuses
+The pure halves of ot3's domain modules live here so O3-Android's Kotlin client reuses
 them through JNI instead of reimplementing them. Each one is JSON in, JSON out,
 with the same function names and output bytes ot3 had; ot3 re-exports them (see
 [OT3_REEXPORTS.md](docs/OT3_REEXPORTS.md)) and keeps the parts that need its
