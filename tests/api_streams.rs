@@ -22,6 +22,7 @@ fn rows() -> Vec<(&'static str, Value, Value)> {
     let terminal = json!({"threadId":"t-1","terminalId":"term 1","cwd":"/r","worktreePath":"/r/wt","cols":80,"rows":24,
         "env":{"TERM":"xterm-256color","_X1":""},"providerInstanceId":"codex","restartIfNotRunning":true,"resume":true});
     vec![
+        ("scheduledTasks.subscribe", json!({}), json!({})),
         ("orchestration.subscribeShell", json!({"afterSequence":41,"requestCompletionMarker":true}), json!({"afterSequence":41,"requestCompletionMarker":true})),
         (
             "orchestration.subscribeThread",
@@ -88,11 +89,11 @@ fn every_stream_sends_its_exact_tag_and_payload_once() {
     assert_eq!(wire(&recorded), expected);
     assert_eq!(recorded.connections, rows.len(), "one socket per stream, no retries");
     // afterSequence crosses as the same integer, never through a float.
-    assert_eq!(recorded.requests[1]["payload"]["afterSequence"].as_u64(), Some(SAFE_MAX));
+    assert_eq!(recorded.requests[2]["payload"]["afterSequence"].as_u64(), Some(SAFE_MAX));
     // Every registered stream has a row, in registry order.
     let streams = api::functions().filter(|f| f.stream).map(|f| f.name).collect::<Vec<_>>();
     assert_eq!(rows.iter().map(|r| r.0).collect::<Vec<_>>(), streams);
-    assert_eq!(streams.len(), 13);
+    assert_eq!(streams.len(), 14);
 }
 
 #[test]
@@ -115,6 +116,7 @@ fn rust_subscribe_functions_put_the_same_requests_on_the_wire() {
     macro_rules! sub {
         ($f:ident($($arg:expr),*)) => {{ let (cancel, receive) = once(); run($f(&conn, $($arg,)* cancel, || false, receive)); }};
     }
+    { let (cancel, receive) = once(); run(spec("scheduledTasks.subscribe", &json!({})).unwrap().subscribe(&conn, cancel, || false, receive)); }
     let shell = ShellSub { after_sequence: Some(41), request_completion_marker: Some(true), ..Default::default() };
     sub!(subscribe_shell(&shell));
     let thread = ThreadSub {
@@ -280,7 +282,7 @@ fn a_first_item_read_without_an_item_times_out_or_reports_the_end() {
     let silent = api::call(&conn, "provider.authState", &json!({"instanceId":"codex"}), Some(Duration::from_millis(300)));
     assert_eq!(silent.unwrap_err(), "stream_timeout");
     assert!(start.elapsed() >= Duration::from_millis(300) && start.elapsed() < Duration::from_secs(2), "{:?}", start.elapsed());
-    assert_eq!(install_state(&conn, "codex", None).unwrap_err(), "stream_closed");
+    assert_eq!(install_state(&conn, "codex", None).unwrap_err(), "rpc_rejected: ProviderSetupError");
     assert_eq!(fake.finish().connections, 2);
     // The bare helper: `Ok(None)` when nothing arrived in time.
     let fake = FakeT3::spawn(vec![Reply::Hang]);
@@ -297,7 +299,7 @@ fn describe_lists_every_stream_with_its_shape() {
     let streams = d["streams"].as_array().unwrap();
     let flagged = functions.iter().filter(|f| f["stream"] == true).map(|f| f["fn"].clone()).collect::<Vec<_>>();
     assert_eq!(streams.iter().map(|s| s["fn"].clone()).collect::<Vec<_>>(), flagged);
-    assert_eq!(SHAPES.len(), 13);
+    assert_eq!(SHAPES.len(), 14);
     let shape = |name: &str| streams.iter().find(|s| s["fn"] == name).unwrap().clone();
     assert_eq!(
         shape("orchestration.subscribeThread"),
