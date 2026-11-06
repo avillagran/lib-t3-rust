@@ -651,6 +651,7 @@ fn rust_signatures_put_the_same_requests_on_the_wire() {
         schedule: webhook_task_args()["schedule"].clone(),
         project_id: s("p-1"),
         thread_id: Some(None),
+        thread_mode: None,
         workspace_strategy: WorkspaceStrategy::ExistingWorktree { worktree_path: s("/w/t"), branch: None },
         model_selection: json!({"instanceId":"claude","model":"opus"}),
         runtime_mode: s("approval-required"),
@@ -830,4 +831,21 @@ fn every_module_has_its_unary_functions_and_scopes() {
     assert_eq!(delete.payload().unwrap(), json!({"type":"project.delete","commandId":"omarchy-p","projectId":"p-1","force":false}));
     let scripts = ProjectMutation::from_json(&mutate_update_args()).unwrap();
     assert_eq!(scripts.required_scopes(), ["orchestration:operate", "settings:write"]);
+}
+
+#[test]
+fn scheduled_task_thread_modes_preserve_legacy_and_validate_new_modes() {
+    use api::scheduled_tasks::TaskUpsert;
+    let legacy = task_args();
+    assert!(TaskUpsert::from_json(&legacy).unwrap().payload().unwrap().get("threadMode").is_none());
+    for mode in ["new_thread", "continue", "fresh_session"] {
+        let mut input = legacy.clone();
+        input["threadMode"] = json!(mode);
+        assert_eq!(TaskUpsert::from_json(&input).unwrap().payload().unwrap()["threadMode"], mode);
+    }
+    let mut input = legacy;
+    input["threadMode"] = json!("discard_history");
+    assert!(TaskUpsert::from_json(&input).unwrap().payload().is_err());
+    input["threadMode"] = json!(false);
+    assert!(TaskUpsert::from_json(&input).is_err());
 }

@@ -11,6 +11,7 @@ use std::fmt;
 /// T3 `MIN_SCHEDULED_TASK_INTERVAL_MS` and `MAX_WEBHOOK_FILTERS`.
 const MIN_INTERVAL_MS: u64 = 60_000;
 const MAX_WEBHOOK_FILTERS: usize = 16;
+pub const THREAD_MODES: &[&str] = &["new_thread", "continue", "fresh_session"];
 const TITLE_MAX: usize = 255;
 const PROMPT_MAX: usize = 120_000;
 
@@ -30,6 +31,7 @@ pub const UPSERT: Function = api_fn! {
         (projectId, Id, required), (workspaceStrategy, Object, required), (modelSelection, Object, required),
         (runtimeMode, Enum(models::RUNTIME_MODES), required), (interactionMode, Enum(INTERACTION_MODES), required),
         (commandId, Id, optional), (id, Id, optional), (requireExisting, Bool, optional), (threadId, Id, optional),
+        (threadMode, Enum(THREAD_MODES), optional),
         (createdBy, Enum(ACTORS), optional), (creationSource, Enum(CREATION_SOURCES), optional),
     ],
     payload: |a| TaskUpsert::from_json(a.all())?.payload(),
@@ -75,6 +77,8 @@ pub struct TaskUpsert {
     pub project_id: String,
     /// `None`: no thread; `Some(None)`: `null`.
     pub thread_id: Option<Option<String>>,
+    /// Omitted for servers predating Nightly 4247; a bound legacy task continues.
+    pub thread_mode: Option<String>,
     pub workspace_strategy: WorkspaceStrategy,
     /// `ModelSelection` object.
     pub model_selection: Value,
@@ -120,6 +124,7 @@ impl TaskUpsert {
         if let Some(thread) = &self.thread_id {
             v["threadId"] = json!(thread.as_deref().map(|t| ids::id("threadId", t)).transpose()?);
         }
+        put(&mut v, "threadMode", self.thread_mode.as_deref().map(|m| one_of("threadMode", m, THREAD_MODES)).transpose()?);
         put(&mut v, "createdBy", self.created_by.as_deref().map(|c| one_of("createdBy", c, ACTORS)).transpose()?);
         put(&mut v, "creationSource", self.creation_source.as_deref().map(|c| one_of("creationSource", c, CREATION_SOURCES)).transpose()?);
         Ok(v)
@@ -136,6 +141,7 @@ impl TaskUpsert {
             schedule: r.req_object("schedule")?,
             project_id: r.req_str("projectId")?,
             thread_id: r.nullable_str("threadId")?,
+            thread_mode: r.opt_str("threadMode")?,
             workspace_strategy: WorkspaceStrategy::from_json(&r.req_value("workspaceStrategy")?)?,
             model_selection: r.req_value("modelSelection")?,
             runtime_mode: r.req_str("runtimeMode")?,
