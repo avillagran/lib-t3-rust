@@ -94,10 +94,20 @@ fn kotlin(describe: &Value) -> String {
                 writeln!(out, "        fun {method}(args: JSONObject): {returns} = client.{open}(\"{name}\", args)").unwrap();
                 continue;
             }
-            let (params, puts) = parameters(f["args"].as_array().unwrap());
+            let args = f["args"].as_array().unwrap();
+            // Preserve the original positional and JVM signature; mode is an explicit extension.
+            let legacy_args: Vec<Value> = args.iter().filter(|a| name != "scheduledTasks.upsert" || a["name"] != "threadMode").cloned().collect();
+            let (params, puts) = parameters(&legacy_args);
             let method = ident(&method);
             writeln!(out, "        fun {method}({params}): {returns} =
             client.{open}(\"{name}\", JSONObject(){puts})").unwrap();
+            if name == "scheduledTasks.upsert" {
+                let mut extended = legacy_args;
+                extended.extend(args.iter().filter(|a| a["name"] == "threadMode").cloned());
+                let (params, puts) = parameters(&extended);
+                writeln!(out, "        fun upsertWithMode({params}): {returns} =
+            client.{open}(\"{name}\", JSONObject(){puts})").unwrap();
+            }
         }
         writeln!(out, "    }}").unwrap();
     }

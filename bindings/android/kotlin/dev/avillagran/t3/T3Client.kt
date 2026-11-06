@@ -53,6 +53,14 @@ class T3Client : Closeable {
     fun request(path: String, protocol: Boolean = true): Any? = execute(
         JSONObject().put("op", "request").put("method", "GET").put("path", path).put("protocol", protocol)
     )
+    /** Authenticated native page/document reads; call on a worker and discard stale owner results. */
+    fun historyPage(threadId: String, cursor: String): Any? = execute(
+        JSONObject().put("op", "historyPage").put("threadId", threadId).put("cursor", cursor)
+    )
+    fun pullRequestDiff(reference: JSONObject, cursor: String? = null): Any? = execute(
+        JSONObject().put("op", "pullRequestDiff").put("reference", reference).put("cursor", cursor)
+    )
+    fun document(resource: JSONObject): Any? = execute(JSONObject().put("op", "document").put("resource", resource))
     fun rpc(tag: String, payload: JSONObject): Any? = execute(
         JSONObject().put("op", "rpc").put("tag", tag).put("payload", payload)
     )
@@ -116,6 +124,12 @@ class T3Client : Closeable {
             .put("timeoutMs", timeoutMs))
     /** The project's favicon at [cwd] (optionally a known [path]); [T3Asset.bytes] is null and
      *  `found` false in [T3Asset.status] when the project has none. */
+    /** Public official registry SVG, at most 256KiB/5s; render as an untrusted image. */
+    fun registryIconBytes(url: String, requestId: String): T3Asset =
+        binary(JSONObject().put("op", "registryIconBytes").put("url", url).put("requestId", requestId))
+    fun cancelRegistryIcon(requestId: String) {
+        execute(JSONObject().put("op", "cancelRegistryIcon").put("requestId", requestId))
+    }
     fun projectFavicon(cwd: String, path: String? = null): T3Asset =
         binary(JSONObject().put("op", "projectFavicon").put("cwd", cwd).put("path", path))
     override fun close() {

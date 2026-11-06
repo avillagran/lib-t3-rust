@@ -358,8 +358,10 @@ class T3Api(client: T3Client) {
         fun subscribe(): T3Subscription =
             client.subscribeFn("scheduledTasks.subscribe", JSONObject())
         /** `scheduledTasks.upsert` · mutation · replay id · scope orchestration:operate · 20000 ms */
-        fun upsert(title: String, prompt: String, enabled: Boolean, schedule: JSONObject, projectId: String, workspaceStrategy: JSONObject, modelSelection: JSONObject, runtimeMode: String, interactionMode: String, commandId: String? = null, id: String? = null, requireExisting: Boolean? = null, threadId: String? = null, threadMode: String? = null, createdBy: String? = null, creationSource: String? = null): Any? =
-            client.call("scheduledTasks.upsert", JSONObject().put("title", title).put("prompt", prompt).put("enabled", enabled).put("schedule", schedule).put("projectId", projectId).put("workspaceStrategy", workspaceStrategy).put("modelSelection", modelSelection).put("runtimeMode", runtimeMode).put("interactionMode", interactionMode).put("commandId", commandId).put("id", id).put("requireExisting", requireExisting).put("threadId", threadId).put("threadMode", threadMode).put("createdBy", createdBy).put("creationSource", creationSource))
+        fun upsert(title: String, prompt: String, enabled: Boolean, schedule: JSONObject, projectId: String, workspaceStrategy: JSONObject, modelSelection: JSONObject, runtimeMode: String, interactionMode: String, commandId: String? = null, id: String? = null, requireExisting: Boolean? = null, threadId: String? = null, createdBy: String? = null, creationSource: String? = null): Any? =
+            client.call("scheduledTasks.upsert", JSONObject().put("title", title).put("prompt", prompt).put("enabled", enabled).put("schedule", schedule).put("projectId", projectId).put("workspaceStrategy", workspaceStrategy).put("modelSelection", modelSelection).put("runtimeMode", runtimeMode).put("interactionMode", interactionMode).put("commandId", commandId).put("id", id).put("requireExisting", requireExisting).put("threadId", threadId).put("createdBy", createdBy).put("creationSource", creationSource))
+        fun upsertWithMode(title: String, prompt: String, enabled: Boolean, schedule: JSONObject, projectId: String, workspaceStrategy: JSONObject, modelSelection: JSONObject, runtimeMode: String, interactionMode: String, commandId: String? = null, id: String? = null, requireExisting: Boolean? = null, threadId: String? = null, createdBy: String? = null, creationSource: String? = null, threadMode: String? = null): Any? =
+            client.call("scheduledTasks.upsert", JSONObject().put("title", title).put("prompt", prompt).put("enabled", enabled).put("schedule", schedule).put("projectId", projectId).put("workspaceStrategy", workspaceStrategy).put("modelSelection", modelSelection).put("runtimeMode", runtimeMode).put("interactionMode", interactionMode).put("commandId", commandId).put("id", id).put("requireExisting", requireExisting).put("threadId", threadId).put("createdBy", createdBy).put("creationSource", creationSource).put("threadMode", threadMode))
         /** `scheduledTasks.setEnabled` · mutation · replay set · scope orchestration:operate · 20000 ms */
         fun setEnabled(id: String, enabled: Boolean): Any? =
             client.call("scheduledTasks.setEnabled", JSONObject().put("id", id).put("enabled", enabled))
@@ -435,6 +437,9 @@ class T3Api(client: T3Client) {
         /** `terminal.attach` · stream · mutation · replay set · scope terminal:operate */
         fun attach(threadId: String, terminalId: String, cwd: String? = null, worktreePath: String? = null, cols: Long? = null, rows: Long? = null, env: JSONObject? = null, providerInstanceId: String? = null, restartIfNotRunning: Boolean? = null, resume: Boolean? = null): T3Subscription =
             client.subscribeFn("terminal.attach", JSONObject().put("threadId", threadId).put("terminalId", terminalId).put("cwd", cwd).put("worktreePath", worktreePath).put("cols", cols).put("rows", rows).put("env", env).put("providerInstanceId", providerInstanceId).put("restartIfNotRunning", restartIfNotRunning).put("resume", resume))
+        /** `terminal.observe` · stream · read · replay free · scope terminal:read */
+        fun observe(threadId: String, terminalId: String): T3Subscription =
+            client.subscribeFn("terminal.observe", JSONObject().put("threadId", threadId).put("terminalId", terminalId))
     }
 
     class Vcs internal constructor(private val client: T3Client) {
@@ -482,6 +487,7 @@ class T3Api(client: T3Client) {
         val changes = Changes(client)
         val checkpointRevert = CheckpointRevert(client)
         val codeBlocks = CodeBlocks(client)
+        val commandOutput = CommandOutput(client)
         val composer = Composer(client)
         val connectionCatalog = ConnectionCatalog(client)
         val diffReview = DiffReview(client)
@@ -494,13 +500,16 @@ class T3Api(client: T3Client) {
         val planWorkflow = PlanWorkflow(client)
         val projection = Projection(client)
         val projects = Projects(client)
+        val providerInstances = ProviderInstances(client)
         val pullRequests = PullRequests(client)
         val questions = Questions(client)
         val queue = Queue(client)
         val quotaSources = QuotaSources(client)
+        val reader = Reader(client)
         val scopedSettings = ScopedSettings(client)
         val sidebar = Sidebar(client)
         val subagents = Subagents(client)
+        val terminal = Terminal(client)
         val theme = Theme(client)
         val timeline = Timeline(client)
         val toolInspector = ToolInspector(client)
@@ -587,6 +596,12 @@ class T3Api(client: T3Client) {
                 client.domain("codeBlocks.parse", JSONObject().put("markdown", markdown))
         }
 
+        class CommandOutput internal constructor(private val client: T3Client) {
+            /** `commandOutput.apply` · object {state,text,running,truncated,error}: incremental ANSI/VT stripping, CR overwrite, UTF-8 safe 64KiB tail; reference changes reset */
+            fun apply(reference: JSONObject, frames: JSONArray, state: JSONObject? = null, closed: Boolean? = null, error: String? = null): Any? =
+                client.domain("commandOutput.apply", JSONObject().put("state", state).put("reference", reference).put("frames", frames).put("closed", closed).put("error", error))
+        }
+
         class Composer internal constructor(private val client: T3Client) {
             /** `composer.paths` · array of {kind, label, description, insert, icon} (at most 40) from projects.searchEntries */
             fun paths(result: JSONObject): Any? =
@@ -600,6 +615,12 @@ class T3Api(client: T3Client) {
             /** `composer.attachmentReference` · string: the inline t3-context reference of an uploaded attachment */
             fun attachmentReference(attachment: JSONObject): Any? =
                 client.domain("composer.attachmentReference", JSONObject().put("attachment", attachment))
+            /** `composer.newThread` · object {projects,project,modelSelection,runtimeMode,workspaceStrategy,missing,ready,request?}: source/project/sibling/catalog/draft defaults and validated durable launch recipe; automatic host route requires host support */
+            fun newThread(input: JSONObject): Any? =
+                client.domain("composer.newThread", JSONObject().put("input", input))
+            /** `composer.transform` · object: completion/replace/list/recall transform; offsets are UTF-16, stale expectedText rejected; host owns IME and undo */
+            fun transform(input: JSONObject): Any? =
+                client.domain("composer.transform", JSONObject().put("input", input))
         }
 
         class ConnectionCatalog internal constructor(private val client: T3Client) {
@@ -648,6 +669,9 @@ class T3Api(client: T3Client) {
             /** `history.envelope` · object {projection {thread, messages, turnItems}, historyCursor, hasMoreHistory} */
             fun envelope(page: JSONObject, threadId: String): Any? =
                 client.domain("history.envelope", JSONObject().put("page", page).put("threadId", threadId))
+            /** `history.mergeView` · object {older,timeline,cursor,hasMoreHistory,applied}: presentation only; reject stale owner/cursor, recent wins */
+            fun mergeView(older: JSONArray, recent: JSONArray, owner: String, page: JSONArray? = null, pageOwner: String? = null, cursor: String? = null, pageCursor: String? = null, nextCursor: String? = null, hasMoreHistory: Boolean? = null): Any? =
+                client.domain("history.mergeView", JSONObject().put("older", older).put("recent", recent).put("page", page).put("owner", owner).put("pageOwner", pageOwner).put("cursor", cursor).put("pageCursor", pageCursor).put("nextCursor", nextCursor).put("hasMoreHistory", hasMoreHistory))
         }
 
         class I18n internal constructor(private val client: T3Client) {
@@ -660,7 +684,7 @@ class T3Api(client: T3Client) {
             /** `i18n.t` · string: ot3's translation of an English source string for a locale list (fr_CA.UTF-8:en), else the language's, English's or the source; {name} placeholders from args, Arabic isolated with U+2068/U+2069 */
             fun t(locale: String, key: String, args: JSONObject? = null): Any? =
                 client.domain("i18n.t", JSONObject().put("locale", locale).put("key", key).put("args", args))
-            /** `i18n.catalog` · object {locale, language, rtl, strings {source: translation}}: every string of the catalog for the locale as i18n.t gives it without args (1804 sources: ot3's 1796 and awareness.view's 8; 20 languages) */
+            /** `i18n.catalog` · object {locale, language, rtl, strings {source: translation}}: every string of the catalog for the locale as i18n.t gives it without args (2027 sources: Desktop additions and retained compatible sources; 20 languages) */
             fun catalog(locale: String): Any? =
                 client.domain("i18n.catalog", JSONObject().put("locale", locale))
             /** `i18n.resolve` · object {locale, language, rtl}: the first locale of the list the catalog has (by itself or its language), else the first */
@@ -693,6 +717,9 @@ class T3Api(client: T3Client) {
             /** `models.runtimeModeCommand` · command thread.runtime-mode.set */
             fun runtimeModeCommand(threadId: String, commandId: String, runtimeMode: String): Any? =
                 client.domain("models.runtimeModeCommand", JSONObject().put("threadId", threadId).put("commandId", commandId).put("runtimeMode", runtimeMode))
+            /** `models.permissionView` · object {current, rows}: advertised runtime modes; absent/empty advertisement uses all definitions */
+            fun permissionView(catalog: JSONObject, selection: JSONObject? = null, runtimeMode: String? = null): Any? =
+                client.domain("models.permissionView", JSONObject().put("catalog", catalog).put("selection", selection).put("runtimeMode", runtimeMode))
         }
 
         class NativeSettings internal constructor(private val client: T3Client) {
@@ -750,6 +777,21 @@ class T3Api(client: T3Client) {
             /** `projects.monogram` · string: the two-letter monogram of a project title */
             fun monogram(name: String): Any? =
                 client.domain("projects.monogram", JSONObject().put("name", name))
+            /** `projects.mutation` · validated project mutation including durable caller commandId for projects.mutate */
+            fun mutation(input: JSONObject, commandId: String): Any? =
+                client.domain("projects.mutation", JSONObject().put("input", input).put("commandId", commandId))
+        }
+
+        class ProviderInstances internal constructor(private val client: T3Client) {
+            /** `providerInstances.projection` · safe provider instance fields and secret presence flags; never credentials */
+            fun projection(settings: JSONObject, config: JSONObject, writable: Boolean): Any? =
+                client.domain("providerInstances.projection", JSONObject().put("settings", settings).put("config", config).put("writable", writable))
+            /** `providerInstances.mutation` · object {patch,providerInstanceMutation}: validated atomic server.updateSettings arguments */
+            fun mutation(input: JSONObject, settings: JSONObject): Any? =
+                client.domain("providerInstances.mutation", JSONObject().put("input", input).put("settings", settings))
+            /** `providerInstances.confirmTarget` · bool: mutation persisted in authoritative settings readback */
+            fun confirmTarget(action: String, instanceId: String, payload: JSONObject, saved: JSONObject): Any? =
+                client.domain("providerInstances.confirmTarget", JSONObject().put("action", action).put("instanceId", instanceId).put("payload", payload).put("saved", saved))
         }
 
         class PullRequests internal constructor(private val client: T3Client) {
@@ -765,6 +807,9 @@ class T3Api(client: T3Client) {
             /** `pullRequests.threadCommand` · command thread.pull-request.link, unlink or watch for a reference {host, repository, number, url}; commandId only when given */
             fun threadCommand(thread: String, link: String, reference: JSONObject, commandId: String? = null): Any? =
                 client.domain("pullRequests.threadCommand", JSONObject().put("thread", thread).put("link", link).put("reference", reference).put("commandId", commandId))
+            /** `pullRequests.listView` · object {items}: later pages replace matching environment/host/repository/number, newest updatedAt first */
+            fun listView(pages: JSONArray): Any? =
+                client.domain("pullRequests.listView", JSONObject().put("pages", pages))
         }
 
         class Questions internal constructor(private val client: T3Client) {
@@ -798,6 +843,18 @@ class T3Api(client: T3Client) {
             /** `quotaSources.apply` · object {state {providers, usageLimitSources, connected}, changed}: one server.subscribeServerConfig event (version 1) applied to the quota strip's state */
             fun apply(event: JSONObject, state: JSONObject? = null): Any? =
                 client.domain("quotaSources.apply", JSONObject().put("state", state).put("event", event))
+            /** `quotaSources.present` · object {providers,notices,external}: workspace-aware fresh account pooling, pace, missing segments and reset translation keys */
+            fun present(environments: JSONArray, now: Long): Any? =
+                client.domain("quotaSources.present", JSONObject().put("environments", environments).put("now", now))
+        }
+
+        class Reader internal constructor(private val client: T3Client) {
+            /** `reader.threadReference` · string: canonical t3-thread://v1 reference with percent-encoded id */
+            fun threadReference(threadId: String): Any? =
+                client.domain("reader.threadReference", JSONObject().put("threadId", threadId))
+            /** `reader.reference` · tagged external/thread/document/anchor/unsupported destination; remote paths never expand local HOME */
+            fun reference(href: String, environmentId: String, threadId: String, environments: JSONArray): Any? =
+                client.domain("reader.reference", JSONObject().put("href", href).put("environmentId", environmentId).put("threadId", threadId).put("environments", environments))
         }
 
         class ScopedSettings internal constructor(private val client: T3Client) {
@@ -858,6 +915,12 @@ class T3Api(client: T3Client) {
             /** `sidebar.detail` · object {detail, state, statusLabel, statusRole, time} of one sidebar row */
             fun detail(thread: JSONObject, now: Long? = null): Any? =
                 client.domain("sidebar.detail", JSONObject().put("thread", thread).put("now", now))
+            /** `sidebar.pinCommands` · array of validated thread.pin.reorder commands using caller-persisted commandIds keyed by thread id */
+            fun pinCommands(plan: JSONArray, commandIds: JSONObject): Any? =
+                client.domain("sidebar.pinCommands", JSONObject().put("plan", plan).put("commandIds", commandIds))
+            /** `sidebar.pinPlan` · array of {id,orderKey}: fractional move or deterministic rebalance; persist caller commandIds before dispatch */
+            fun pinPlan(orderedIds: JSONArray, keys: JSONObject, movedId: String): Any? =
+                client.domain("sidebar.pinPlan", JSONObject().put("orderedIds", orderedIds).put("keys", keys).put("movedId", movedId))
         }
 
         class Subagents internal constructor(private val client: T3Client) {
@@ -873,6 +936,18 @@ class T3Api(client: T3Client) {
             /** `subagents.fromThread` · object {id thread:<key>, title, status, childThreadId, startedAt, updatedAt, providerInstanceId, model, fromThread: true}: a sidebar sub-thread seen as a subagent */
             fun fromThread(thread: JSONObject): Any? =
                 client.domain("subagents.fromThread", JSONObject().put("thread", thread))
+        }
+
+        class Terminal internal constructor(private val client: T3Client) {
+            /** `terminal.context` · object {cwd,worktreePath?,providerInstanceId?}: selected server paths */
+            fun context(shell: JSONObject, threadId: String, fallback: String): Any? =
+                client.domain("terminal.context", JSONObject().put("shell", shell).put("threadId", threadId).put("fallback", fallback))
+            /** `terminal.attach` · object: validated terminal.attach args; resume=true preserves stopped terminals, never use an ordering cursor as afterSequence */
+            fun attach(threadId: String, terminalId: String, context: JSONObject, cols: Long, rows: Long, resume: Boolean? = null): Any? =
+                client.domain("terminal.attach", JSONObject().put("threadId", threadId).put("terminalId", terminalId).put("context", context).put("cols", cols).put("rows", rows).put("resume", resume))
+            /** `terminal.output` · object {state,text,replace,finished,error,exitCode,exitSignal}: exact ordered ANSI/Unicode strings; snapshot replaces renderer history; remote error retained with state */
+            fun output(event: JSONObject, state: JSONObject? = null): Any? =
+                client.domain("terminal.output", JSONObject().put("state", state).put("event", event))
         }
 
         class Theme internal constructor(private val client: T3Client) {

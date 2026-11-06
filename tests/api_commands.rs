@@ -6,6 +6,7 @@ mod fake_t3;
 use fake_t3::{wire, FakeT3, Reply};
 use serde_json::{json, Value};
 use t3_protocol::api::orchestration::*;
+use t3_protocol::api;
 
 const C: &str = "omarchy-c1";
 fn ids(kind: &str) -> Value {
@@ -172,8 +173,29 @@ fn fresh_context_is_optional_boolean_and_round_trips() {
     assert!(legacy.get("freshContext").is_none());
     for fresh in [true, false] {
         let mut value = legacy.clone(); value["freshContext"] = json!(fresh);
-        assert_eq!(Command::from_json(&value).unwrap().payload().unwrap()["freshContext"], fresh);
+        assert_eq!(api::orchestration::CommandWithContext::from_json(&value).unwrap().payload().unwrap()["freshContext"], fresh);
     }
     let mut value = legacy; value["freshContext"] = json!("true");
-    assert!(Command::from_json(&value).is_err());
+    assert!(api::orchestration::CommandWithContext::from_json(&value).is_err());
+}
+
+#[test]
+fn explicit_context_wrapper_leaves_legacy_literal_shape_and_bytes_unchanged() {
+    use api::orchestration::{Command, CommandWithContext, MessageDispatch};
+    let command = Command::MessageDispatch(MessageDispatch {
+        command_id: "command".into(), thread_id: "thread".into(), message_id: "message".into(),
+        text: "hello".into(), attachments: vec![], dispatch_mode: api::orchestration::DispatchMode::StartImmediately,
+        created_by: "user".into(), creation_source: "web".into(), context: Some(json!({"opaque":{"z":1,"a":2}})),
+        title_seed: None, model_selection: None, source_plan_ref: None,
+        restart_continuation_of_run_id: None, usage_limit_continuation_of_run_id: None,
+        manual_continuation_of_run_id: None, usage_limit_recovery_request_id: None,
+        delivery_intent: None, guest_message_id: None,
+    });
+    let before = command.payload().unwrap();
+    assert_eq!(CommandWithContext { command: command.clone(), fresh_context: None }.payload().unwrap().to_string(), before.to_string());
+    for fresh in [false, true] {
+        let extended = CommandWithContext { command: command.clone(), fresh_context: Some(fresh) }.payload().unwrap();
+        assert_eq!(extended["freshContext"], fresh);
+        assert_eq!(extended["context"].to_string(), before["context"].to_string());
+    }
 }

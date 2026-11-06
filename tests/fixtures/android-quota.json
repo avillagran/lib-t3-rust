@@ -1,0 +1,69 @@
+{
+  "environments": [
+    {
+      "id": "a",
+      "name": "a",
+      "connected": true,
+      "state": {
+        "providers": [
+          {
+            "instanceId": "codex",
+            "driver": "codex",
+            "enabled": true,
+            "installed": true,
+            "auth": {
+              "status": "authenticated",
+              "email": "same@example.test"
+            },
+            "usageLimits": {
+              "checkedAt": "2026-01-01T00:00:00Z",
+              "windows": [
+                {
+                  "id": "five_hour",
+                  "label": "5 hours",
+                  "kind": "session",
+                  "usedPercent": 80,
+                  "resetsAt": "2026-01-01T02:30:00Z",
+                  "windowDurationMins": 300
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "b",
+      "name": "b",
+      "connected": false,
+      "state": {
+        "providers": [
+          {
+            "instanceId": "codex",
+            "driver": "codex",
+            "enabled": true,
+            "installed": true,
+            "auth": {
+              "status": "authenticated",
+              "email": "same@example.test"
+            },
+            "usageLimits": {
+              "checkedAt": "2026-01-01T00:01:00Z",
+              "windows": [
+                {
+                  "id": "five_hour",
+                  "label": "5 hours",
+                  "kind": "session",
+                  "usedPercent": 40,
+                  "resetsAt": "2026-01-01T02:30:00Z",
+                  "windowDurationMins": 300
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "now": 1767225600000
+}

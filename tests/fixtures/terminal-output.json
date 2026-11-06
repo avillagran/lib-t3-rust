@@ -1,0 +1,9 @@
+[
+ {"type":"snapshot","snapshot":{"history":"\u001b[31m🦀","sequence":3,"status":"running"}},
+ {"type":"output","sequence":3,"data":"duplicate"},
+ {"type":"output","sequence":4,"data":"\u001b["},
+ {"type":"output","sequence":5,"data":"0m\r\né"},
+ {"type":"exited","sequence":6,"exitCode":7,"exitSignal":null},
+ {"type":"snapshot","snapshot":{"history":"stopped","sequence":6,"status":"exited","exitCode":7}},
+ {"type":"restarted","snapshot":{"history":"$ ","sequence":7,"status":"running"}}
+]
