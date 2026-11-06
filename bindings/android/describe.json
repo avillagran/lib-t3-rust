@@ -5264,6 +5264,18 @@
       "timeoutMs": 20000
     },
     {
+      "args": [],
+      "fn": "scheduledTasks.subscribe",
+      "kind": "read",
+      "module": "scheduledTasks",
+      "openArgs": false,
+      "replay": "free",
+      "scope": "orchestration:read",
+      "stream": true,
+      "tag": "scheduledTasks.subscribe",
+      "timeoutMs": 20000
+    },
+    {
       "args": [
         {
           "name": "title",
@@ -5339,6 +5351,16 @@
           "name": "threadId",
           "required": false,
           "type": "id"
+        },
+        {
+          "name": "threadMode",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "new_thread",
+            "continue",
+            "fresh_session"
+          ]
         },
         {
           "name": "createdBy",
@@ -5780,6 +5802,57 @@
     {
       "args": [
         {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "terminalId",
+          "required": true,
+          "type": "token"
+        }
+      ],
+      "fn": "terminal.clear",
+      "kind": "mutation",
+      "module": "terminal",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "terminal:operate",
+      "stream": false,
+      "tag": "terminal.clear",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "threadId",
+          "required": true,
+          "type": "id"
+        },
+        {
+          "name": "terminalId",
+          "required": false,
+          "type": "token"
+        },
+        {
+          "name": "deleteHistory",
+          "required": false,
+          "type": "bool"
+        }
+      ],
+      "fn": "terminal.close",
+      "kind": "mutation",
+      "module": "terminal",
+      "openArgs": false,
+      "replay": "set",
+      "scope": "terminal:operate",
+      "stream": false,
+      "tag": "terminal.close",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
           "name": "afterSequence",
           "required": false,
           "type": "integer"
@@ -6212,6 +6285,16 @@
     }
   ],
   "streams": [
+    {
+      "cursor": null,
+      "ends": [],
+      "firstItem": null,
+      "fn": "scheduledTasks.subscribe",
+      "itemKey": null,
+      "items": [],
+      "starts": [],
+      "tag": "scheduledTasks.subscribe"
+    },
     {
       "cursor": "afterSequence",
       "ends": [],

@@ -391,6 +391,9 @@ fn rows() -> Vec<(&'static str, &'static str, Value, Value)> {
         ),
         ("terminal.write", "terminal.write", json!({"threadId":"t-1","terminalId":"term-1","data":" ls\r"}), json!({"threadId":"t-1","terminalId":"term-1","data":" ls\r"})),
         ("terminal.resize", "terminal.resize", json!({"threadId":"t-1","terminalId":"term-1","cols":100,"rows":30}), json!({"threadId":"t-1","terminalId":"term-1","cols":100,"rows":30})),
+        ("terminal.clear", "terminal.clear", json!({"threadId":"t-1","terminalId":"term-1"}), json!({"threadId":"t-1","terminalId":"term-1"})),
+        ("terminal.close", "terminal.close", json!({"threadId":"t-1","terminalId":"term-1","deleteHistory":true}), json!({"threadId":"t-1","terminalId":"term-1","deleteHistory":true})),
+        ("terminal.close", "terminal.close", json!({"threadId":"t-1","deleteHistory":false}), json!({"threadId":"t-1","deleteHistory":false})),
         ("orchestration.getThreadFamily", "orchestration.getThreadFamily", json!({"threadId":"t-1"}), json!({"threadId":"t-1"})),
         ("orchestration.getWorktreeThreadIds", "orchestration.getWorktreeThreadIds", json!({"worktreePath":"/w/t"}), json!({"worktreePath":"/w/t"})),
         ("orchestration.getOlderSettledThreads", "orchestration.getOlderSettledThreads", json!({"before":{"settledAt":"2026-10-26T00:00:00Z"},"limit":50}), json!({"before":{"settledAt":"2026-10-26T00:00:00Z"},"limit":50})),
@@ -686,6 +689,9 @@ fn rust_signatures_put_the_same_requests_on_the_wire() {
     api::terminal::open(c, &terminal).unwrap();
     api::terminal::write(c, "t-1", "term-1", " ls\r").unwrap();
     api::terminal::resize(c, "t-1", "term-1", 100, 30).unwrap();
+    api::terminal::clear(c, "t-1", "term-1").unwrap();
+    api::terminal::close(c, "t-1", Some("term-1"), Some(true)).unwrap();
+    api::terminal::close(c, "t-1", None, Some(false)).unwrap();
     api::orchestration::get_thread_family(c,"t-1").unwrap();
     api::orchestration::get_worktree_thread_ids(c,"/w/t").unwrap();
     api::orchestration::get_older_settled_threads(c,&json!({"settledAt":"2026-10-26T00:00:00Z"}),None,50).unwrap();
@@ -792,6 +798,9 @@ fn local_rejections_never_open_a_socket() {
         ("worktreeSetup.cancel", json!({"threadId":""}), "invalid_thread_id"),
         ("terminal.open", json!({"threadId":"t","terminalId":"term-1","cwd":"/r","env":{"1BAD":"x"}}), "invalid_env"),
         ("terminal.write", json!({"threadId":"t","terminalId":"term-1","data":""}), "invalid_data"),
+        ("terminal.clear", json!({"threadId":"t"}), "invalid_terminal_id"),
+        ("terminal.close", json!({"threadId":"t","deleteHistory":"yes"}), "invalid_delete_history"),
+        ("terminal.close", json!({"threadId":"t","terminalId":"bad\n"}), "invalid_terminal_id"),
         ("terminal.resize", json!({"threadId":"t","terminalId":"term-1","cols":1001,"rows":30}), "invalid_cols"),
         ("no.such.function", json!({}), "unknown_function"),
     ];
@@ -816,11 +825,11 @@ fn every_module_has_its_unary_functions_and_scopes() {
     let expected = [
         ("agentSessions", 2), ("assets", 2), ("device", 8), ("diagnostics", 8), ("filesystem", 2), ("guestShare",1), ("mcpApps", 3),
         ("orchestration", 13), ("preview", 9), ("projectClone", 1), ("projects", 5), ("provider", 9), ("pullRequests", 15),
-        ("review", 2), ("scheduledTasks", 5), ("secrets", 1), ("server", 9), ("shell", 1), ("terminal", 3), ("vcs", 7),
+        ("review", 2), ("scheduledTasks", 5), ("secrets", 1), ("server", 9), ("shell", 1), ("terminal", 5), ("vcs", 7),
         ("worktreeSetup", 1),
     ];
     assert_eq!(counts.into_iter().collect::<Vec<_>>(), expected);
-    assert_eq!(api::functions().filter(|f| !f.stream && f.tag.is_some()).count(), 107);
+    assert_eq!(api::functions().filter(|f| !f.stream && f.tag.is_some()).count(), 109);
     // Payload-dependent scopes the host can compute before choosing a token.
     assert_eq!(api::device::list_scope(Some("hub"), Some(true), None), "orchestration:operate");
     assert_eq!(api::device::list_scope(None, Some(true), Some("mac")), "orchestration:read");

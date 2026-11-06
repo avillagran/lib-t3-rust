@@ -354,9 +354,12 @@ class T3Api(client: T3Client) {
         /** `scheduledTasks.list` · read · replay free · scope orchestration:read · 20000 ms */
         fun list(): Any? =
             client.call("scheduledTasks.list", JSONObject())
+        /** `scheduledTasks.subscribe` · stream · read · replay free · scope orchestration:read */
+        fun subscribe(): T3Subscription =
+            client.subscribeFn("scheduledTasks.subscribe", JSONObject())
         /** `scheduledTasks.upsert` · mutation · replay id · scope orchestration:operate · 20000 ms */
-        fun upsert(title: String, prompt: String, enabled: Boolean, schedule: JSONObject, projectId: String, workspaceStrategy: JSONObject, modelSelection: JSONObject, runtimeMode: String, interactionMode: String, commandId: String? = null, id: String? = null, requireExisting: Boolean? = null, threadId: String? = null, createdBy: String? = null, creationSource: String? = null): Any? =
-            client.call("scheduledTasks.upsert", JSONObject().put("title", title).put("prompt", prompt).put("enabled", enabled).put("schedule", schedule).put("projectId", projectId).put("workspaceStrategy", workspaceStrategy).put("modelSelection", modelSelection).put("runtimeMode", runtimeMode).put("interactionMode", interactionMode).put("commandId", commandId).put("id", id).put("requireExisting", requireExisting).put("threadId", threadId).put("createdBy", createdBy).put("creationSource", creationSource))
+        fun upsert(title: String, prompt: String, enabled: Boolean, schedule: JSONObject, projectId: String, workspaceStrategy: JSONObject, modelSelection: JSONObject, runtimeMode: String, interactionMode: String, commandId: String? = null, id: String? = null, requireExisting: Boolean? = null, threadId: String? = null, threadMode: String? = null, createdBy: String? = null, creationSource: String? = null): Any? =
+            client.call("scheduledTasks.upsert", JSONObject().put("title", title).put("prompt", prompt).put("enabled", enabled).put("schedule", schedule).put("projectId", projectId).put("workspaceStrategy", workspaceStrategy).put("modelSelection", modelSelection).put("runtimeMode", runtimeMode).put("interactionMode", interactionMode).put("commandId", commandId).put("id", id).put("requireExisting", requireExisting).put("threadId", threadId).put("threadMode", threadMode).put("createdBy", createdBy).put("creationSource", creationSource))
         /** `scheduledTasks.setEnabled` · mutation · replay set · scope orchestration:operate · 20000 ms */
         fun setEnabled(id: String, enabled: Boolean): Any? =
             client.call("scheduledTasks.setEnabled", JSONObject().put("id", id).put("enabled", enabled))
@@ -423,6 +426,12 @@ class T3Api(client: T3Client) {
         /** `terminal.resize` · mutation · replay set · scope terminal:operate · 20000 ms */
         fun resize(threadId: String, terminalId: String, cols: Long, rows: Long): Any? =
             client.call("terminal.resize", JSONObject().put("threadId", threadId).put("terminalId", terminalId).put("cols", cols).put("rows", rows))
+        /** `terminal.clear` · mutation · replay set · scope terminal:operate · 20000 ms */
+        fun clear(threadId: String, terminalId: String): Any? =
+            client.call("terminal.clear", JSONObject().put("threadId", threadId).put("terminalId", terminalId))
+        /** `terminal.close` · mutation · replay set · scope terminal:operate · 20000 ms */
+        fun close(threadId: String, terminalId: String? = null, deleteHistory: Boolean? = null): Any? =
+            client.call("terminal.close", JSONObject().put("threadId", threadId).put("terminalId", terminalId).put("deleteHistory", deleteHistory))
         /** `terminal.attach` · stream · mutation · replay set · scope terminal:operate */
         fun attach(threadId: String, terminalId: String, cwd: String? = null, worktreePath: String? = null, cols: Long? = null, rows: Long? = null, env: JSONObject? = null, providerInstanceId: String? = null, restartIfNotRunning: Boolean? = null, resume: Boolean? = null): T3Subscription =
             client.subscribeFn("terminal.attach", JSONObject().put("threadId", threadId).put("terminalId", terminalId).put("cwd", cwd).put("worktreePath", worktreePath).put("cols", cols).put("rows", rows).put("env", env).put("providerInstanceId", providerInstanceId).put("restartIfNotRunning", restartIfNotRunning).put("resume", resume))
