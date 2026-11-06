@@ -1,5 +1,5 @@
-use t3_protocol::quota_sources as quotas;
 use serde_json::{json, Value};
+use t3_protocol::quota_sources as quotas;
 fn limits() -> Value {
     json!({"checkedAt":"2026-10-18T12:00:00Z","credentialFingerprint":"same-key","windows":[{"id":"monthly","kind":"monthly","label":"Monthly","usedPercent":30,"resetsAt":"2026-11-01T00:00:00Z"}],"secret":"PRIVATE"})
 }
@@ -53,4 +53,64 @@ fn snapshots_replace_sources_and_unrelated_events_do_not_mutate_state() {
     ));
     assert!(state["providers"].as_array().unwrap().is_empty());
     assert_eq!(state["usageLimitSources"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn reset_credit_ids_follow_the_actual_native_optional_trimmed_string_schema() {
+    let fixture: Value =
+        serde_json::from_str(include_str!("fixtures/reset-credit-values-4288.json")).unwrap();
+    assert_eq!(
+        fixture["revision"],
+        "32a0531748c44b25072d7495ce0b9bd7e9450a87"
+    );
+    for case in fixture["cases"].as_array().unwrap() {
+        let mut raw = limits();
+        raw["resetCredits"] = case["input"].clone();
+        let projected = quotas::limits(&raw);
+        if case["ok"] == true {
+            assert_eq!(projected.unwrap()["resetCredits"], case["value"]);
+        } else {
+            assert!(
+                projected.is_none(),
+                "Invalid native nextCreditId must not become a redeemable observation"
+            );
+        }
+    }
+}
+#[test]
+fn reset_credit_identity_survives_provider_and_source_observation_updates() {
+    let mut raw_limits = limits();
+    raw_limits["resetCredits"] = json!({"availableCount":2,"nextCreditId":"synthetic-credit-one"});
+    let mut raw_provider = provider();
+    raw_provider["usageLimits"] = raw_limits.clone();
+    let source = json!({"id":"hub","label":"Hub","accounts":[{"id":"account","driver":"codex","usageLimits":raw_limits}]});
+    let mut state = json!({});
+    assert!(quotas::apply(
+        &mut state,
+        &json!({"version":1,"type":"snapshot","config":{"providers":[raw_provider],"usageLimitSources":[source]}})
+    ));
+    assert!(quotas::apply(
+        &mut state,
+        &json!({"version":1,"type":"usageLimitSourcesUpdated","payload":{"sources":[source.clone()]}})
+    ));
+    assert_eq!(
+        state["providers"][0]["usageLimits"]["resetCredits"]["nextCreditId"],
+        "synthetic-credit-one"
+    );
+    assert_eq!(
+        state["usageLimitSources"][0]["accounts"][0]["usageLimits"]["resetCredits"]["nextCreditId"],
+        "synthetic-credit-one"
+    );
+    let mut source = source;
+    source["accounts"][0]["usageLimits"]["resetCredits"]["nextCreditId"] =
+        json!("synthetic-credit-two");
+    assert!(quotas::apply(
+        &mut state,
+        &json!({"version":1,"type":"usageLimitSourcesUpdated","payload":{"sources":[source]}})
+    ));
+    assert_eq!(
+        state["usageLimitSources"][0]["accounts"][0]["usageLimits"]["resetCredits"]["nextCreditId"],
+        "synthetic-credit-two"
+    );
+    assert!(!state.to_string().contains("PRIVATE"));
 }
