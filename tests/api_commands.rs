@@ -163,3 +163,17 @@ fn raw_carries_untyped_contract_commands_and_dispatch_sends_once() {
     );
     assert_eq!(recorded.connections, 1);
 }
+
+#[test]
+fn fresh_context_is_optional_boolean_and_round_trips() {
+    use t3_protocol::api::orchestration::{Command, MessageDispatch};
+    let command = Command::MessageDispatch(MessageDispatch::new("cmd", "thread", "message", "Hello", "web"));
+    let legacy = command.payload().unwrap();
+    assert!(legacy.get("freshContext").is_none());
+    for fresh in [true, false] {
+        let mut value = legacy.clone(); value["freshContext"] = json!(fresh);
+        assert_eq!(Command::from_json(&value).unwrap().payload().unwrap()["freshContext"], fresh);
+    }
+    let mut value = legacy; value["freshContext"] = json!("true");
+    assert!(Command::from_json(&value).is_err());
+}
