@@ -654,7 +654,6 @@ fn rust_signatures_put_the_same_requests_on_the_wire() {
         schedule: webhook_task_args()["schedule"].clone(),
         project_id: s("p-1"),
         thread_id: Some(None),
-        thread_mode: None,
         workspace_strategy: WorkspaceStrategy::ExistingWorktree { worktree_path: s("/w/t"), branch: None },
         model_selection: json!({"instanceId":"claude","model":"opus"}),
         runtime_mode: s("approval-required"),
@@ -844,7 +843,7 @@ fn every_module_has_its_unary_functions_and_scopes() {
 
 #[test]
 fn scheduled_task_thread_modes_preserve_legacy_and_validate_new_modes() {
-    use api::scheduled_tasks::TaskUpsert;
+    use api::scheduled_tasks::TaskUpsertWithMode as TaskUpsert;
     let legacy = task_args();
     assert!(TaskUpsert::from_json(&legacy).unwrap().payload().unwrap().get("threadMode").is_none());
     for mode in ["new_thread", "continue", "fresh_session"] {

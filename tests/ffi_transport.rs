@@ -50,7 +50,7 @@ fn capabilities_list_the_new_operations_under_abi_3() {
     for op in ["connectBearer", "request", "requestOk", "fetchDescriptor", "pairBearer", "boundedThread", "assetBytes", "projectFavicon"] {
         assert!(caps["operations"].as_array().unwrap().contains(&json!(op)), "{op}");
     }
-    assert_eq!(caps["binaryOperations"], json!(["image", "assetBytes", "projectFavicon"]));
+    assert_eq!(caps["binaryOperations"], json!(["image", "assetBytes", "projectFavicon", "registryIconBytes"]));
     assert_eq!(caps["maxAssetBytes"], 64 * 1024 * 1024);
 }
 #[test]
@@ -183,3 +183,17 @@ fn asset_bytes_and_favicons_return_bytes_through_the_image_callback() {
     assert_eq!(bytes.unwrap(), b"<svg/>");
     server.join().unwrap();
 }
+
+#[test]
+fn parity_native_http_reads_authenticate_and_keep_opaque_cursors() {
+ let c=Client::new();
+ let (base,server)=serve(vec![json(r#"{"items":[],"nextCursor":null,"hasMoreHistory":false}"#),json(r#"{"files":[],"nextCursor":"opaque"}"#)]);
+ assert_eq!(c.call(json!({"op":"connectBearer","httpBaseUrl":base,"token":"synthetic-token"}))["ok"],true);
+ let history=c.call(json!({"op":"historyPage","threadId":"thread","cursor":"a+/=?"}));assert_eq!(history["ok"],true);
+ let diff=c.call(json!({"op":"pullRequestDiff","reference":{"projectId":"p","host":"github.com","repository":"o/r","number":1},"cursor":"opaque+/="}));assert_eq!(diff["data"]["nextCursor"],"opaque");
+ let seen=server.join().unwrap();assert!(seen[0].head.starts_with("GET /api/orchestration/threads/thread/history?cursor=a%2B%2F%3D%3F&compactIds=1 "));
+ assert!(seen[1].head.starts_with("POST /api/pull-requests/diff "));for r in &seen {assert_eq!(r.header("authorization").as_deref(),Some("Bearer synthetic-token"));}
+ assert_eq!(serde_json::from_str::<Value>(&seen[1].body).unwrap()["cursor"],"opaque+/=");
+}
+#[test]
+fn registry_binary_rejects_foreign_url_without_connection_or_callback(){let c=Client::new();let(status,bytes)=c.binary(json!({"op":"registryIconBytes","url":"https://evil.test/icon.svg","requestId":"one"}));assert_eq!(status["error"],"invalid_registry_icon");assert!(bytes.is_none());}
