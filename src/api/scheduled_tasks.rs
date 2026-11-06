@@ -65,8 +65,12 @@ pub const SUBSCRIBE: Function = Function {
 /// Read the initial snapshot from modern servers, which expose a stream rather than list.
 pub fn snapshot(conn: &Connection) -> Result<Value> {
     let spec = super::streams::spec("scheduledTasks.subscribe", &json!({}))?;
-    crate::stream::first_item(conn, &spec, std::time::Duration::from_secs(10), |v| v["tasks"].is_array())?
-        .filter(|v| v["tasks"].is_array()).ok_or_else(|| "invalid_scheduled_tasks_snapshot".into())
+    match crate::stream::first_item(conn, &spec, std::time::Duration::from_secs(10), |v| v["tasks"].is_array()) {
+        Ok(Some(v)) if v["tasks"].is_array() => Ok(v),
+        Ok(_) => Err("invalid_scheduled_tasks_snapshot".into()),
+        Err(e) if e.starts_with("rpc_rejected") && e.contains("scheduledTasks.subscribe") => list(conn),
+        Err(e) => Err(e),
+    }
 }
 pub const FUNCTIONS: &[Function] = &[LIST, SUBSCRIBE, UPSERT, SET_ENABLED, DELETE, RUN_NOW];
 
