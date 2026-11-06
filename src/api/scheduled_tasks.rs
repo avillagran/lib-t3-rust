@@ -64,7 +64,7 @@ pub const SUBSCRIBE: Function = Function {
 };
 /// Read the initial snapshot from modern servers, which expose a stream rather than list.
 pub fn snapshot(conn: &Connection) -> Result<Value> {
-    let spec = super::streams::StreamSpec::new(&SUBSCRIBE, json!({}));
+    let spec = super::streams::spec("scheduledTasks.subscribe", &json!({}))?;
     crate::stream::first_item(conn, &spec, std::time::Duration::from_secs(10), |v| v["tasks"].is_array())?
         .filter(|v| v["tasks"].is_array()).ok_or_else(|| "invalid_scheduled_tasks_snapshot".into())
 }
