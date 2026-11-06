@@ -54,7 +54,21 @@ pub const RUN_NOW: Function = api_fn! {
     args: [(id, Id, required)],
     payload: |a| id_payload(a.req("id")?),
 };
-pub const FUNCTIONS: &[Function] = &[LIST, UPSERT, SET_ENABLED, DELETE, RUN_NOW];
+pub const SUBSCRIBE: Function = Function {
+    stream: true,
+    ..api_fn! {
+        name: "scheduledTasks.subscribe", module: "scheduledTasks", tag: Some("scheduledTasks.subscribe"),
+        kind: Read, scope: Fixed("orchestration:read"),
+        args: [], payload: |_| Ok(json!({})),
+    }
+};
+/// Read the initial snapshot from modern servers, which expose a stream rather than list.
+pub fn snapshot(conn: &Connection) -> Result<Value> {
+    let spec = super::streams::StreamSpec::new(&SUBSCRIBE, json!({}));
+    crate::stream::first_item(conn, &spec, std::time::Duration::from_secs(10), |v| v["tasks"].is_array())?
+        .filter(|v| v["tasks"].is_array()).ok_or_else(|| "invalid_scheduled_tasks_snapshot".into())
+}
+pub const FUNCTIONS: &[Function] = &[LIST, SUBSCRIBE, UPSERT, SET_ENABLED, DELETE, RUN_NOW];
 
 /// `scheduledTasks.list`: `{tasks[]}`.
 pub fn list(conn: &Connection) -> Result<Value> {
