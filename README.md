@@ -51,7 +51,9 @@ The [buffered speech API](docs/SPEECH.md) provides local/cloud PCM transcription
 cloud key/catalog access, local model controls and transcript postprocessing over
 the authenticated native HTTP routes. The host owns recording and per-operation
 consent; [speech controls](docs/SPEECH-CONTROLS-4314.md) document deadlines,
-authority and the remaining streaming/C/JNI entry-point work.
+authority and native codecs. The [local live stream](docs/SPEECH-STREAM-4314.md)
+provides owned WebSocket flow control and cancellation. New speech C/JNI entry
+points and host capture integration remain pending.
 
 The core signs ES256 DPoP proofs with fresh jti, htm, normalized htu, iat and ath;
 checks the environment descriptor before exchanging its bootstrap credential;

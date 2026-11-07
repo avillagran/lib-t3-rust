@@ -6,10 +6,12 @@ use std::{collections::HashSet, time::Duration};
 use unicode_normalization::UnicodeNormalization;
 
 mod controls;
+mod live;
 pub use controls::{
     Acceleration, ControlFailure, ControlResult, LocalModelAction, PostProcessRequest,
     UnloadTimeout,
 };
+pub use live::{LiveEvent, LiveFailure, LiveText, SpeechCancellation, SpeechStream};
 
 pub const SAMPLE_RATE: usize = 16_000;
 pub const MAX_PCM_BYTES: usize = SAMPLE_RATE * 4 * 5 * 60;
