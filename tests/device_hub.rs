@@ -31,6 +31,7 @@ fn hub(status: &'static str) -> (Connection, thread::JoinHandle<Vec<String>>) {
             let mut out = stream;
             seen.push(format!("{} {}", line.split_whitespace().next().unwrap(), line.split_whitespace().nth(1).unwrap()));
             let (status, kind, body): (&str, &str, &[u8]) = if line.contains("/api/auth/websocket-ticket") {
+                assert_eq!(line.split_whitespace().nth(1).unwrap(), "/api/auth/websocket-ticket/media");
                 assert!(headers.contains("authorization: bearer synthetic"), "{headers}");
                 ("200 OK", "application/json", br#"{"ticket":"one-ticket"}"#)
             } else {
@@ -51,7 +52,7 @@ fn android_screenshot_goes_through_the_serve_emu_proxy_with_ticket_and_host() {
     let access = c.device_hub("/api/device-hub", "host-1").unwrap();
     assert_eq!(c.device_screenshot(&access, Platform::Android, "emulator-5554").unwrap(), b"\x89PNG\r\n\x1a\nandroid");
     assert_eq!(server.join().unwrap(), vec![
-        "POST /api/auth/websocket-ticket".to_string(),
+        "POST /api/auth/websocket-ticket/media".to_string(),
         "POST /api/device-hub/vendor/serve-emu/api/screenshot?device=emulator-5554&hostId=host-1&wsTicket=one-ticket".to_string(),
     ]);
 }
@@ -165,4 +166,48 @@ fn native_frame_metadata_corpus_preserves_payload_boundaries() {
             );
         }
     }
+}
+
+#[test]
+fn media_ticket_refusal_never_retries_the_generic_ticket_route() {
+    for status in ["401 Unauthorized", "403 Forbidden", "404 Not Found"] {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let server = thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            let mut reader = BufReader::new(stream.try_clone().unwrap());
+            let mut line = String::new(); reader.read_line(&mut line).unwrap();
+            assert_eq!(line.split_whitespace().nth(1).unwrap(), "/api/auth/websocket-ticket/media");
+            loop { let mut header=String::new(); reader.read_line(&mut header).unwrap(); if header=="\r\n" {break;} }
+            let mut stream=stream;
+            write!(stream,"HTTP/1.1 {status}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap();
+            listener.set_nonblocking(true).unwrap();
+            thread::sleep(std::time::Duration::from_millis(50));
+            assert_eq!(listener.accept().unwrap_err().kind(), std::io::ErrorKind::WouldBlock);
+        });
+        let connection=Connection::new(&base,None,Credential::bearer("synthetic").unwrap()).unwrap();
+        assert!(connection.device_hub("/api/device-hub","local").is_err());
+        server.join().unwrap();
+    }
+}
+
+#[test]
+fn native_device_access_oracle_matches_the_sdk_media_ticket_request() {
+    let fixture: Value = serde_json::from_str(include_str!("fixtures/input/device-media-ticket-4301.json")).unwrap();
+    assert_eq!(fixture["cases"].as_array().unwrap().len(), 6);
+    for case in fixture["cases"].as_array().unwrap() {
+        if case["authorization"] == "Cookie" {
+            assert!(case["requests"].as_array().unwrap().is_empty());
+            continue; // The SDK bearer API does not implement cookie authorization.
+        }
+        let request = &case["requests"][0];
+        assert_eq!(request["method"], "POST");
+        assert_eq!(request["route"], "/api/auth/websocket-ticket/media");
+        assert_eq!(case["result"]["ok"], !case["failure"].as_bool().unwrap());
+    }
+    let (connection, server) = hub("200 OK");
+    let access = connection.device_hub("/api/device-hub", "local").unwrap();
+    connection.device_screenshot(&access, Platform::Android, "emulator-5554").unwrap();
+    let seen = server.join().unwrap();
+    assert_eq!(seen[0], format!("{} {}", fixture["cases"][2]["requests"][0]["method"].as_str().unwrap(), fixture["cases"][2]["requests"][0]["route"].as_str().unwrap()));
 }
