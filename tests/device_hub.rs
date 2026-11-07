@@ -117,3 +117,52 @@ fn android_input_is_serve_emu_json_and_ios_keys_use_hid_usages() {
         assert_eq!(input_message(platform, &bad).unwrap_err(), "invalid_device_input", "{bad}");
     }
 }
+
+#[test]
+fn native_frame_metadata_corpus_preserves_payload_boundaries() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "fixtures/input/semu-frames-0.19.1.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["source"]["version"], "0.19.1");
+    let cases = fixture["cases"].as_array().unwrap();
+    // Exercise the actual source writer's packets before compatibility and malformed inputs.
+    let recognized = |row: &&serde_json::Value| row["native"]["isKey"].is_boolean();
+    for row in cases
+        .iter()
+        .filter(recognized)
+        .chain(cases.iter().filter(|row| !recognized(row)))
+    {
+        let bytes = |value: &serde_json::Value| -> Vec<u8> {
+            value
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|value| u8::try_from(value.as_u64().unwrap()).unwrap())
+                .collect()
+        };
+        let packet = bytes(&row["packet"]);
+        if let Some(key) = row["legacyV1Empty"]["isKey"].as_bool() {
+            assert_eq!(
+                parse_semu(&packet),
+                Some((key, &[][..])),
+                "legacy empty header: {}",
+                row["id"]
+            );
+        } else if let Some(key) = row["native"]["isKey"].as_bool() {
+            let payload = bytes(&row["native"]["data"]);
+            assert_eq!(
+                parse_semu(&packet),
+                Some((key, payload.as_slice())),
+                "native packet: {}",
+                row["id"]
+            );
+        } else {
+            assert!(
+                parse_semu(&packet).is_none(),
+                "unrecognized metadata: {}",
+                row["id"]
+            );
+        }
+    }
+}
