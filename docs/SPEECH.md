@@ -2,7 +2,7 @@
 
 This additive Rust API follows native nightly4314 (`83a3674ffd84ffb33de768210c806cb1ac53fd80`). It does not record a microphone, resolve a secret, download a model, or send anything automatically. The host must obtain recording consent and, separately, consent for cloud upload before explicitly calling `Connection::speech_transcribe`.
 
-Buffered PCM requests, recognition options, cloud key presence, key/reference writes, OpenRouter model catalog and local/cloud transcription HTTP are implemented. [Local model controls and transcript postprocessing](SPEECH-CONTROLS-4314.md) complete the buffered HTTP surface. Live voice WebSockets and new speech C/JNI entry points remain pending. No client UI, vendor copy or server capability is activated here.
+Buffered PCM requests, recognition options, cloud key presence, key/reference writes, OpenRouter model catalog and local/cloud transcription HTTP are implemented. [Local model controls and transcript postprocessing](SPEECH-CONTROLS-4314.md) complete the buffered HTTP surface. The [local live stream](SPEECH-STREAM-4314.md) adds owned WebSocket flow control and cancellation. New speech C/JNI entry points remain pending. No client UI, vendor copy or server capability is activated here.
 
 ## Audio and options
 

@@ -50,5 +50,6 @@ traces additionally verify the per-operation deadline and redirect policy.
 
 All Rust/native/JNI tests use official android-sandbox exclusively. No live model
 download, microphone, audio upload, provider request or fixture tree deletion is
-used. These methods are currently Rust-only; new speech C/JNI entry points,
-streaming WebSockets and the actual host microphone/voice interface remain pending.
+used. These methods are currently Rust-only. The [local live stream](SPEECH-STREAM-4314.md)
+provides a separate owned WebSocket API; new speech C/JNI entry points and the
+actual host microphone/voice interface remain pending.
