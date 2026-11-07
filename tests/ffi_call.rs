@@ -115,3 +115,17 @@ fn call_sends_once_and_carries_scope_and_reason_apart() {
     assert_eq!(recorded.connections, 4);
     assert_eq!(wire(&recorded)[1], json!({"tag":"orchestration.dispatchCommand","payload":{"type":"thread.archive","commandId":"omarchy-1","threadId":"t-1"}}));
 }
+
+#[test]
+fn reset_credit_union_is_available_through_the_unchanged_abi() {
+    let fake=FakeT3::spawn(vec![
+        Reply::Ok(json!({"outcome":"noCredit","warning":"Synthetic warning"})),
+        Reply::Fail(fail(json!({"_tag":"EnvironmentAuthorizationError","message":"Synthetic scope denied","requiredScope":"providers:manage"}))),
+    ]);
+    let client=Client::new();client.connect(&fake.base);
+    assert_eq!(client.call(json!({"op":"call","fn":"provider.consumeResetCredit","args":{"sourceId":" source:raw ","accountId":" account ","creditId":" credit ","ignored":true}})),json!({"ok":true,"data":{"outcome":"noCredit","warning":"Synthetic warning"}}));
+    let denied=client.call(json!({"op":"call","fn":"provider.consumeResetCredit","args":{"instanceId":"codex"}}));
+    assert_eq!(denied["error"],"write_not_authorized");assert_eq!(denied["requiredScope"],"providers:manage");
+    let recorded=fake.finish();assert_eq!(recorded.connections,2);
+    assert_eq!(wire(&recorded)[0],json!({"tag":"provider.consumeResetCredit","payload":{"sourceId":" source:raw ","accountId":"account","creditId":"credit"}}));
+}

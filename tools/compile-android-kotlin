@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Compile the canonical Kotlin adapter (T3Client.kt and the generated T3Api.kt) against android.jar.
 set -euo pipefail
+source "$(dirname -- "$0")/require-android-sandbox"
 cd -- "$(dirname -- "$0")/.."
 : "${JAVA_HOME:?Set JAVA_HOME to an installed JDK}"
 : "${ANDROID_JAR:?Set ANDROID_JAR to the installed SDK android.jar}"

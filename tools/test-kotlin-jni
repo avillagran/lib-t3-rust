@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Uses explicitly supplied cached Kotlin dependencies; no Gradle or downloads.
 set -euo pipefail
+source "$(dirname -- "$0")/require-android-sandbox"
 cd -- "$(dirname -- "$0")/.."
 : "${JAVA_HOME:?Set JAVA_HOME}"
 : "${KOTLIN_STDLIB:?Set KOTLIN_STDLIB}"

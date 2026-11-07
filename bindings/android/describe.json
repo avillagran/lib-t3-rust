@@ -4523,6 +4523,39 @@
     {
       "args": [
         {
+          "name": "instanceId",
+          "required": false,
+          "type": "slug"
+        },
+        {
+          "name": "sourceId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "accountId",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "name": "creditId",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "fn": "provider.consumeResetCredit",
+      "kind": "mutation",
+      "module": "provider",
+      "openArgs": true,
+      "replay": "never",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": "provider.consumeResetCredit",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
           "name": "projectId",
           "required": true,
           "type": "id"

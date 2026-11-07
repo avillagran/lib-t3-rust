@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Assemble an AAR from tested JNI binaries and the canonical Kotlin adapter.
 set -euo pipefail
+source "$(dirname -- "$0")/require-android-sandbox"
 cd -- "$(dirname -- "$0")/.."
 : "${JAVA_HOME:?Set JAVA_HOME to an installed JDK}"
 : "${ANDROID_JAR:?Set ANDROID_JAR to the installed SDK android.jar}"
@@ -15,7 +16,7 @@ version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
 output=${CARGO_TARGET_DIR:-target}
 mkdir -p "$output"
 stage=$(mktemp -d "$output/android-aar.XXXXXXXX")
-trap 'rm -rf -- "$stage"' EXIT
+printf 'Retained packaging stage: %s\n' "$stage" >&2
 mkdir -p "$stage/classes" "$stage/aar/jni" "$stage/aar/META-INF"
 tools/compile-android-kotlin "$stage/classes"
 "$JAVA_HOME/bin/jar" --create --file "$stage/aar/classes.jar" -C "$stage/classes" .

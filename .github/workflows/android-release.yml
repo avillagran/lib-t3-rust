@@ -9,6 +9,9 @@ on:
     paths:
       - .github/workflows/android-release.yml
       - .github/actions/android-toolchain/**
+      - .github/actions/android-sandbox/**
+      - tools/android-sandbox
+      - tools/require-android-sandbox
       - bindings/android/**
       - tools/build-android
       - tools/compile-android-kotlin
@@ -23,11 +26,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - run: rustup update stable && rustup default stable
-      - run: rustup target add aarch64-linux-android x86_64-linux-android armv7-linux-androideabi i686-linux-android
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/android-toolchain
         with:
           ndk: "true"
+      - uses: ./.github/actions/android-sandbox
       - id: version
         run: |
           version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
@@ -35,8 +39,8 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match Cargo.toml version $version" >&2; exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-      - run: tools/build-android arm64-v8a x86_64 armeabi-v7a x86
-      - run: tools/package-android
+      - run: android-sandbox --sh 'tools/build-android arm64-v8a x86_64 armeabi-v7a x86'
+      - run: android-sandbox --sh 'tools/package-android'
       - run: cd dist && sha256sum -c "lib-t3-rust-android-v${{ steps.version.outputs.version }}.aar.sha256"
       - uses: actions/upload-artifact@v4
         with:

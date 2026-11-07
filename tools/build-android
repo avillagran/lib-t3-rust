@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build native Android JNI libraries; never installs SDKs, targets or dependencies.
 set -euo pipefail
+source "$(dirname -- "$0")/require-android-sandbox"
 cd -- "$(dirname -- "$0")/.."
 : "${ANDROID_NDK_HOME:?Set ANDROID_NDK_HOME to the installed Android NDK}"
 api=${ANDROID_API_LEVEL:-24}

@@ -1,0 +1,5 @@
+# Sourced before compilation, JVM execution or output-directory creation.
+if [[ ${ANDROID_SANDBOX:-} != 1 || ! -f /run/.containerenv ]]; then
+  echo 'Android compilation and tests require android-sandbox (rootless Podman).' >&2
+  exit 2
+fi

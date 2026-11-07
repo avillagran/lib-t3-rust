@@ -1,0 +1,28 @@
+name: Rootless Android sandbox
+description: Build a disposable Rust toolchain image and expose the rootless android-sandbox command.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y podman uidmap passt fuse-overlayfs
+        test "$(podman --remote=false info --format '{{.Host.Security.Rootless}}')" = true
+        podman --remote=false build -t localhost/t3-protocol-android-sandbox:local -f .github/actions/android-sandbox/Containerfile .github/actions/android-sandbox
+        sdk="${ANDROID_HOME:-$RUNNER_TEMP/empty-android-sdk}"
+        mkdir -p "$sdk"
+        {
+          echo "ANDROID_SANDBOX_SDK=$sdk"
+          echo "ANDROID_SANDBOX_JAVA_HOME=/opt/java/openjdk"
+          echo "ANDROID_SANDBOX_HOME=$RUNNER_TEMP/t3-android-sandbox"
+          echo "ANDROID_SANDBOX_IMAGE=localhost/t3-protocol-android-sandbox:local"
+          echo "ANDROID_SANDBOX_RO=$RUNNER_TEMP/android-toolchain"
+          echo "CARGO_BUILD_JOBS=2"
+        } >> "$GITHUB_ENV"
+        mkdir -p "$RUNNER_TEMP/android-toolchain"
+        echo "$GITHUB_WORKSPACE/tools" >> "$GITHUB_PATH"
+    - shell: bash
+      env:
+        ANDROID_SANDBOX_NETWORK: pasta
+        CARGO_NET_OFFLINE: 'false'
+      run: tools/android-sandbox --sh 'cargo fetch --locked'
