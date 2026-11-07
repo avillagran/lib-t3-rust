@@ -1,0 +1,795 @@
+{
+  "revision": "83a3674ffd84ffb33de768210c806cb1ac53fd80",
+  "node": {
+    "node": "26.13.0",
+    "acorn": "8.19.0",
+    "ada": "4.0.0",
+    "amaro": "1.1.11",
+    "ares": "1.34.9",
+    "brotli": "1.2.0",
+    "cldr": "48.0",
+    "icu": "78.3",
+    "libffi": "3.8.0",
+    "lief": "1.0.0",
+    "llhttp": "9.4.3",
+    "merve": "1.2.2",
+    "modules": "147",
+    "napi": "10",
+    "nbytes": "0.1.4",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.70.0",
+    "nghttp3": "",
+    "ngtcp2": "",
+    "openssl": "3.5.9",
+    "simdjson": "5.0.3",
+    "simdutf": "7.7.0",
+    "sqlite": "3.54.0",
+    "tz": "2026e",
+    "undici": "8.12.2",
+    "unicode": "17.0",
+    "uv": "1.52.1",
+    "uvwasi": "0.0.23",
+    "v8": "14.6.202.34-node.40",
+    "zlib": "1.3.2.1-motley-456ae73",
+    "zstd": "1.5.7"
+  },
+  "locale": "en-US",
+  "cases": [
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechSilenceFiltering": true
+      },
+      "json": "{\"speechLanguage\":\"auto\",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[],\"speechRemoveFillerWords\":true,\"speechSilenceFiltering\":true}",
+      "framing": "8e0000007b227370656563684c616e6775616765223a226175746f222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c2273706565636853696c656e636546696c746572696e67223a747275657d00000000"
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "extra": "discarded"
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechSilenceFiltering": true
+      },
+      "json": "{\"speechLanguage\":\"auto\",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[],\"speechRemoveFillerWords\":true,\"speechSilenceFiltering\":true}",
+      "framing": "8e0000007b227370656563684c616e6775616765223a226175746f222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c2273706565636853696c656e636546696c746572696e67223a747275657d00000000"
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": null,
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": null,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": null,
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": []
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": null
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "a",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "en",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": "en",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechSilenceFiltering": true
+      },
+      "json": "{\"speechLanguage\":\"en\",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[],\"speechRemoveFillerWords\":true,\"speechSilenceFiltering\":true}",
+      "framing": "8c0000007b227370656563684c616e6775616765223a22656e222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c2273706565636853696c656e636546696c746572696e67223a747275657d00000000"
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "😀",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": "😀",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechSilenceFiltering": true
+      },
+      "json": "{\"speechLanguage\":\"😀\",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[],\"speechRemoveFillerWords\":true,\"speechSilenceFiltering\":true}",
+      "framing": "8e0000007b227370656563684c616e6775616765223a22f09f9880222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c2273706565636853696c656e636546696c746572696e67223a747275657d00000000"
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "😀😀😀😀😀😀😀😀",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": "😀😀😀😀😀😀😀😀",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechSilenceFiltering": true
+      },
+      "json": "{\"speechLanguage\":\"😀😀😀😀😀😀😀😀\",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[],\"speechRemoveFillerWords\":true,\"speechSilenceFiltering\":true}",
+      "framing": "aa0000007b227370656563684c616e6775616765223a22f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c2273706565636853696c656e636546696c746572696e67223a747275657d00000000"
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "😀😀😀😀😀😀😀😀😀",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": " x ",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": " x ",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechSilenceFiltering": true
+      },
+      "json": "{\"speechLanguage\":\" x \",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[],\"speechRemoveFillerWords\":true,\"speechSilenceFiltering\":true}",
+      "framing": "8d0000007b227370656563684c616e6775616765223a22207820222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c2273706565636853696c656e636546696c746572696e67223a747275657d00000000"
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechCorrectionWord": ""
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechCorrectionWord": "",
+        "speechSilenceFiltering": true
+      },
+      "json": "{\"speechLanguage\":\"auto\",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[],\"speechRemoveFillerWords\":true,\"speechCorrectionWord\":\"\",\"speechSilenceFiltering\":true}",
+      "framing": "a80000007b227370656563684c616e6775616765223a226175746f222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c22737065656368436f7272656374696f6e576f7264223a22222c2273706565636853696c656e636546696c746572696e67223a747275657d00000000"
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechCorrectionWord": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechCorrectionWord": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "speechSilenceFiltering": true
+      },
+      "json": "{\"speechLanguage\":\"auto\",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[],\"speechRemoveFillerWords\":true,\"speechCorrectionWord\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"speechSilenceFiltering\":true}",
+      "framing": "da0000007b227370656563684c616e6775616765223a226175746f222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c22737065656368436f7272656374696f6e576f7264223a227878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878222c2273706565636853696c656e636546696c746572696e67223a747275657d00000000"
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechCorrectionWord": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechCorrectionWord": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+        "speechSilenceFiltering": true
+      },
+      "json": "{\"speechLanguage\":\"auto\",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[],\"speechRemoveFillerWords\":true,\"speechCorrectionWord\":\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\",\"speechSilenceFiltering\":true}",
+      "framing": "0c0100007b227370656563684c616e6775616765223a226175746f222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c22737065656368436f7272656374696f6e576f7264223a22f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880f09f9880222c2273706565636853696c656e636546696c746572696e67223a747275657d00000000"
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechCorrectionWord": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechCorrectionWord": null
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "café",
+            "aliases": []
+          },
+          {
+            "term": "café",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "ΟΣ",
+            "aliases": []
+          },
+          {
+            "term": "ος",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "ΟΣ",
+            "aliases": []
+          },
+          {
+            "term": "οσ",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "ΟΣ",
+            "aliases": []
+          },
+          {
+            "term": "οσ",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true,
+        "speechSilenceFiltering": true
+      },
+      "json": "{\"speechLanguage\":\"auto\",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[{\"term\":\"ΟΣ\",\"aliases\":[]},{\"term\":\"οσ\",\"aliases\":[]}],\"speechRemoveFillerWords\":true,\"speechSilenceFiltering\":true}",
+      "framing": "c70000007b227370656563684c616e6775616765223a226175746f222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b7b227465726d223a22ce9fcea3222c22616c6961736573223a5b5d7d2c7b227465726d223a22cebfcf83222c22616c6961736573223a5b5d7d5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c2273706565636853696c656e636546696c746572696e67223a747275657d00000000"
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "İ",
+            "aliases": []
+          },
+          {
+            "term": "i̇",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "﻿",
+            "aliases": []
+          },
+          {
+            "term": "x",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "",
+            "aliases": []
+          },
+          {
+            "term": "x",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "",
+            "aliases": []
+          },
+          {
+            "term": "x",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true,
+        "speechSilenceFiltering": true
+      },
+      "json": "{\"speechLanguage\":\"auto\",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[{\"term\":\"\",\"aliases\":[]},{\"term\":\"x\",\"aliases\":[]}],\"speechRemoveFillerWords\":true,\"speechSilenceFiltering\":true}",
+      "framing": "c20000007b227370656563684c616e6775616765223a226175746f222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b7b227465726d223a22c285222c22616c6961736573223a5b5d7d2c7b227465726d223a2278222c22616c6961736573223a5b5d7d5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c2273706565636853696c656e636546696c746572696e67223a747275657d00000000"
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "Ａ",
+            "aliases": []
+          },
+          {
+            "term": "ａ",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "K",
+            "aliases": []
+          },
+          {
+            "term": "k",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "é",
+            "aliases": []
+          },
+          {
+            "term": "É",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "😀",
+            "aliases": []
+          },
+          {
+            "term": "😀",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "a",
+            "aliases": []
+          },
+          {
+            "term": " A ",
+            "aliases": []
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [
+          {
+            "term": "Project",
+            "aliases": [
+              "project"
+            ]
+          }
+        ],
+        "speechRemoveFillerWords": true
+      },
+      "valid": false
+    },
+    {
+      "family": "options",
+      "input": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechSilenceFiltering": false
+      },
+      "valid": true,
+      "encoded": {
+        "speechLanguage": "auto",
+        "speechTranslateToEnglish": false,
+        "speechCustomWords": [],
+        "speechRemoveFillerWords": true,
+        "speechSilenceFiltering": false
+      },
+      "json": "{\"speechLanguage\":\"auto\",\"speechTranslateToEnglish\":false,\"speechCustomWords\":[],\"speechRemoveFillerWords\":true,\"speechSilenceFiltering\":false}",
+      "framing": "8f0000007b227370656563684c616e6775616765223a226175746f222c227370656563685472616e736c617465546f456e676c697368223a66616c73652c22737065656368437573746f6d576f726473223a5b5d2c2273706565636852656d6f766546696c6c6572576f726473223a747275652c2273706565636853696c656e636546696c746572696e67223a66616c73657d00000000"
+    },
+    {
+      "family": "key",
+      "input": "  private-key  ",
+      "valid": true,
+      "encoded": "private-key"
+    },
+    {
+      "family": "key",
+      "input": "﻿private-key﻿",
+      "valid": true,
+      "encoded": "private-key"
+    },
+    {
+      "family": "key",
+      "input": "https://not-a-key",
+      "valid": false
+    },
+    {
+      "family": "key",
+      "input": "a+b://no",
+      "valid": false
+    },
+    {
+      "family": "key",
+      "input": "1://allowed",
+      "valid": true,
+      "encoded": "1://allowed"
+    },
+    {
+      "family": "key",
+      "input": "x y",
+      "valid": false
+    },
+    {
+      "family": "key",
+      "input": "é",
+      "valid": false
+    },
+    {
+      "family": "key",
+      "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "valid": true,
+      "encoded": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "family": "key",
+      "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "valid": false
+    },
+    {
+      "family": "key",
+      "input": "",
+      "valid": false
+    },
+    {
+      "family": "key",
+      "input": "x",
+      "valid": false
+    },
+    {
+      "family": "model",
+      "input": "author/model",
+      "valid": true,
+      "encoded": "author/model"
+    },
+    {
+      "family": "model",
+      "input": "OPENROUTER/model",
+      "valid": false
+    },
+    {
+      "family": "model",
+      "input": "a/m",
+      "valid": true,
+      "encoded": "a/m"
+    },
+    {
+      "family": "model",
+      "input": "author/model:nitro",
+      "valid": false
+    },
+    {
+      "family": "model",
+      "input": "author/m.o_d-el",
+      "valid": true,
+      "encoded": "author/m.o_d-el"
+    },
+    {
+      "family": "model",
+      "input": "é/model",
+      "valid": false
+    },
+    {
+      "family": "model",
+      "input": "a/b/c",
+      "valid": false
+    },
+    {
+      "family": "model",
+      "input": "a/.x",
+      "valid": false
+    },
+    {
+      "family": "model",
+      "input": "-a/m",
+      "valid": false
+    },
+    {
+      "family": "model",
+      "input": "a/m-",
+      "valid": true,
+      "encoded": "a/m-"
+    },
+    {
+      "family": "model",
+      "input": "a/b\n",
+      "valid": false
+    },
+    {
+      "family": "model",
+      "input": "a/b\r",
+      "valid": false
+    },
+    {
+      "family": "model",
+      "input": "a/b\r\n",
+      "valid": false
+    },
+    {
+      "family": "model",
+      "input": "a/b ",
+      "valid": false
+    },
+    {
+      "family": "model",
+      "input": "a/b ",
+      "valid": false
+    },
+    {
+      "family": "reference",
+      "input": {
+        "provider": " 1Password ",
+        "reference": " op://vault/item/password "
+      },
+      "valid": true,
+      "encoded": {
+        "provider": "1Password",
+        "reference": "op://vault/item/password"
+      }
+    },
+    {
+      "family": "reference",
+      "input": {
+        "provider": "a",
+        "reference": "x\ny"
+      },
+      "valid": false
+    },
+    {
+      "family": "reference",
+      "input": {
+        "provider": "a",
+        "reference": ""
+      },
+      "valid": true,
+      "encoded": {
+        "provider": "a",
+        "reference": ""
+      }
+    },
+    {
+      "family": "reference",
+      "input": {
+        "provider": "é",
+        "reference": "x"
+      },
+      "valid": false
+    }
+  ]
+}
