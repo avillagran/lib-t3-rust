@@ -1,0 +1,187 @@
+{
+  "revision": "4cb6945dc60ed03f567dc5daafd083e52308e82b",
+  "sources": {
+    "packages/client-runtime/src/state/deviceHubAccess.ts": "069e809471250207cee740dcc0867f58ebfa4457b6b604af5f78d8321f893285",
+    "packages/client-runtime/src/environment/endpoint.ts": "f87003b4275659d5be7f9647284cc4ba8f95350d2570c1591f9bf5469f9d04c9",
+    "packages/client-runtime/src/device/hubAccess.ts": "5b25b40da6da1f44dfb4fe85365de00a6cf59056a8e04a40163bc511f48eda4b"
+  },
+  "execution": "Complete native resolver, real Effect 4.1.2; only HTTP transport/service tags injected",
+  "cases": [
+    {
+      "authorization": "Cookie",
+      "failure": false,
+      "result": {
+        "ok": true,
+        "value": {
+          "httpBase": "http://127.0.0.1:1234/api/device-hub",
+          "wsBase": "ws://127.0.0.1:1234/api/device-hub",
+          "query": {},
+          "credentials": true
+        }
+      },
+      "requests": []
+    },
+    {
+      "authorization": "Cookie",
+      "failure": true,
+      "result": {
+        "ok": true,
+        "value": {
+          "httpBase": "http://127.0.0.1:1234/api/device-hub",
+          "wsBase": "ws://127.0.0.1:1234/api/device-hub",
+          "query": {},
+          "credentials": true
+        }
+      },
+      "requests": []
+    },
+    {
+      "authorization": "Bearer",
+      "failure": false,
+      "result": {
+        "ok": true,
+        "value": {
+          "httpBase": "http://127.0.0.1:1234/api/device-hub",
+          "wsBase": "ws://127.0.0.1:1234/api/device-hub",
+          "query": {
+            "wsTicket": "synthetic-media-ticket"
+          },
+          "credentials": false
+        }
+      },
+      "requests": [
+        {
+          "method": "POST",
+          "group": "auth",
+          "route": "/api/auth/websocket-ticket/media",
+          "timeoutMs": 8000,
+          "calls": [
+            {
+              "headers": {
+                "authorization": "Bearer synthetic"
+              },
+              "params": {
+                "use": "media"
+              }
+            }
+          ],
+          "response": {
+            "headers": {
+              "authorization": "Bearer synthetic"
+            },
+            "params": {
+              "use": "media"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "authorization": "Bearer",
+      "failure": true,
+      "result": {
+        "ok": false
+      },
+      "requests": [
+        {
+          "method": "POST",
+          "group": "auth",
+          "route": "/api/auth/websocket-ticket/media",
+          "timeoutMs": 8000,
+          "calls": [
+            {
+              "headers": {
+                "authorization": "Bearer synthetic"
+              },
+              "params": {
+                "use": "media"
+              }
+            }
+          ],
+          "response": {
+            "headers": {
+              "authorization": "Bearer synthetic"
+            },
+            "params": {
+              "use": "media"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "authorization": "DPoP",
+      "failure": false,
+      "result": {
+        "ok": true,
+        "value": {
+          "httpBase": "http://127.0.0.1:1234/api/device-hub",
+          "wsBase": "ws://127.0.0.1:1234/api/device-hub",
+          "query": {
+            "wsTicket": "synthetic-media-ticket"
+          },
+          "credentials": false
+        }
+      },
+      "requests": [
+        {
+          "method": "POST",
+          "group": "auth",
+          "route": "/api/auth/websocket-ticket/media",
+          "timeoutMs": 8000,
+          "calls": [
+            {
+              "headers": {
+                "authorization": "Bearer synthetic"
+              },
+              "params": {
+                "use": "media"
+              }
+            }
+          ],
+          "response": {
+            "headers": {
+              "authorization": "Bearer synthetic"
+            },
+            "params": {
+              "use": "media"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "authorization": "DPoP",
+      "failure": true,
+      "result": {
+        "ok": false
+      },
+      "requests": [
+        {
+          "method": "POST",
+          "group": "auth",
+          "route": "/api/auth/websocket-ticket/media",
+          "timeoutMs": 8000,
+          "calls": [
+            {
+              "headers": {
+                "authorization": "Bearer synthetic"
+              },
+              "params": {
+                "use": "media"
+              }
+            }
+          ],
+          "response": {
+            "headers": {
+              "authorization": "Bearer synthetic"
+            },
+            "params": {
+              "use": "media"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
