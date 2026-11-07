@@ -12,7 +12,9 @@ pub use controls::{
     Acceleration, ControlFailure, ControlResult, LocalModelAction, PostProcessRequest,
     UnloadTimeout,
 };
-pub use live::{LiveEvent, LiveFailure, LiveText, SpeechCancellation, SpeechStream};
+pub use live::{
+    AsyncSpeechStream, LiveEvent, LiveFailure, LiveText, SpeechCancellation, SpeechStream,
+};
 pub use request::{CancellableSpeech, RequestCancellation, RequestFailure, RequestResult};
 
 pub const SAMPLE_RATE: usize = 16_000;
