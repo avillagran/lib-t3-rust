@@ -1,5 +1,5 @@
 // Generated from bindings/android/describe.json (t3code@3f9448747) by tests/api_describe.rs.
-// Do not edit: run `T3_UPDATE_FIXTURES=1 cargo test --test api_describe`.
+// Do not edit: run `android-sandbox --sh 'T3_UPDATE_FIXTURES=1 cargo test --test api_describe'`.
 package dev.avillagran.t3
 
 import org.json.JSONArray
@@ -279,6 +279,8 @@ class T3Api(client: T3Client) {
         /** `provider.install.remove` · mutation · replay set · scope providers:manage · 20000 ms */
         fun installRemove(instanceId: String): Any? =
             client.call("provider.install.remove", JSONObject().put("instanceId", instanceId))
+        /** `provider.consumeResetCredit` · mutation · replay never · scope providers:manage · 20000 ms */
+        fun consumeResetCredit(args: JSONObject): Any? = client.call("provider.consumeResetCredit", args)
         /** `provider.install.subscribe` · stream · read · replay free · scope orchestration:read */
         fun installSubscribe(instanceId: String): T3Subscription =
             client.subscribeFn("provider.install.subscribe", JSONObject().put("instanceId", instanceId))

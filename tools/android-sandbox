@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Keep Android builds and tests inside a rootless, privately scoped Podman owner.
+set -euo pipefail
+umask 077
+die() { echo "android-sandbox: $*" >&2; exit 1; }
+[[ $(podman --remote=false info --format '{{.Host.Security.Rootless}}') == true ]] || die 'rootless Podman is required'
+root=$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)
+root=$(realpath -e -- "$root")
+case "$root" in /|/home|/root|/usr|/etc|/var|/tmp|/var/tmp|"$HOME") die "refusing to mount $root as the project";; esac
+sdk=${ANDROID_SANDBOX_SDK:-${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}}
+jdk=${ANDROID_SANDBOX_JDK:-}
+state=${ANDROID_SANDBOX_HOME:?Set ANDROID_SANDBOX_HOME to a private build-cache directory}
+state=$(realpath -m -- "$state")
+case "$state" in /|/home|/root|/usr|/etc|/var|/tmp|/var/tmp|"$HOME"|"$root") die "refusing broad cache root: $state";; esac
+image=${ANDROID_SANDBOX_IMAGE:-localhost/t3-protocol-android-sandbox:local}
+[[ -n $sdk && -d $sdk ]] || die 'set ANDROID_SANDBOX_SDK to an installed SDK'
+jdk_args=()
+if [[ -n $jdk ]]; then
+ [[ -x $jdk/bin/java ]] || die 'ANDROID_SANDBOX_JDK is not an installed JDK'
+ jdk_args=(-v "$jdk:/opt/jdk:ro")
+ java_home=/opt/jdk
+else
+ java_home=${ANDROID_SANDBOX_JAVA_HOME:-/opt/java/openjdk}
+ [[ $java_home == /* ]] || die 'the image JDK path must be absolute'
+fi
+[[ ${1:-} == --sh ]] || die "usage: android-sandbox --sh '<build or test command>'"
+shift
+[[ $# -gt 0 ]] || die 'missing sandbox command'
+mkdir -p "$state/home" "$state/cargo" "$state/gradle" "$state/target"
+args=(run --rm --http-proxy=false --userns=keep-id --user "$(id -u):$(id -g)" --read-only
+ --tmpfs /tmp:rw,exec,size=4g,mode=1777 --tmpfs /run:rw
+ --cap-drop=ALL --security-opt=no-new-privileges --pids-limit=4096
+ --memory="${ANDROID_SANDBOX_MEMORY:-12g}" --network="${ANDROID_SANDBOX_NETWORK:-none}"
+ -v "$root:$root:rw" -v "$sdk:$sdk:ro" "${jdk_args[@]}"
+ -v "$state/home:/sandbox/home:rw" -v "$state/cargo:/sandbox/cargo:rw" -v "$state/gradle:/sandbox/gradle:rw" -v "$state/target:/sandbox/target:rw"
+ -e ANDROID_SANDBOX=1 -e HOME=/sandbox/home -e CARGO_HOME=/sandbox/cargo -e CARGO_TARGET_DIR=/sandbox/target
+ -e GRADLE_USER_HOME=/sandbox/gradle -e TMPDIR=/tmp -e RUSTUP_HOME=/usr/local/rustup -e RUSTUP_AUTO_INSTALL=0
+ -e "CARGO_NET_OFFLINE=${CARGO_NET_OFFLINE:-true}" -e "CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-2}"
+ -e "ANDROID_HOME=$sdk" -e "ANDROID_SDK_ROOT=$sdk" -e "JAVA_HOME=$java_home"
+ -e "PATH=/usr/local/cargo/bin:$java_home/bin:/usr/local/bin:/usr/bin:/bin" -w "$PWD")
+IFS=: read -ra extra <<<"${ANDROID_SANDBOX_RO:-}"
+for path in "${extra[@]}"; do
+ [[ -z $path ]] && continue
+ [[ -e $path ]] || die "missing read-only input: $path"
+ args+=(-v "$path:$path:ro")
+done
+for key in KOTLIN_STDLIB KOTLIN_COMPILER_CLASSPATH JSON_JAR ANDROID_JAR ANDROID_NDK_HOME ANDROID_API_LEVEL; do
+ [[ -v $key ]] && args+=(-e "$key=${!key}")
+done
+exec podman --remote=false "${args[@]}" "$image" bash -c "$*"

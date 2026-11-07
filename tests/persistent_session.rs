@@ -407,3 +407,82 @@ fn lifecycle_observer_does_not_keep_the_last_owner_alive() {
     assert_eq!(closed.wait().unwrap(), None);
     server.join().unwrap();
 }
+
+#[test]
+fn detached_cancellation_interrupts_only_its_waiter_and_does_not_retain_capacity() {
+    let (ready_tx, ready_rx) = std::sync::mpsc::sync_channel(0);
+    let (c, server) = peer(move |mut ws| {
+        let first = read(&mut ws);
+        let second = read(&mut ws);
+        assert_eq!(first["tag"], "filesystem.getMetadata");
+        assert_eq!(second["tag"], "server.getConfig");
+        ready_tx.send(()).unwrap();
+        let interrupt = read(&mut ws);
+        assert_eq!(
+            interrupt,
+            json!({"_tag":"Interrupt","requestId":first["id"]})
+        );
+        reply(&mut ws, &second["id"], json!({"unrelated":true}));
+        let successor = read(&mut ws);
+        assert_eq!(successor["_tag"], "Request");
+        reply(&mut ws, &successor["id"], json!({"successor":true}));
+        let _ = ws.read();
+    });
+    let s = c
+        .rpc_session(SessionOptions {
+            max_in_flight: 2,
+            ..Default::default()
+        })
+        .unwrap();
+    let identity = s.id().to_owned();
+    let pending = s
+        .start(
+            "filesystem.getMetadata",
+            json!({"paths":["/synthetic"]}),
+            Duration::from_secs(2),
+        )
+        .unwrap();
+    let cancellation = pending.cancellation();
+    drop(cancellation.clone());
+    let waiter = thread::spawn(move || pending.wait());
+    let unrelated = s
+        .start("server.getConfig", json!({}), Duration::from_secs(2))
+        .unwrap();
+    ready_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+    cancellation.cancel();
+    assert_eq!(
+        waiter.join().unwrap().unwrap_err(),
+        "rpc_cancelled_outcome_unknown"
+    );
+    assert_eq!(unrelated.wait().unwrap(), json!({"unrelated":true}));
+    cancellation.cancel();
+    assert_eq!(
+        s.rpc("server.getConfig", json!({}), Duration::from_secs(2))
+            .unwrap(),
+        json!({"successor":true})
+    );
+    assert_eq!(s.id(), identity);
+    s.close();
+    server.join().unwrap();
+}
+
+#[test]
+fn detached_cancellation_does_not_keep_the_last_session_owner_alive() {
+    let (c, server) = peer(|mut ws| {
+        let _ = ws.read();
+    });
+    let s = c.rpc_session(Default::default()).unwrap();
+    let observer = s.closed();
+    let pending = s
+        .start("filesystem.getMetadata", json!({}), Duration::from_secs(2))
+        .unwrap();
+    let cancellation = pending.cancellation();
+    drop(s);
+    assert!(matches!(
+        pending.wait().as_ref().map_err(String::as_str),
+        Err("rpc_session_closed" | "rpc_outcome_unknown")
+    ));
+    let _ = observer.wait().unwrap();
+    cancellation.cancel();
+    server.join().unwrap();
+}

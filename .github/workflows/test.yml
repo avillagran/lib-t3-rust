@@ -10,17 +10,21 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-      - run: rustup update stable && rustup default stable
-      - run: cargo test --locked
-      - run: tools/test-c-abi
-      - run: JAVA_HOME=$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")") tools/test-jni
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/android-sandbox
+      - run: android-sandbox --sh 'python3 tools/test_android_sandbox.py'
+      - run: android-sandbox --sh 'cargo test --locked'
+      - run: android-sandbox --sh 'tools/test-c-abi'
+      - run: android-sandbox --sh 'tools/test-jni'
   kotlin:
-    # The Kotlin adapter as shipped (against android.jar) and through the host JNI library.
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - run: rustup update stable && rustup default stable
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/android-toolchain
-      - run: tools/compile-android-kotlin "$RUNNER_TEMP/android-classes"
-      - run: tools/test-jni
-      - run: tools/test-kotlin-jni
+      - uses: ./.github/actions/android-sandbox
+      - run: android-sandbox --sh 'tools/compile-android-kotlin "$CARGO_TARGET_DIR/android-classes"'
+      - run: android-sandbox --sh 'tools/test-jni'
+      - run: android-sandbox --sh 'tools/test-kotlin-jni'

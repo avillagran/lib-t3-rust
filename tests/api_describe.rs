@@ -1,6 +1,6 @@
 //! The saved `describe` (`bindings/android/describe.json`) and the Kotlin
 //! wrappers generated from it (`bindings/android/kotlin/.../T3Api.kt`, shipped in
-//! the AAR) must match the registry, domain functions included. Regenerate both with `T3_UPDATE_FIXTURES=1 cargo test --test api_describe`.
+//! the AAR) must match the registry, domain functions included. Regenerate both inside `android-sandbox --sh 'T3_UPDATE_FIXTURES=1 cargo test --test api_describe'`.
 use serde_json::Value;
 use std::{fmt::Write, fs, path::Path};
 
@@ -13,7 +13,7 @@ fn check(path: &str, expected: &str) {
         fs::write(&path, expected).unwrap();
     }
     let saved = fs::read_to_string(&path).unwrap_or_default();
-    assert!(saved == expected, "{} is stale: run T3_UPDATE_FIXTURES=1 cargo test --test api_describe", path.display());
+    assert!(saved == expected, "{} is stale: run android-sandbox --sh 'T3_UPDATE_FIXTURES=1 cargo test --test api_describe'", path.display());
 }
 fn kotlin_type(arg: &Value) -> &'static str {
     match arg["type"].as_str().unwrap() {
@@ -56,7 +56,7 @@ fn kotlin(describe: &Value) -> String {
     modules.dedup();
     let mut out = String::new();
     writeln!(out, "// Generated from bindings/android/describe.json ({}) by tests/api_describe.rs.", describe["contract"].as_str().unwrap()).unwrap();
-    writeln!(out, "// Do not edit: run `T3_UPDATE_FIXTURES=1 cargo test --test api_describe`.").unwrap();
+    writeln!(out, "// Do not edit: run `android-sandbox --sh 'T3_UPDATE_FIXTURES=1 cargo test --test api_describe'`.").unwrap();
     let domain = describe["domain"].as_array().unwrap();
     let mut domain_modules = domain.iter().map(|f| f["module"].as_str().unwrap()).collect::<Vec<_>>();
     domain_modules.sort();

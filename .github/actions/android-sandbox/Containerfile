@@ -1,0 +1,5 @@
+FROM docker.io/library/eclipse-temurin:21-jdk-jammy AS jdk
+FROM docker.io/library/rust:1-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends cmake python3 pkg-config libssl-dev zip unzip
+RUN rustup target add aarch64-linux-android x86_64-linux-android armv7-linux-androideabi i686-linux-android
+COPY --from=jdk /opt/java/openjdk /opt/java/openjdk
