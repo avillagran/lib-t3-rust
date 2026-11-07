@@ -7,6 +7,13 @@ two acknowledged frames in flight, the 19,200,000-byte outstanding bound, equal
 revisions, nullable updates, finish ordering and the native response watchdog
 all come from one implementation. The blocking API remains available.
 
+`prepare_speech_stream` separates ticket acquisition from its one-shot
+`SpeechStreamOpening::connect`. The host can store that opaque capability and
+drive connection concurrently with microphone preparation, matching the original
+browser platform's order. The UI never receives the ticket URL. Connect checks
+current consent and cancellation again before touching the network, consumes
+the capability once and starts the socket-opening watchdog at that point.
+
 The media ticket uses the same admitted origin and credential, with no proxy,
 redirect, retry or fallback. The WebSocket carries the private media ticket and
 no Authorization header. DNS/TCP/TLS/WebSocket establishment is an owned future;
@@ -40,7 +47,7 @@ background polling thread or renderer network client is created by this API.
 
 ## Physical verification
 
-Twelve private loopback cases execute the actual SDK and sockets:
+Fifteen private loopback cases execute the actual SDK and sockets:
 
 - Media ticket authority, upgrade path, missing WebSocket Authorization header,
   two-frame acknowledgment window, equal revisions and final text.
@@ -53,6 +60,8 @@ Twelve private loopback cases execute the actual SDK and sockets:
 - Invalid binary server events and physical retirement.
 - A maximum recording held behind the original acknowledgment window, cancelled
   before its remaining queued audio is transmitted.
+- Deferred one-shot connection after ticket preparation, with no premature
+  WebSocket connection; cancellation and revocation before connect refuse it.
 
 The final checkpoint also passes nine buffered-request cases, four existing
 blocking-stream cases, seven existing HTTP/control cases and six speech unit
@@ -62,7 +71,7 @@ baseline warning fingerprints with no additions. Every build/runtime check uses
 official rootless android-sandbox with private state and network disabled.
 Only dependency acquisition enables private container networking.
 
-The retained `sdk-async-stream-20261107/check-v4.log` and proof fence the final
+The retained `sdk-async-stream-20261107/check-v5.log` and opening proof fence the final
 sources. These are synthetic loopback peers; no provider, model, microphone or
 physical TLS endpoint is accepted by this result. Full x86/ARM/Kotlin CI and
 the desktop capture/controller consumer are separate acceptance steps. There

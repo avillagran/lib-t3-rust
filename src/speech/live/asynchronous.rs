@@ -18,6 +18,15 @@ pub struct AsyncSpeechStream {
     can_send: Arc<dyn Fn() -> bool + Send + Sync>,
     started: Instant,
 }
+/// One admitted media ticket, kept opaque and consumed by exactly one connect.
+/// Hosts can drive connection and capture preparation concurrently, as in the
+/// original browser platform, without exposing a URL or credential to the UI.
+pub struct SpeechStreamOpening {
+    url: reqwest::Url,
+    options: TranscriptionOptions,
+    token: RequestCancellation,
+    can_send: Arc<dyn Fn() -> bool + Send + Sync>,
+}
 struct RetireOperation {
     cancellation: SpeechCancellation,
     armed: bool,
@@ -54,10 +63,38 @@ impl CancellableSpeech {
         token: &RequestCancellation,
         can_send: Arc<dyn Fn() -> bool + Send + Sync>,
     ) -> LiveResult<AsyncSpeechStream> {
+        self.prepare_speech_stream(options, token, can_send)
+            .await?
+            .connect()
+            .await
+    }
+    pub async fn prepare_speech_stream(
+        &self,
+        options: &TranscriptionOptions,
+        token: &RequestCancellation,
+        can_send: Arc<dyn Fn() -> bool + Send + Sync>,
+    ) -> LiveResult<SpeechStreamOpening> {
         let url = self
             .stream_url(token, &|| can_send())
             .await
             .map_err(request_failure)?;
+        Ok(SpeechStreamOpening {
+            url,
+            options: options.clone(),
+            token: token.clone(),
+            can_send,
+        })
+    }
+}
+impl SpeechStreamOpening {
+    pub async fn connect(self) -> LiveResult<AsyncSpeechStream> {
+        let Self {
+            url,
+            options,
+            token,
+            can_send,
+        } = self;
+        crate::speech::request::admitted(&token, &|| can_send()).map_err(request_failure)?;
         let started = Instant::now();
         let config = tungstenite::protocol::WebSocketConfig::default()
             .max_message_size(Some(8 * 1024 * 1024))
@@ -89,7 +126,7 @@ impl CancellableSpeech {
         let registration = token.register(Arc::new(move || interrupt.cancel()));
         let mut stream = AsyncSpeechStream {
             socket,
-            protocol: Protocol::new(options, 0),
+            protocol: Protocol::new(&options, 0),
             cancellation,
             token: token.clone(),
             _registration: registration,

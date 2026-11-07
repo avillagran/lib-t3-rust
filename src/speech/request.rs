@@ -188,7 +188,10 @@ pub type RequestResult<T> = std::result::Result<T, RequestFailure>;
 fn transport(value: &str) -> RequestFailure {
     RequestFailure::Transport(value.into())
 }
-fn admitted(cancel: &RequestCancellation, can_send: &impl Fn() -> bool) -> RequestResult<()> {
+pub(crate) fn admitted(
+    cancel: &RequestCancellation,
+    can_send: &impl Fn() -> bool,
+) -> RequestResult<()> {
     if cancel.is_cancelled() {
         Err(RequestFailure::Cancelled)
     } else {

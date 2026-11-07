@@ -14,6 +14,7 @@ pub use controls::{
 };
 pub use live::{
     AsyncSpeechStream, LiveEvent, LiveFailure, LiveText, SpeechCancellation, SpeechStream,
+    SpeechStreamOpening,
 };
 pub use request::{CancellableSpeech, RequestCancellation, RequestFailure, RequestResult};
 

@@ -108,6 +108,9 @@ impl tungstenite::handshake::server::Callback for Upgrade {
 }
 fn socket(listener: &TcpListener) -> tungstenite::WebSocket<TcpStream> {
     ticket(listener);
+    upgrade(listener)
+}
+fn upgrade(listener: &TcpListener) -> tungstenite::WebSocket<TcpStream> {
     let mut socket = tungstenite::accept_hdr(accept(listener), Upgrade).unwrap();
     let message = socket.read().unwrap();
     let start: Value = serde_json::from_str(message.to_text().unwrap()).unwrap();
@@ -553,4 +556,81 @@ fn shared_token_closes_multiple_idle_streams_after_a_registered_slot_is_reused()
         rt.block_on(third.feed(&[0.125])),
         Err(LiveFailure::Cancelled)
     ));
+}
+#[test]
+fn prepared_media_ticket_defers_the_actual_upgrade_until_its_owned_connect() {
+    let (probe, probing) = mpsc::channel();
+    let (checked, observed) = mpsc::channel();
+    let (client, server) = fixture(move |listener| {
+        ticket(listener);
+        probing.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert!(
+            listener.accept().is_err(),
+            "Preparing a ticket must not open a WebSocket"
+        );
+        checked.send(()).unwrap();
+        let mut socket = upgrade(listener);
+        send(&mut socket, json!({"type":"ready"}));
+        closed(socket.get_mut());
+    });
+    runtime().block_on(async {
+        let opening = client
+            .prepare_speech_stream(
+                &TranscriptionOptions::default(),
+                &RequestCancellation::default(),
+                Arc::new(|| true),
+            )
+            .await
+            .unwrap();
+        probe.send(()).unwrap();
+        tokio::task::spawn_blocking(move || observed.recv_timeout(Duration::from_secs(5)).unwrap())
+            .await
+            .unwrap();
+        let mut stream = opening.connect().await.unwrap();
+        assert!(matches!(
+            stream.next_event().await.unwrap(),
+            LiveEvent::Ready
+        ));
+        drop(stream);
+        tokio::task::spawn_blocking(move || server.join().unwrap())
+            .await
+            .unwrap();
+    });
+}
+fn denied_prepared_connect(cancelled: bool) {
+    let (done, finished) = mpsc::channel();
+    let (client, server) = fixture(move |listener| {
+        ticket(listener);
+        finished.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert!(listener.accept().is_err());
+    });
+    let token = RequestCancellation::default();
+    let gate = Arc::new(AtomicBool::new(true));
+    let check = gate.clone();
+    let rt = runtime();
+    let opening = rt
+        .block_on(client.prepare_speech_stream(
+            &TranscriptionOptions::default(),
+            &token,
+            Arc::new(move || check.load(Ordering::Acquire)),
+        ))
+        .unwrap();
+    let expected = if cancelled {
+        token.cancel();
+        LiveFailure::Cancelled
+    } else {
+        gate.store(false, Ordering::Release);
+        LiveFailure::ConsentRevoked
+    };
+    assert!(matches!(rt.block_on(opening.connect()),Err(failure)if failure==expected));
+    done.send(()).unwrap();
+    server.join().unwrap();
+}
+#[test]
+fn cancelled_prepared_ticket_cannot_open_a_socket() {
+    denied_prepared_connect(true)
+}
+#[test]
+fn revoked_prepared_ticket_cannot_open_a_socket() {
+    denied_prepared_connect(false)
 }
