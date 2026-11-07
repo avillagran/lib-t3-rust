@@ -1,0 +1,127 @@
+{
+  "revision": "83a3674ffd84ffb33de768210c806cb1ac53fd80",
+  "sourceFiles": [
+    [
+      "packages/client-runtime/src/voice-input/environment.ts",
+      "982356dec48a33eb4ffbdf64b114dd949233e97c8eb0c8613c3ddd3b9854ce29"
+    ],
+    [
+      "packages/contracts/src/environmentHttp.ts",
+      "1f9414c5c85a9d27a8dcf3ff0cffd20f60152bc623d0f3865df2dbcde67f7ec6"
+    ]
+  ],
+  "cases": [
+    {
+      "helper": "getEnvironmentSpeechStatus",
+      "method": "GET",
+      "path": "/api/voice/status",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    },
+    {
+      "helper": "getCloudSpeechKeys",
+      "method": "GET",
+      "path": "/api/voice/cloud/keys",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    },
+    {
+      "helper": "getCloudSpeechModels",
+      "method": "GET",
+      "path": "/api/voice/cloud/openrouter/models",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    },
+    {
+      "helper": "setCloudSpeechKey",
+      "method": "POST",
+      "path": "/api/voice/cloud/openai/key",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    },
+    {
+      "helper": "transcribeCloudPcm",
+      "method": "POST",
+      "path": "/api/voice/cloud/openai/transcribe",
+      "timeoutMs": 130000,
+      "redirect": "error"
+    },
+    {
+      "helper": "getEnvironmentSpeechStreamUrl",
+      "method": "POST",
+      "path": "/api/auth/websocket-ticket/media",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    },
+    {
+      "helper": "getEnvironmentSpeechModels",
+      "method": "GET",
+      "path": "/api/voice/models",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    },
+    {
+      "helper": "getEnvironmentSpeechModels",
+      "method": "GET",
+      "path": "/api/voice/models?benchmarks=1",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    },
+    {
+      "helper": "downloadEnvironmentSpeechModel",
+      "method": "POST",
+      "path": "/api/voice/models/download",
+      "timeoutMs": 1800000,
+      "redirect": "error"
+    },
+    {
+      "helper": "selectEnvironmentSpeechModel",
+      "method": "POST",
+      "path": "/api/voice/models/select",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    },
+    {
+      "helper": "cancelEnvironmentSpeechModelDownload",
+      "method": "POST",
+      "path": "/api/voice/models/cancel",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    },
+    {
+      "helper": "transcribeEnvironmentPcm",
+      "method": "POST",
+      "path": "/api/voice/transcribe",
+      "timeoutMs": 1800000,
+      "redirect": "error"
+    },
+    {
+      "helper": "postProcessEnvironmentTranscript",
+      "method": "POST",
+      "path": "/api/voice/post-process",
+      "timeoutMs": 1800000,
+      "redirect": "error"
+    },
+    {
+      "helper": "updateEnvironmentSpeechAcceleration",
+      "method": "POST",
+      "path": "/api/voice/acceleration",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    },
+    {
+      "helper": "updateEnvironmentSpeechModelUnloadTimeout",
+      "method": "POST",
+      "path": "/api/voice/model-unload-timeout",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    },
+    {
+      "helper": "removeEnvironmentSpeechModel",
+      "method": "POST",
+      "path": "/api/voice/models/remove",
+      "timeoutMs": 30000,
+      "redirect": "error"
+    }
+  ]
+}

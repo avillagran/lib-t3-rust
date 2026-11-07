@@ -47,6 +47,11 @@ concurrent calls on one socket with bounded requests and explicit lifecycle owne
 or Android content data through the same RPC grant and signed POST protocol.
 The [reset-credit command](docs/RESET_CREDIT.md) preserves native input selection
 and sends confirmed redemptions without automatic replay.
+The [buffered speech API](docs/SPEECH.md) provides local/cloud PCM transcription,
+cloud key/catalog access, local model controls and transcript postprocessing over
+the authenticated native HTTP routes. The host owns recording and per-operation
+consent; [speech controls](docs/SPEECH-CONTROLS-4314.md) document deadlines,
+authority and the remaining streaming/C/JNI entry-point work.
 
 The core signs ES256 DPoP proofs with fresh jti, htm, normalized htu, iat and ath;
 checks the environment descriptor before exchanging its bootstrap credential;

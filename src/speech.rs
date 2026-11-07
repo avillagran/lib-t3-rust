@@ -5,9 +5,26 @@ use serde_json::{json, Value};
 use std::{collections::HashSet, time::Duration};
 use unicode_normalization::UnicodeNormalization;
 
+mod controls;
+pub use controls::{
+    Acceleration, ControlFailure, ControlResult, LocalModelAction, PostProcessRequest,
+    UnloadTimeout,
+};
+
 pub const SAMPLE_RATE: usize = 16_000;
 pub const MAX_PCM_BYTES: usize = SAMPLE_RATE * 4 * 5 * 60;
 pub const MAX_OPTIONS_BYTES: usize = 128_000;
+fn request_timeout(path: &str) -> Duration {
+    let path = path.split('?').next().unwrap_or(path);
+    if path.starts_with("/api/voice/cloud/") && path.ends_with("/transcribe") {
+        return Duration::from_secs(130);
+    }
+    let inference = matches!(
+        path,
+        "/api/voice/models/download" | "/api/voice/transcribe" | "/api/voice/post-process"
+    );
+    Duration::from_secs(if inference { 30 * 60 } else { 30 })
+}
 fn len(s: &str) -> usize {
     s.encode_utf16().count()
 }
@@ -264,7 +281,7 @@ fn speech_json(mut response: reqwest::blocking::Response) -> SpeechResult<Value>
 }
 impl Connection {
     /// Independent no-proxy/no-redirect HTTP client, same admitted origin and
-    /// credential. A request has a120s total deadline, bounded JSON and no retry.
+    /// credential. Native client deadlines, bounded JSON and no retry apply.
     fn speech_request(
         &self,
         method: &str,
@@ -275,7 +292,7 @@ impl Connection {
         let client = reqwest::blocking::Client::builder()
             .no_proxy()
             .redirect(reqwest::redirect::Policy::none())
-            .timeout(Duration::from_secs(120))
+            .timeout(request_timeout(path))
             .build()
             .map_err(|_| "local_error")?;
         let url = endpoint(&self.base, path)?;
