@@ -69,3 +69,16 @@ fn thread_title_instructions_are_trimmed_bounded_text(){
  assert_eq!(settings::patch(&json!({"key":"threadTitleInstructions","value":"  Lead with the subject  "}),None).unwrap(),json!({"patch":{"threadTitleInstructions":"Lead with the subject"}}));
  for bad in [json!("x".repeat(16385)),json!("bad\0value"),json!(3)]{assert!(settings::patch(&json!({"key":"threadTitleInstructions","value":bad}),None).is_err())}
 }
+
+#[test]
+fn fallback_model_is_nullable_registry_checked_and_does_not_export_credentials() {
+    let selection=json!({"instanceId":"work","model":"m","options":[{"id":"effort","value":"high"}]});
+    let view=settings::snapshot(&json!({"fallbackModelSelection":{"instanceId":"work","model":"m","options":[{"id":"effort","value":"high"}],"credential":"PRIVATE"}}));
+    let field=view["fields"].as_array().unwrap().iter().find(|field|field["key"]=="fallbackModelSelection").unwrap();
+    assert_eq!(field["value"],selection);assert_eq!(field["section"],"general");assert_eq!(field["resetValue"],Value::Null);assert!(!view.to_string().contains("PRIVATE"));
+    assert_eq!(settings::patch(&json!({"key":"fallbackModelSelection","value":selection}),Some(&config())).unwrap(),json!({"patch":{"fallbackModelSelection":selection}}));
+    assert_eq!(settings::patch(&json!({"key":"fallbackModelSelection","value":null}),None).unwrap(),json!({"patch":{"fallbackModelSelection":null}}));
+    let mut unavailable=config();unavailable["providers"][0]["status"]=json!("error");assert!(settings::patch(&json!({"key":"fallbackModelSelection","value":selection}),Some(&unavailable)).is_err());
+    assert!(settings::patch(&json!({"key":"fallbackModelSelection","value":{"instanceId":"missing","model":"m"}}),Some(&config())).is_err());
+    assert!(settings::snapshot(&json!({}))["fields"].as_array().unwrap().iter().all(|field|field["key"]!="fallbackModelSelection"));
+}
