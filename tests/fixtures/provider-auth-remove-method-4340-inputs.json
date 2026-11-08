@@ -1,0 +1,209 @@
+{
+  "revision": "a9e709f15f825cacac1b6d665fa1920c328d68b7",
+  "cases": [
+    {
+      "name": "canonical-extra-stripped",
+      "input": {
+        "instanceId": " \ufeffcodex_2-b\u00a0",
+        "methodId": " \ufeffchatgpt-profile:oaiapp_saved\u00a0",
+        "future": {
+          "canRemove": true
+        }
+      }
+    },
+    {
+      "name": "internal-nul",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "chatgpt-profile:oaiapp_a\u0000b"
+      }
+    },
+    {
+      "name": "internal-newline",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "chatgpt-profile:oaiapp_a\nb"
+      }
+    },
+    {
+      "name": "utf16-exact128",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+      }
+    },
+    {
+      "name": "utf16-over128",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+      }
+    },
+    {
+      "name": "ascii-exact128",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+      }
+    },
+    {
+      "name": "ascii-over128",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+      }
+    },
+    {
+      "name": "nel-not-js-space",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "\u0085"
+      }
+    },
+    {
+      "name": "slug-exact64",
+      "input": {
+        "instanceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "methodId": "m"
+      }
+    },
+    {
+      "name": "slug-over64",
+      "input": {
+        "instanceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "methodId": "m"
+      }
+    },
+    {
+      "name": "slug-leading-number",
+      "input": {
+        "instanceId": "1codex",
+        "methodId": "m"
+      }
+    },
+    {
+      "name": "slug-dot",
+      "input": {
+        "instanceId": "codex.work",
+        "methodId": "m"
+      }
+    },
+    {
+      "name": "slug-non-ascii",
+      "input": {
+        "instanceId": "\u00e9",
+        "methodId": "m"
+      }
+    },
+    {
+      "name": "blank-js-space",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "\ufeff\u00a0\n"
+      }
+    },
+    {
+      "name": "empty",
+      "input": {
+        "instanceId": "codex",
+        "methodId": ""
+      }
+    },
+    {
+      "name": "null-method",
+      "input": {
+        "instanceId": "codex",
+        "methodId": null
+      }
+    },
+    {
+      "name": "number-method",
+      "input": {
+        "instanceId": "codex",
+        "methodId": 42
+      }
+    },
+    {
+      "name": "missing-method",
+      "input": {
+        "instanceId": "codex"
+      }
+    },
+    {
+      "name": "missing-instance",
+      "input": {
+        "methodId": "m"
+      }
+    },
+    {
+      "name": "null-input",
+      "input": null
+    },
+    {
+      "name": "array-input",
+      "input": []
+    },
+    {
+      "name": "isolated-high-surrogate",
+      "rawInput": "{\"instanceId\":\"codex\",\"methodId\":\"\\ud800\"}",
+      "rustJsonRepresentable": false,
+      "qualification": "Original JavaScript string case. Generic Rust serde_json ingress rejects isolated UTF-16 surrogates before the method decoder."
+    },
+    {
+      "name": "isolated-low-surrogate",
+      "rawInput": "{\"instanceId\":\"codex\",\"methodId\":\"\\udc00\"}",
+      "rustJsonRepresentable": false,
+      "qualification": "Original JavaScript string case. Generic Rust serde_json ingress rejects isolated UTF-16 surrogates before the method decoder."
+    }
+  ],
+  "authStartCases": [
+    {
+      "name": "absent-method",
+      "input": {
+        "instanceId": "codex"
+      }
+    },
+    {
+      "name": "present-null",
+      "input": {
+        "instanceId": "codex",
+        "methodId": null
+      }
+    },
+    {
+      "name": "selected-profile-50-emoji",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "chatgpt-profile:\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+      }
+    },
+    {
+      "name": "trimmed-bom-internal-controls",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "\ufeffchatgpt-profile:a\u0000\nb\u00a0"
+      }
+    },
+    {
+      "name": "utf16-over128",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+      }
+    },
+    {
+      "name": "blank-js-space",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "\ufeff\u00a0\n"
+      }
+    },
+    {
+      "name": "present-number",
+      "input": {
+        "instanceId": "codex",
+        "methodId": 7
+      }
+    }
+  ]
+}

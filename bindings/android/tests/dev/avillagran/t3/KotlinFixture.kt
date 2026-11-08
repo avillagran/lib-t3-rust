@@ -36,6 +36,26 @@ fun main() {
         val described = client.describe().getJSONArray("functions").length()
         check(described == saved && described > 100) { "describe lists $described functions, describe.json $saved" }
         val api = T3Api(client)
+        // Native SetupOperationId permits internal controls and uses UTF-16
+        // length. Neither generated Kotlin overload adds a Token validator.
+        for (methodId in listOf("profile:a\u0000b", "profile:a\nb", "😀".repeat(64))) {
+            for (call in listOf<() -> Any?>(
+                { api.provider.authRemoveMethod(" \uFEFFcodex\u00A0", methodId) },
+                { api.provider.authRemoveMethod(JSONObject().put("instanceId", "codex").put("methodId", methodId).put("extra", true)) },
+                { client.call("provider.auth.removeMethod", JSONObject().put("instanceId", "codex").put("methodId", methodId)) },
+            )) {
+                val error = runCatching { call() }.exceptionOrNull()
+                check(error is T3Exception && error.code == "not_connected") { error.toString() }
+            }
+        }
+        val longMethod = runCatching { api.provider.authRemoveMethod("codex", "😀".repeat(65)) }.exceptionOrNull()
+        check(longMethod is T3Exception && longMethod.code == "invalid_method_id")
+        for (methodId in listOf("chatgpt-profile:" + "😀".repeat(50), "\uFEFFprofile:a\u0000\nb\u00A0")) {
+            val error = runCatching { api.provider.authStart("codex", methodId = methodId) }.exceptionOrNull()
+            check(error is T3Exception && error.code == "not_connected") { error.toString() }
+        }
+        val nullMethod = runCatching { client.call("provider.auth.start", JSONObject().put("instanceId", "codex").put("methodId", JSONObject.NULL)) }.exceptionOrNull()
+        check(nullMethod is T3Exception && nullMethod.code == "invalid_method_id")
         // Keep the existing JVM method and positional Kotlin call intact.
         val taskMethods = T3Api.ScheduledTasks::class.java.declaredMethods
         check(taskMethods.single { it.name == "upsert" }.parameterCount == 15)

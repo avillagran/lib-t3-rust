@@ -1,0 +1,287 @@
+{
+  "complete": true,
+  "revision": "a9e709f15f825cacac1b6d665fa1920c328d68b7",
+  "wholeOriginalSchemaModule": true,
+  "sourceFiles": {
+    "packages/contracts/src/providerSetup.ts": "8951e8c7507c2fa1538ef51795fced9b41f05ec9ed739abb7398781ba4262b5f",
+    "packages/contracts/src/baseSchemas.ts": "edd4d2c73cc79ce5e50bffd35b9c861fe091de23a1ac792db864d3b71b09a7af",
+    "packages/contracts/src/providerInstance.ts": "ade67de404651ff6c5373ba1b0359f598c06d49f5e4de2aa77ebf396ab91233a",
+    "packages/contracts/src/secretReference.ts": "21e7ad0b752e843220ed037011ee108f4475208b8e99fc89b7360c144d5277a6"
+  },
+  "cases": [
+    {
+      "name": "canonical-extra-stripped",
+      "input": {
+        "instanceId": " ﻿codex_2-b ",
+        "methodId": " ﻿chatgpt-profile:oaiapp_saved ",
+        "future": {
+          "canRemove": true
+        }
+      },
+      "ok": true,
+      "value": {
+        "instanceId": "codex_2-b",
+        "methodId": "chatgpt-profile:oaiapp_saved"
+      }
+    },
+    {
+      "name": "internal-nul",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "chatgpt-profile:oaiapp_a\u0000b"
+      },
+      "ok": true,
+      "value": {
+        "instanceId": "codex",
+        "methodId": "chatgpt-profile:oaiapp_a\u0000b"
+      }
+    },
+    {
+      "name": "internal-newline",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "chatgpt-profile:oaiapp_a\nb"
+      },
+      "ok": true,
+      "value": {
+        "instanceId": "codex",
+        "methodId": "chatgpt-profile:oaiapp_a\nb"
+      }
+    },
+    {
+      "name": "utf16-exact128",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      },
+      "ok": true,
+      "value": {
+        "instanceId": "codex",
+        "methodId": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      }
+    },
+    {
+      "name": "utf16-over128",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      },
+      "ok": false
+    },
+    {
+      "name": "ascii-exact128",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+      },
+      "ok": true,
+      "value": {
+        "instanceId": "codex",
+        "methodId": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+      }
+    },
+    {
+      "name": "ascii-over128",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+      },
+      "ok": false
+    },
+    {
+      "name": "nel-not-js-space",
+      "input": {
+        "instanceId": "codex",
+        "methodId": ""
+      },
+      "ok": true,
+      "value": {
+        "instanceId": "codex",
+        "methodId": ""
+      }
+    },
+    {
+      "name": "slug-exact64",
+      "input": {
+        "instanceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "methodId": "m"
+      },
+      "ok": true,
+      "value": {
+        "instanceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "methodId": "m"
+      }
+    },
+    {
+      "name": "slug-over64",
+      "input": {
+        "instanceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "methodId": "m"
+      },
+      "ok": false
+    },
+    {
+      "name": "slug-leading-number",
+      "input": {
+        "instanceId": "1codex",
+        "methodId": "m"
+      },
+      "ok": false
+    },
+    {
+      "name": "slug-dot",
+      "input": {
+        "instanceId": "codex.work",
+        "methodId": "m"
+      },
+      "ok": false
+    },
+    {
+      "name": "slug-non-ascii",
+      "input": {
+        "instanceId": "é",
+        "methodId": "m"
+      },
+      "ok": false
+    },
+    {
+      "name": "blank-js-space",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "﻿ \n"
+      },
+      "ok": false
+    },
+    {
+      "name": "empty",
+      "input": {
+        "instanceId": "codex",
+        "methodId": ""
+      },
+      "ok": false
+    },
+    {
+      "name": "null-method",
+      "input": {
+        "instanceId": "codex",
+        "methodId": null
+      },
+      "ok": false
+    },
+    {
+      "name": "number-method",
+      "input": {
+        "instanceId": "codex",
+        "methodId": 42
+      },
+      "ok": false
+    },
+    {
+      "name": "missing-method",
+      "input": {
+        "instanceId": "codex"
+      },
+      "ok": false
+    },
+    {
+      "name": "missing-instance",
+      "input": {
+        "methodId": "m"
+      },
+      "ok": false
+    },
+    {
+      "name": "null-input",
+      "input": null,
+      "ok": false
+    },
+    {
+      "name": "array-input",
+      "input": [],
+      "ok": false
+    }
+  ],
+  "authStartCases": [
+    {
+      "name": "absent-method",
+      "input": {
+        "instanceId": "codex"
+      },
+      "ok": true,
+      "value": {
+        "instanceId": "codex"
+      }
+    },
+    {
+      "name": "present-null",
+      "input": {
+        "instanceId": "codex",
+        "methodId": null
+      },
+      "ok": false
+    },
+    {
+      "name": "selected-profile-50-emoji",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "chatgpt-profile:😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      },
+      "ok": true,
+      "value": {
+        "instanceId": "codex",
+        "methodId": "chatgpt-profile:😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      }
+    },
+    {
+      "name": "trimmed-bom-internal-controls",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "﻿chatgpt-profile:a\u0000\nb "
+      },
+      "ok": true,
+      "value": {
+        "instanceId": "codex",
+        "methodId": "chatgpt-profile:a\u0000\nb"
+      }
+    },
+    {
+      "name": "utf16-over128",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      },
+      "ok": false
+    },
+    {
+      "name": "blank-js-space",
+      "input": {
+        "instanceId": "codex",
+        "methodId": "﻿ \n"
+      },
+      "ok": false
+    },
+    {
+      "name": "present-number",
+      "input": {
+        "instanceId": "codex",
+        "methodId": 7
+      },
+      "ok": false
+    }
+  ],
+  "qualification": "Rust-readable scalar bridge only. The separate whole native result is retained unchanged with this exact SHA256. Two isolated-surrogate cases are excluded for generic Rust JSON ingress, never converted into fabricated native rejections.",
+  "nativeResultSha256": "8830abbdaaaaa498aae510082c098e512e9e45864bebdc69b5a7d7951e1de540",
+  "nativeResultFile": "provider-auth-remove-method-original-native-4340.json",
+  "exclusions": [
+    {
+      "name": "isolated-high-surrogate",
+      "rawInput": "{\"instanceId\":\"codex\",\"methodId\":\"\\ud800\"}",
+      "reason": "generic_rust_json_isolated_surrogate"
+    },
+    {
+      "name": "isolated-low-surrogate",
+      "rawInput": "{\"instanceId\":\"codex\",\"methodId\":\"\\udc00\"}",
+      "reason": "generic_rust_json_isolated_surrogate"
+    }
+  ]
+}

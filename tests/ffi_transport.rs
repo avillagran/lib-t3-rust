@@ -43,6 +43,24 @@ unsafe fn read(raw: *mut std::ffi::c_char) -> Value {
     value
 }
 #[test]
+fn auth_remove_json_abi_uses_the_exact_native_decoder_before_connection_lookup() {
+    let client = Client::new();
+    for method in ["profile:a\0b".to_string(), "profile:a\nb".to_string(), "😀".repeat(64)] {
+        let result = client.call(json!({"op":"call","fn":"provider.auth.removeMethod","args":{"instanceId":" \u{feff}codex\u{a0}","methodId":method,"extra":true}}));
+        assert_eq!(result["error"], "not_connected", "{result}");
+    }
+    let result = client.call(json!({"op":"call","fn":"provider.auth.removeMethod","args":{"instanceId":"codex","methodId":"😀".repeat(65)}}));
+    assert_eq!(result["error"], "invalid_method_id");
+    for method in [format!("chatgpt-profile:{}", "😀".repeat(50)), "\u{feff}profile:a\0\nb\u{a0}".into()] {
+        let result=client.call(json!({"op":"call","fn":"provider.auth.start","args":{"instanceId":"codex","methodId":method}}));
+        assert_eq!(result["error"],"not_connected");
+    }
+    let absent=client.call(json!({"op":"call","fn":"provider.auth.start","args":{"instanceId":"codex"}}));
+    assert_eq!(absent["error"],"not_connected");
+    let null=client.call(json!({"op":"call","fn":"provider.auth.start","args":{"instanceId":"codex","methodId":null}}));
+    assert_eq!(null["error"],"invalid_method_id");
+}
+#[test]
 fn capabilities_list_the_new_operations_under_abi_3() {
     let caps = Client::new().call(json!({"op":"capabilities"}))["data"].clone();
     // The transport ops are additive; ABI 3 comes from the typed API (call/describe).

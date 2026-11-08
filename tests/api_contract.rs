@@ -5,7 +5,15 @@ use serde_json::Value;
 use t3_protocol::api::{self, orchestration, Scope};
 
 fn contract() -> Value {
-    serde_json::from_str(include_str!("fixtures/t3-contract.json")).unwrap()
+    let mut base: Value = serde_json::from_str(include_str!("fixtures/t3-contract.json")).unwrap();
+    // Keep the 203-method base pin intact; this one later method has its own
+    // reviewed source provenance instead of claiming a full contract repin.
+    let extension: Value = serde_json::from_str(include_str!("fixtures/provider-auth-remove-method-4340-source.json")).unwrap();
+    assert_eq!(base["methods"].as_object().unwrap().len(), 203);
+    assert!(base["methods"].get("provider.auth.removeMethod").is_none());
+    assert_eq!(extension["baseContractPreserved"], api::CONTRACT);
+    base["methods"].as_object_mut().unwrap().extend(extension["methods"].as_object().unwrap().clone());
+    base
 }
 
 #[test]
