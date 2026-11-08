@@ -1,0 +1,55 @@
+{
+  "revision": "a9e709f15f825cacac1b6d665fa1920c328d68b7",
+  "nativeCommit": "1b952135a1",
+  "baseContractPreserved": "t3code@3f9448747",
+  "sourceFiles": {
+    "packages/contracts/src/providerSetup.ts": "8951e8c7507c2fa1538ef51795fced9b41f05ec9ed739abb7398781ba4262b5f",
+    "packages/contracts/src/providerInstance.ts": "ade67de404651ff6c5373ba1b0359f598c06d49f5e4de2aa77ebf396ab91233a",
+    "packages/contracts/src/baseSchemas.ts": "edd4d2c73cc79ce5e50bffd35b9c861fe091de23a1ac792db864d3b71b09a7af",
+    "packages/contracts/src/secretReference.ts": "21e7ad0b752e843220ed037011ee108f4475208b8e99fc89b7360c144d5277a6",
+    "packages/contracts/src/rpc.ts": "018ccb0a143ba75cd25c6dd334ed9f0bf54a28408eba130f495f91a190bf557b",
+    "packages/contracts/src/clientRpcPermissions.ts": "e06cef4b3031be87859118dc0814f916035b0dec3de4239fd3864834638ee636",
+    "packages/provider-core/src/server/auth.ts": "ef6034befa920e54fb6ae842f631118dfbc4bf9883c2d0716b9dff1544e28c88",
+    "packages/provider-core/src/server/providerAuthFlow.ts": "870a852b45026e1fc5a8252b541d9dd9b1302a311751554d46e81ac002b59bc0",
+    "apps/server/src/provider/CodexChatGptAuth.ts": "8bd38c2065dfab4a9ba900cf6db069bcf3ad5d7c375140fafe739316c7b3bf6b",
+    "apps/server/src/provider/ProviderAuthService.ts": "78437c10013affd03d8985b5e556ebfbe79f38eb47eabcfe982a7fa123c07c23",
+    "apps/server/src/provider/ProviderCredentialStore.ts": "15f8c03bf823ed69a363e2e71948ea5c7a20e95428e053e644e189ad8beb6be9",
+    "apps/server/src/auth/ServerSecretStore.ts": "73dafed19bec0d5166326c509dba79014891f6de718e935a3c255ba1917e4753",
+    "apps/server/src/auth/RpcAuthorization.ts": "b47d3b7ea572a926eef7f7640f57be6b9281e2915cf285b64e948a87709fa945",
+    "apps/server/src/ws.ts": "dcf017852cd2a5811e1f973602d83e13edbe9551043bf669591eb232a7fe54b1",
+    "apps/web/src/components/settings/ChatGptAccountPicker.tsx": "87de02479a5f49fdbbd21157e7f11d176c642ebd7a523ddef7118e1630fc4c2a",
+    "apps/web/src/components/settings/CodexSetupSection.tsx": "8fac8a1429b9d15f2ef5ab194890e4f3f2e5bb85007128ee9f1c54030436970f",
+    "packages/client-runtime/src/state/server.ts": "b8b79034b05404ffa6d2707843e6be1c455d11571d3b72ad61384029530e50cb",
+    "packages/contracts/src/settings.ts": "6ab407488bb0619f78e146c36972f3643216b16946067f91458fc63d4ba8e6ec",
+    "apps/web/src/components/settings/CodexSetupSection.logic.ts": "f0060b3e92e21fe17f27f36553862538573e771d7c77e0b79694c9502257580b"
+  },
+  "methods": {
+    "provider.auth.removeMethod": {
+      "stream": false,
+      "scope": "providers:manage",
+      "dynamic": false
+    }
+  },
+  "sourceOnlyProvenance": true,
+  "runtimeVerified": false,
+  "contract": {
+    "input": "ProviderAuthRemoveMethodInput",
+    "success": "ProviderAuthState",
+    "error": [
+      "ProviderSetupError",
+      "EnvironmentAuthorizationError"
+    ],
+    "methodIdMaxUtf16": 128,
+    "instanceIdSlugMax": 64,
+    "trim": "ECMAScript",
+    "unknownMembers": "stripped"
+  },
+  "qualification": "Targeted native4340 extension only. The original203-method base contract and global pin remain unchanged. This is source provenance, not an executed oracle or local managed-account acceptance.",
+  "referenceCases": {
+    "removeOriginal": 23,
+    "removeScalarBridge": 21,
+    "isolatedSurrogateExclusions": 2,
+    "authStart": 7
+  },
+  "rustIngressQualification": "Generic Rust serde_json::Value rejects isolated UTF-16 surrogates before this method decoder. The whole original result must remain unchanged; a separate scalar bridge names exactly two exclusions and its original result SHA256. No whole JavaScript string-schema equivalence is claimed."
+}

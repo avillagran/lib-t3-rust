@@ -92,6 +92,11 @@ fn kotlin(describe: &Value) -> String {
             let (open, returns) = if stream { ("subscribeFn", "T3Subscription") } else { ("call", "Any?") };
             if f["openArgs"] == true {
                 writeln!(out, "        fun {method}(args: JSONObject): {returns} = client.{open}(\"{name}\", args)").unwrap();
+                if name == "provider.auth.removeMethod" {
+                    // The raw overload preserves native unknown-key stripping;
+                    // both overloads reach the same exact Rust input decoder.
+                    writeln!(out, "        fun {method}(instanceId: String, methodId: String): {returns} =\n            client.{open}(\"{name}\", JSONObject().put(\"instanceId\", instanceId).put(\"methodId\", methodId))").unwrap();
+                }
                 continue;
             }
             let args = f["args"].as_array().unwrap();

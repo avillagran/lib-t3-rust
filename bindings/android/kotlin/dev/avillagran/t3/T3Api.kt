@@ -267,6 +267,10 @@ class T3Api(client: T3Client) {
         /** `provider.auth.cancel` · mutation · replay set · scope providers:manage · 20000 ms */
         fun authCancel(instanceId: String, flowId: String): Any? =
             client.call("provider.auth.cancel", JSONObject().put("instanceId", instanceId).put("flowId", flowId))
+        /** `provider.auth.removeMethod` · mutation · replay never · scope providers:manage · 20000 ms */
+        fun authRemoveMethod(args: JSONObject): Any? = client.call("provider.auth.removeMethod", args)
+        fun authRemoveMethod(instanceId: String, methodId: String): Any? =
+            client.call("provider.auth.removeMethod", JSONObject().put("instanceId", instanceId).put("methodId", methodId))
         /** `provider.auth.logout` · mutation · replay set · scope providers:manage · 20000 ms */
         fun authLogout(instanceId: String): Any? =
             client.call("provider.auth.logout", JSONObject().put("instanceId", instanceId))

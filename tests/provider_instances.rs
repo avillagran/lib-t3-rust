@@ -3,6 +3,24 @@ use serde_json::json;
 use serde_json::Value;
 
 #[test]
+fn native_auth_mode_projection_keeps_only_present_valid_codex_metadata() {
+    for (input, expected) in [
+        (json!({"setupMode":"managed","privateHidden":"PRIVATE"}), Some("managed")),
+        (json!({"setupMode":"existing"}), Some("existing")),
+        (json!({}), None),
+        (json!({"setupMode":"future"}), None),
+        (json!({"setupMode":true}), None),
+    ] {
+        let view=projection(&json!({"providerInstances":{"codex_work":{"driver":"codex","config":input},"claude_work":{"driver":"claudeAgent","config":{"setupMode":"managed"}}}}),&json!({"providers":[]}),true);
+        let instances=view["instances"].as_array().unwrap();
+        let codex=instances.iter().find(|instance|instance["id"]=="codex_work").unwrap();
+        assert_eq!(codex["config"]["setupMode"].as_str(),expected);
+        assert!(!view.to_string().contains("PRIVATE"));
+        assert!(instances.iter().find(|instance|instance["id"]=="claude_work").unwrap()["config"].get("setupMode").is_none());
+    }
+}
+
+#[test]
 fn claude_instance_create_matches_t3_contract_and_preserves_existing_instances() {
     let settings=json!({"providerInstances":{"codex":{"driver":"codex","config":{"apiKey":"private"}},"claudeAgent":{"driver":"claudeAgent","config":{"homePath":""}}}});
     let read=projection(&settings,&json!({"providers":[{"instanceId":"claudeAgent","driver":"claudeAgent","auth":{"status":"authenticated","email":"private@example.com"}}]}),true);

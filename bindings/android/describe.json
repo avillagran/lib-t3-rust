@@ -4449,6 +4449,29 @@
           "name": "instanceId",
           "required": true,
           "type": "slug"
+        },
+        {
+          "name": "methodId",
+          "required": true,
+          "type": "token"
+        }
+      ],
+      "fn": "provider.auth.removeMethod",
+      "kind": "mutation",
+      "module": "provider",
+      "openArgs": true,
+      "replay": "never",
+      "scope": "providers:manage",
+      "stream": false,
+      "tag": "provider.auth.removeMethod",
+      "timeoutMs": 20000
+    },
+    {
+      "args": [
+        {
+          "name": "instanceId",
+          "required": true,
+          "type": "slug"
         }
       ],
       "fn": "provider.auth.logout",
