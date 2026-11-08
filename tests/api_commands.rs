@@ -47,6 +47,8 @@ fn identical() -> Vec<Value> {
         with(ids("thread.pin.reorder"), json!({"orderKey":"a1"})),
         ids("thread.mark-unread"),
         with(ids("thread.visit"), json!({"visitedAt":"2026-10-24T10:00:00Z"})),
+        with(ids("thread.visit"), json!({"visitedAt":"2026-10-24T10:00:00Z","opened":true,"searchQuery":"  Café 日本 😀  "})),
+        with(ids("thread.visit"), json!({"visitedAt":"2026-10-24T10:00:00Z","opened":false,"searchQuery":""})),
         with(ids("queued-run.cancel"), json!({"runId":"r-2"})),
         with(ids("queued-run.reorder"), json!({"runId":"r-2","beforeRunId":null})),
         with(ids("queued-run.reorder"), json!({"runId":"r-2","beforeRunId":"r-1"})),
@@ -198,4 +200,18 @@ fn explicit_context_wrapper_leaves_legacy_literal_shape_and_bytes_unchanged() {
         assert_eq!(extended["freshContext"], fresh);
         assert_eq!(extended["context"].to_string(), before["context"].to_string());
     }
+}
+
+#[test]
+fn thread_visit_optional_open_contract_and_utf16_query_bound() {
+    let visit = |extra: Value| with(with(ids("thread.visit"), json!({"visitedAt":"2026-10-24T10:00:00Z"})), extra);
+    let boundary = visit(json!({"opened":true,"searchQuery":"😀".repeat(100)}));
+    assert_eq!(Command::from_json(&boundary).unwrap().payload().unwrap(), boundary);
+    for extra in [json!({"opened":null}), json!({"opened":1}), json!({"searchQuery":null}), json!({"searchQuery":false}), json!({"searchQuery":"😀".repeat(101)})] {
+        assert!(Command::from_json(&visit(extra)).is_err());
+    }
+    let legacy = visit(json!({}));
+    let command = Command::from_json(&legacy).unwrap();
+    assert_eq!(command.payload().unwrap(), legacy);
+    assert!(matches!(command, Command::ThreadVisit { opened:None, search_query:None, .. }));
 }

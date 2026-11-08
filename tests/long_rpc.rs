@@ -7,6 +7,31 @@ use std::{
     thread,
     time::Duration,
 };
+struct SyntheticAuthorizationUpgrade;
+impl tungstenite::handshake::server::Callback for SyntheticAuthorizationUpgrade {
+    fn on_request(self, request: &tungstenite::handshake::server::Request,
+        response: tungstenite::handshake::server::Response)
+        -> std::result::Result<tungstenite::handshake::server::Response, tungstenite::handshake::server::ErrorResponse> {
+                assert_eq!(request.headers()["authorization"], "Bearer synthetic");
+                assert!(!request.uri().to_string().contains("synthetic"));
+                Ok(response)
+    }
+}
+struct SyntheticTicketUpgrade;
+impl tungstenite::handshake::server::Callback for SyntheticTicketUpgrade {
+    fn on_request(self, request: &tungstenite::handshake::server::Request,
+        response: tungstenite::handshake::server::Response)
+        -> std::result::Result<tungstenite::handshake::server::Response, tungstenite::handshake::server::ErrorResponse> {
+                assert!(request
+                    .uri()
+                    .to_string()
+                    .contains("wsTicket=synthetic-one-use-ticket"));
+                assert!(!request.uri().to_string().contains("synthetic-bound"));
+                assert!(request.headers().get("authorization").is_none());
+                Ok(response)
+    }
+}
+
 #[test]
 fn explicit_lifecycle_deadline_survives_the_original_twenty_second_limit_and_heartbeats() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -18,11 +43,7 @@ fn explicit_lifecycle_deadline_survives_the_original_twenty_second_limit_and_hea
             .unwrap();
         let mut ws = tungstenite::accept_hdr(
             socket,
-            |request: &tungstenite::handshake::server::Request, response| {
-                assert_eq!(request.headers()["authorization"], "Bearer synthetic");
-                assert!(!request.uri().to_string().contains("synthetic"));
-                Ok(response)
-            },
+            SyntheticAuthorizationUpgrade,
         )
         .unwrap();
         let request: Value = serde_json::from_str(ws.read().unwrap().to_text().unwrap()).unwrap();
@@ -171,15 +192,7 @@ fn lifecycle_uses_existing_dpop_ticket_admission_without_exporting_bound_credent
         let (socket, _) = listener.accept().unwrap();
         let mut ws = tungstenite::accept_hdr(
             socket,
-            |request: &tungstenite::handshake::server::Request, response| {
-                assert!(request
-                    .uri()
-                    .to_string()
-                    .contains("wsTicket=synthetic-one-use-ticket"));
-                assert!(!request.uri().to_string().contains("synthetic-bound"));
-                assert!(request.headers().get("authorization").is_none());
-                Ok(response)
-            },
+            SyntheticTicketUpgrade,
         )
         .unwrap();
         let request: Value = serde_json::from_str(ws.read().unwrap().to_text().unwrap()).unwrap();

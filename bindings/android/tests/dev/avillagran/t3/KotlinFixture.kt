@@ -36,6 +36,22 @@ fun main() {
         val described = client.describe().getJSONArray("functions").length()
         check(described == saved && described > 100) { "describe lists $described functions, describe.json $saved" }
         val api = T3Api(client)
+        // The generated generic command wrapper preserves the optional open
+        // fields; actual Rust validation precedes connection lookup through JNI.
+        fun visit(): JSONObject = JSONObject().put("type", "thread.visit").put("commandId", "jni-visit")
+            .put("threadId", "t-1").put("visitedAt", "2026-11-08T10:00:00Z")
+        for (command in listOf(visit(), visit().put("opened", false),
+            visit().put("opened", true).put("searchQuery", "😀".repeat(100)))) {
+            val error = runCatching { api.orchestration.dispatchCommand(command) }.exceptionOrNull()
+            check(error is T3Exception && error.code == "not_connected") { error.toString() }
+        }
+        for ((command, code) in listOf(
+            Pair(visit().put("opened", JSONObject.NULL), "invalid_opened"),
+            Pair(visit().put("searchQuery", "😀".repeat(101)), "invalid_search_query"))) {
+            val error = runCatching { api.orchestration.dispatchCommand(command) }.exceptionOrNull()
+            check(error is T3Exception && error.code == code) { error.toString() }
+        }
+        println("KOTLIN_JNI_THREAD_VISIT_PASS: optional fields, legacy shape and UTF-16 boundary through real Rust decoder")
         // Native SetupOperationId permits internal controls and uses UTF-16
         // length. Neither generated Kotlin overload adds a Token validator.
         for (methodId in listOf("profile:a\u0000b", "profile:a\nb", "😀".repeat(64))) {
