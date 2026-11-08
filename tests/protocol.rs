@@ -173,16 +173,7 @@ fn fixture(mismatch: bool) -> (String, thread::JoinHandle<()>) {
                 .unwrap();
             let mut ws = tungstenite::accept_hdr(
                 s,
-                |req: &tungstenite::handshake::server::Request,
-                 resp: tungstenite::handshake::server::Response| {
-                    assert!(req
-                        .uri()
-                        .query()
-                        .unwrap()
-                        .contains("wsTicket=one-use-ticket"));
-                    assert!(!req.headers().contains_key("authorization"));
-                    Ok(resp)
-                },
+                OneUseTicketUpgrade,
             )
             .unwrap();
             let r: Value = serde_json::from_str(ws.read().unwrap().to_text().unwrap()).unwrap();
@@ -193,6 +184,21 @@ fn fixture(mismatch: bool) -> (String, thread::JoinHandle<()>) {
     });
     (base, t)
 }
+struct OneUseTicketUpgrade;
+impl tungstenite::handshake::server::Callback for OneUseTicketUpgrade {
+    fn on_request(self, req: &tungstenite::handshake::server::Request,
+        resp: tungstenite::handshake::server::Response)
+        -> std::result::Result<tungstenite::handshake::server::Response, tungstenite::handshake::server::ErrorResponse> {
+                    assert!(req
+                        .uri()
+                        .query()
+                        .unwrap()
+                        .contains("wsTicket=one-use-ticket"));
+                    assert!(!req.headers().contains_key("authorization"));
+                    Ok(resp)
+    }
+}
+
 #[test]
 fn relay_dpop_http_and_rpc_contract() {
     let (base, server) = fixture(false);
