@@ -262,6 +262,7 @@ fn rows() -> Vec<(&'static str, &'static str, Value, Value)> {
             json!({"instanceId":"claude","flowId":"f-1","interactionId":"i-2","response":{"type":"credentials","values":{"apiKey":"synthetic-value"}}}),
         ),
         ("provider.auth.cancel", "provider.auth.cancel", json!({"instanceId":"claude","flowId":"f-1"}), json!({"instanceId":"claude","flowId":"f-1"})),
+        ("provider.auth.removeMethod", "provider.auth.removeMethod", json!({"instanceId":" \u{feff}codex\u{a0}","methodId":" profile:a\0b ","extra":true}), json!({"instanceId":"codex","methodId":"profile:a\0b"})),
         ("provider.auth.logout", "provider.auth.logout", json!({"instanceId":"claude"}), json!({"instanceId":"claude"})),
         ("provider.install.start", "provider.install.start", json!({"instanceId":"opencode"}), json!({"instanceId":"opencode"})),
         ("provider.install.cancel", "provider.install.cancel", json!({"instanceId":"opencode","operationId":"op-1"}), json!({"instanceId":"opencode","operationId":"op-1"})),
@@ -585,6 +586,7 @@ fn rust_signatures_put_the_same_requests_on_the_wire() {
     assert!(!format!("{credentials:?}").contains("synthetic-value"), "Debug never shows a credential");
     api::provider::auth_respond(c, "claude", "f-1", "i-2", &credentials).unwrap();
     api::provider::auth_cancel(c, "claude", "f-1").unwrap();
+    api::provider::auth_remove_method(c, " \u{feff}codex\u{a0}", " profile:a\0b ").unwrap();
     api::provider::auth_logout(c, "claude").unwrap();
     api::provider::install_start(c, "opencode").unwrap();
     api::provider::install_cancel(c, "opencode", "op-1").unwrap();
@@ -825,12 +827,12 @@ fn every_module_has_its_unary_functions_and_scopes() {
     }
     let expected = [
         ("agentSessions", 2), ("assets", 2), ("device", 8), ("diagnostics", 8), ("filesystem", 2), ("guestShare",1), ("mcpApps", 3),
-        ("orchestration", 13), ("preview", 9), ("projectClone", 1), ("projects", 5), ("provider", 10), ("pullRequests", 15),
+        ("orchestration", 13), ("preview", 9), ("projectClone", 1), ("projects", 5), ("provider", 11), ("pullRequests", 15),
         ("review", 2), ("scheduledTasks", 5), ("secrets", 1), ("server", 9), ("shell", 1), ("terminal", 5), ("vcs", 7),
         ("worktreeSetup", 1),
     ];
     assert_eq!(counts.into_iter().collect::<Vec<_>>(), expected);
-    assert_eq!(api::functions().filter(|f| !f.stream && f.tag.is_some()).count(), 110);
+    assert_eq!(api::functions().filter(|f| !f.stream && f.tag.is_some()).count(), 111);
     // Payload-dependent scopes the host can compute before choosing a token.
     assert_eq!(api::device::list_scope(Some("hub"), Some(true), None), "orchestration:operate");
     assert_eq!(api::device::list_scope(None, Some(true), Some("mac")), "orchestration:read");
