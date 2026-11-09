@@ -64,6 +64,25 @@ class T3Client : Closeable {
     fun rpc(tag: String, payload: JSONObject): Any? = execute(
         JSONObject().put("op", "rpc").put("tag", tag).put("payload", payload)
     )
+    /** Lossless JSON bytes. Avoid JSONObject/String UTF-8 conversion for lone
+     * UTF-16 units; [utf16JsonString] creates an exact escaped query value.
+     * The raw success or rejection envelope is returned without decoding. */
+    fun executeRaw(request: ByteArray): ByteArray = useHandle { native ->
+        val owned = request.copyOf()
+        try { jni { T3Native.callRaw(native, owned) } } finally { owned.fill(0) }
+    }
+    /** Exact JavaScript string units as ASCII JSON, without replacing lone surrogates. */
+    fun utf16JsonString(value: String): ByteArray {
+        val out = StringBuilder(value.length * 6 + 2).append('"')
+        for (unit in value) out.append("\\u").append(unit.code.toString(16).padStart(4, '0'))
+        return out.append('"').toString().toByteArray(Charsets.US_ASCII)
+    }
+    /** Native server trim and UTF-16 bounds are enforced in Rust. No clipping. */
+    fun searchThreadsUtf16(query: String, optionsJson: ByteArray = "{}".toByteArray(Charsets.US_ASCII)): ByteArray {
+        val prefix = "{\"op\":\"searchThreadsUtf16\",\"query\":".toByteArray(Charsets.US_ASCII)
+        val middle = ",\"options\":".toByteArray(Charsets.US_ASCII)
+        return executeRaw(prefix + utf16JsonString(query) + middle + optionsJson + byteArrayOf('}'.code.toByte()))
+    }
     /** Typed API (ABI 3): validated in Rust before any socket, sent once, never retried.
      *  `fn` and `args` follow [describe]; `timeoutMs` (1..300000) overrides the function's deadline. */
     fun call(fn: String, args: JSONObject = JSONObject(), timeoutMs: Int? = null): Any? = execute(
@@ -353,6 +372,7 @@ internal object T3Native {
     @JvmStatic external fun create(): Long
     @JvmStatic external fun free(handle: Long)
     @JvmStatic external fun call(handle: Long, request: ByteArray): ByteArray
+    @JvmStatic external fun callRaw(handle: Long, request: ByteArray): ByteArray
     @JvmStatic external fun upload(handle: Long, metadata: ByteArray, fd: Int): ByteArray
     @JvmStatic external fun image(handle: Long, metadata: ByteArray): Array<ByteArray?>
 }
