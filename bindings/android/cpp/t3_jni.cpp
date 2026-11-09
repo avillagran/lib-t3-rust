@@ -73,6 +73,13 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_dev_avillagran_t3_T3Native_call(JNI
         return response(env, t3_client_call(reinterpret_cast<void *>(handle), request.data(), request.size()));
     } catch (const std::bad_alloc &) { fail(env, "native_allocation_failed"); return nullptr; }
 }
+extern "C" JNIEXPORT jbyteArray JNICALL Java_dev_avillagran_t3_T3Native_callRaw(JNIEnv *env, jclass, jlong handle, jbyteArray data) {
+    try {
+        Input request;
+        if (!input(env, data, request)) return nullptr;
+        return response(env, t3_client_call_raw(reinterpret_cast<void *>(handle), request.data(), request.size()));
+    } catch (const std::bad_alloc &) { fail(env, "native_allocation_failed"); return nullptr; }
+}
 extern "C" JNIEXPORT jbyteArray JNICALL Java_dev_avillagran_t3_T3Native_upload(JNIEnv *env, jclass, jlong handle, jbyteArray data, jint fd) {
     try {
         Input request;

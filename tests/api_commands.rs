@@ -122,7 +122,7 @@ fn invalid_commands_are_rejected_before_dispatch() {
         (with(ids("message.dispatch"), json!({"messageId":"m","text":"  ","attachments":[],"createdBy":"user","creationSource":"web","dispatchMode":{"type":"start_immediately"}})), "invalid_text"),
         (with(ids("message.dispatch"), json!({"messageId":"m","text":"x","attachments":[],"createdBy":"robot","creationSource":"web","dispatchMode":{"type":"start_immediately"}})), "invalid_created_by"),
         (with(ids("message.dispatch"), json!({"messageId":"m","text":"x","attachments":[],"createdBy":"user","creationSource":"web","dispatchMode":{"type":"later"}})), "invalid_dispatch_mode"),
-        (with(ids("thread.visit"), json!({"visitedAt":"yesterday"})), "invalid_visited_at"),
+        (with(ids("thread.visit"), json!({"visitedAt":42})), "invalid_visited_at"),
         (with(ids("thread.unsettle"), json!({"reason":"bot"})), "invalid_reason"),
         (with(ids("runtime-request.respond"), json!({"requestId":" q"})), "invalid_input"),
         (with(ids("runtime-request.respond"), json!({"requestId":" q","decision":"accept"})), "invalid_request_id"),

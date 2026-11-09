@@ -8,6 +8,7 @@ public final class T3Native {
     static native long create();
     static native void free(long handle);
     static native byte[] call(long handle, byte[] request);
+    static native byte[] callRaw(long handle, byte[] request);
     static native byte[] upload(long handle, byte[] metadata, int fd);
     static native byte[][] image(long handle, byte[] metadata);
     static String invoke(long handle, String request) { return new String(call(handle, request.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8); }
